@@ -1,0 +1,2 @@
+class MOAException(Exception):
+    pass

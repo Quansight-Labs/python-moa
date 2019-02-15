@@ -146,11 +146,11 @@ class MOAParser(sly.Parser):
 
     @_('INTEGER integer_list')
     def integer_list(self, p):
-        return [p.INTEGER] + p.integer_list
+        return (p.INTEGER,) + p.integer_list
 
     @_('empty')
     def integer_list(self, p):
-        return []
+        return tuple()
 
     @_('')
     def empty(self, p):
@@ -166,5 +166,4 @@ class MOAParser(sly.Parser):
         lexer = MOALexer()
         tokens = lexer.tokenize(text)
         tree = super().parse(tokens)
-        # lexer.symbol_table
         return tree
