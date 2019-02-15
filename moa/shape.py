@@ -1,9 +1,17 @@
-from .ast import MOANodeTypes, postorder_replacement
+from .ast import MOANodeTypes, postorder_replacement, BinaryNode, UnaryNode
 from .core import MOAException
 
 
 class MOAShapeException(MOAException):
     pass
+
+
+def is_vector(node):
+    return node.node_type == MOANodeTypes.ARRAY and len(node.shape) == 1
+
+
+def dimension(node):
+    return len(node.shape)
 
 
 def calculate_shapes(tree):
@@ -20,29 +28,29 @@ def _shape_replacement(node):
         MOANodeTypes.PSI: _shape_psi,
         MOANodeTypes.PLUS: _shape_plus,
     }
-    return shape_map[node[0]](node)
+    return shape_map[node.node_type](node)
 
 
 # Unary Operations
 def _shape_transpose(node):
-    return (node[0], node[2][1][::-1], node[2])
+    return UnaryNode(node.node_type, node.right_node.shape[::-1], node.right_node)
 
 
 # Binary Operations
 def _shape_psi(node):
-    if len(node[2][1]) != 1:
+    if not is_vector(node.left_node):
         raise MOAShapeException('PSI requires left node to be vector')
 
-    drop_dims = len(node[2][3])
+    drop_dims = len(node.left_node.value)
 
-    if drop_dims > len(node[3][1]):
+    if drop_dims > dimension(node.right_node):
         raise MOAShapeException('PSI requires that vector length be no greater than dimension of right node')
 
-    return (node[0], node[3][1][drop_dims:], node[2], node[3])
+    return BinaryNode(node.node_type, node.right_node.shape[drop_dims:], node.left_node, node.right_node)
 
 
 def _shape_plus(node):
-    if node[2][1] != node[3][1]:
+    if node.left_node.shape != node.right_node.shape:
         raise MOAShapeException('(+,-,/,*) for now requires shapes to match')
 
-    return (node[0], node[2][1], node[2], node[3])
+    return BinaryNode(node.node_type, node.left_node.shape, node.left_node, node.right_node)

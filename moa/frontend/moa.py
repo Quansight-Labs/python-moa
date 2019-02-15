@@ -2,7 +2,7 @@ import sly
 from sly.lex import LexError
 from sly.yacc import YaccError
 
-from ..ast import MOANodeTypes
+from ..ast import MOANodeTypes, ArrayNode, UnaryNode, BinaryNode
 
 
 class MOALexer(sly.Lexer):
@@ -104,7 +104,7 @@ class MOAParser(sly.Parser):
             'shp': MOANodeTypes.SHAPE,
             'rav': MOANodeTypes.RAV,
         }
-        return (unary_map[p[0].lower()], None, p.expr)
+        return UnaryNode(unary_map[p[0].lower()], None, p.expr)
 
     @_('expr PLUS   expr',
        'expr MINUS  expr',
@@ -126,7 +126,7 @@ class MOAParser(sly.Parser):
             'drop': MOANodeTypes.DROP,
             'cat': MOANodeTypes.CAT,
         }
-        return (binary_map[p[1].lower()], None, p.expr0, p.expr1)
+        return BinaryNode(binary_map[p[1].lower()], None, p.expr0, p.expr1)
 
     @_('array')
     def expr(self, p):
@@ -134,15 +134,15 @@ class MOAParser(sly.Parser):
 
     @_('IDENTIFIER CARROT LANGLEBRACKET integer_list RANGLEBRACKET')
     def array(self, p):
-        return (MOANodeTypes.ARRAY, tuple(p.integer_list), p.IDENTIFIER, None)
+        return ArrayNode(MOANodeTypes.ARRAY, tuple(p.integer_list), p.IDENTIFIER, None)
 
     @_('IDENTIFIER')
     def array(self, p):
-        return (MOANodeTypes.ARRAY, None, p.IDENTIFIER, None)
+        return ArrayNode(MOANodeTypes.ARRAY, None, p.IDENTIFIER, None)
 
     @_('LANGLEBRACKET integer_list RANGLEBRACKET')
     def array(self, p):
-        return (MOANodeTypes.ARRAY, (len(p.integer_list),), None, tuple(p.integer_list))
+        return ArrayNode(MOANodeTypes.ARRAY, (len(p.integer_list),), None, tuple(p.integer_list))
 
     @_('INTEGER integer_list')
     def integer_list(self, p):

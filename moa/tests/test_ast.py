@@ -4,15 +4,16 @@ import pytest
 
 from moa.ast import (
     MOANodeTypes,
+    ArrayNode, UnaryNode, BinaryNode,
     is_array, is_unary_operation, is_binary_operation,
     postorder_replacement,
     preorder_replacement
 )
 
 @pytest.mark.parametrize('node, result', [
-    ((MOANodeTypes.ARRAY, None, None, None), (True, False, False)),
-    ((MOANodeTypes.PLUSRED, None, None), (False, True, False)),
-    ((MOANodeTypes.CAT, None, None, None), (False, False, True)),
+    (ArrayNode(MOANodeTypes.ARRAY, None, None, None), (True, False, False)),
+    (UnaryNode(MOANodeTypes.PLUSRED, None, None), (False, True, False)),
+    (BinaryNode(MOANodeTypes.CAT, None, None, None), (False, False, True)),
 ])
 def test_ast_nodes(node, result):
     assert is_array(node) == result[0]
@@ -30,14 +31,14 @@ def test_postorder_replacement():
             return (next(counter), node[2], node[3])
         return (next(counter),)
 
-    tree = (MOANodeTypes.CAT, None,
-            (MOANodeTypes.PLUSRED, None,
-             (MOANodeTypes.ARRAY, None, None, 1)),
-            (MOANodeTypes.PLUS, None,
-             (MOANodeTypes.SHAPE, None,
-              (MOANodeTypes.ARRAY, None, None, 2)),
-             (MOANodeTypes.RAV, None,
-              (MOANodeTypes.ARRAY, None, None, 3))))
+    tree = BinaryNode(MOANodeTypes.CAT, None,
+                      UnaryNode(MOANodeTypes.PLUSRED, None,
+                                ArrayNode(MOANodeTypes.ARRAY, None, None, 1)),
+                      BinaryNode(MOANodeTypes.PLUS, None,
+                                 UnaryNode(MOANodeTypes.SHAPE, None,
+                                           ArrayNode(MOANodeTypes.ARRAY, None, None, 2)),
+                                 UnaryNode(MOANodeTypes.RAV, None,
+                                           ArrayNode(MOANodeTypes.ARRAY, None, None, 3))))
 
     new_tree = postorder_replacement(tree, replacement_function)
     print(new_tree)

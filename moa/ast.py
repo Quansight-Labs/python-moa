@@ -28,29 +28,40 @@ class MOANodeTypes(enum.Enum):
     CAT     = 208
 
 
+# I was hesitant to add this but it makes
+# readibility **SO** much better
+# and it is rougly equivalent to C struct
+ArrayNode = collections.namedtuple(
+    'ArrayNode', ['node_type', 'shape', 'name', 'value'])
+UnaryNode = collections.namedtuple(
+    'UnaryNode', ['node_type', 'shape', 'right_node'])
+BinaryNode = collections.namedtuple(
+    'BinaryNode', ['node_type', 'shape', 'left_node', 'right_node'])
+
+
 # node methods
 def is_array(node):
-    return node[0] == MOANodeTypes.ARRAY
+    return node.node_type == MOANodeTypes.ARRAY
 
 
 def is_unary_operation(node):
-    return 100 < node[0].value < 200
+    return 100 < node.node_type.value < 200
 
 
 def is_binary_operation(node):
-    return 200 < node[0].value < 300
+    return 200 < node.node_type.value < 300
 
 
 ## replacement methods
 # recursive for simplicity
 def postorder_replacement(node, replacement_function):
     if is_unary_operation(node):
-        right_node = postorder_replacement(node[2], replacement_function)
-        node = node[:2] + (right_node,)
+        right_node = postorder_replacement(node.right_node, replacement_function)
+        node = UnaryNode(node.node_type, node.shape, right_node)
     elif is_binary_operation(node):
-        left_node = postorder_replacement(node[2], replacement_function)
-        right_node = postorder_replacement(node[3], replacement_function)
-        node = node[:2] + (left_node, right_node)
+        left_node = postorder_replacement(node.left_node, replacement_function)
+        right_node = postorder_replacement(node.right_node, replacement_function)
+        node = BinaryNode(node.node_type, node.shape, left_node, right_node)
     return replacement_function(node)
 
 def preorder_replacement(node):
