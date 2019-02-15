@@ -1,7 +1,7 @@
 import pytest
 
 from moa.frontend import MOALexer, MOAParser
-from moa.core import MOANodeTypes
+from moa.ast import MOANodeTypes
 
 
 @pytest.mark.parametrize("expression,result", [
@@ -53,7 +53,7 @@ def test_lexer_single_token(expression, result):
        (MOANodeTypes.PLUS, None,
         (MOANodeTypes.ARRAY, None, 'A', None),
         (MOANodeTypes.ARRAY, None, 'B', None))))),
-    # Lenore Example 06/01/2018
+    # Lenore Simple Example #1 06/01/2018
     ('<0> psi ( tran (A^<3 4> + B^<3 4>))',
      (MOANodeTypes.PSI, None,
       (MOANodeTypes.ARRAY, (1,), None, (0,)),

@@ -2,7 +2,7 @@ import sly
 from sly.lex import LexError
 from sly.yacc import YaccError
 
-from ..core import MOANodeTypes
+from ..ast import MOANodeTypes
 
 
 class MOALexer(sly.Lexer):
