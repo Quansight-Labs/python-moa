@@ -48,12 +48,12 @@ def print_ast(node):
 
     def _print_node(node, prefix=""):
         if is_unary_operation(node):
-            print(prefix + "└── ", _node_label(node.right_node))
+            print(prefix + "└──", _node_label(node.right_node))
             _print_node(node.right_node, prefix + "    ")
         elif is_binary_operation(node):
-            print(prefix + "├── ", _node_label(node.left_node))
+            print(prefix + "├──", _node_label(node.left_node))
             _print_node(node.left_node,  prefix + "│   ")
-            print(prefix + "└── ", _node_label(node.right_node))
+            print(prefix + "└──", _node_label(node.right_node))
             _print_node(node.right_node, prefix + "    ")
 
     print(_node_label(node))
