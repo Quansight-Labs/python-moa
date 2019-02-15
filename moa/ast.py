@@ -2,8 +2,13 @@ import enum
 import collections
 
 
+class MOAReplacementError(Exception):
+    pass
+
+
 class MOANodeTypes(enum.Enum):
     ARRAY = 1
+    INDEX = 2
 
     # unary
     PLUSRED   = 101
@@ -53,8 +58,11 @@ def is_binary_operation(node):
 
 
 ## replacement methods
-# recursive for simplicity
 def postorder_replacement(node, replacement_function):
+    """Postorder (Left, Right, Root) traversal of AST
+
+    Used for calculating the shape of the ast at each node.
+    """
     if is_unary_operation(node):
         right_node = postorder_replacement(node.right_node, replacement_function)
         node = UnaryNode(node.node_type, node.shape, right_node)
@@ -65,8 +73,22 @@ def postorder_replacement(node, replacement_function):
     return replacement_function(node)
 
 
-def preorder_replacement(node, replacement_function):
-    node = replacement_function(node)
+def preorder_replacement(node, replacement_function, max_iterations=100):
+    """Preorder (Root, Left, Right) traversal of AST
+
+    Used for reducing the ast. Note that "replacement_function" is
+    called until it returns "None" indicating that there are no more
+    reductions to perform on the root node. This behavior is different
+    than the "postorder_replacement" function.
+    """
+    for i in range(max_iterations):
+        replacement_node = replacement_function(node)
+        if replacement_node is None:
+            break
+        node = replacement_node
+    else:
+        raise MOAReplacementError(f'reduction on node {node.node_type} failed to complete in {max_iterations} iterations')
+
     if is_unary_operation(node):
         right_node = preorder_replacement(node.right_node, replacement_function)
         node = UnaryNode(node.node_type, node.shape, right_node)

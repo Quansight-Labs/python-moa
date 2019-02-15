@@ -58,6 +58,10 @@ def test_preorder_replacement():
     counter = itertools.count()
 
     def replacement_function(node):
+        # termination condition we end up visiting each node twice
+        if node.shape is not None:
+            return None
+
         node_value = (next(counter),)
         if is_unary_operation(node):
             return UnaryNode(node.node_type, node_value, node.right_node)
