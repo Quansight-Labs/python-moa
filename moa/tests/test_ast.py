@@ -25,21 +25,63 @@ def test_postorder_replacement():
     counter = itertools.count()
 
     def replacement_function(node):
+        node_value = (next(counter),)
         if is_unary_operation(node):
-            return (next(counter), node[2])
+            return UnaryNode(node.node_type, node_value, node.right_node)
         elif is_binary_operation(node):
-            return (next(counter), node[2], node[3])
-        return (next(counter),)
+            return BinaryNode(node.node_type, node_value, node.left_node, node.right_node)
+        return ArrayNode(node.node_type, node_value, None, None)
 
     tree = BinaryNode(MOANodeTypes.CAT, None,
                       UnaryNode(MOANodeTypes.PLUSRED, None,
-                                ArrayNode(MOANodeTypes.ARRAY, None, None, 1)),
+                                ArrayNode(MOANodeTypes.ARRAY, None, None, None)),
                       BinaryNode(MOANodeTypes.PLUS, None,
                                  UnaryNode(MOANodeTypes.SHAPE, None,
-                                           ArrayNode(MOANodeTypes.ARRAY, None, None, 2)),
+                                           ArrayNode(MOANodeTypes.ARRAY, None, None, None)),
                                  UnaryNode(MOANodeTypes.RAV, None,
-                                           ArrayNode(MOANodeTypes.ARRAY, None, None, 3))))
+                                           ArrayNode(MOANodeTypes.ARRAY, None, None, None))))
+
+    expected_tree = (MOANodeTypes.CAT, (7,),
+                     (MOANodeTypes.PLUSRED, (1,),
+                      (MOANodeTypes.ARRAY, (0,), None, None)),
+                     (MOANodeTypes.PLUS, (6,),
+                      (MOANodeTypes.SHAPE, (3,),
+                       (MOANodeTypes.ARRAY, (2,), None, None)),
+                      (MOANodeTypes.RAV, (5,),
+                       (MOANodeTypes.ARRAY, (4,), None, None))))
 
     new_tree = postorder_replacement(tree, replacement_function)
-    print(new_tree)
-    assert new_tree == (7, (1, (0,)), (6, (3, (2,)), (5, (4,))))
+    assert new_tree == expected_tree
+
+
+def test_preorder_replacement():
+    counter = itertools.count()
+
+    def replacement_function(node):
+        node_value = (next(counter),)
+        if is_unary_operation(node):
+            return UnaryNode(node.node_type, node_value, node.right_node)
+        elif is_binary_operation(node):
+            return BinaryNode(node.node_type, node_value, node.left_node, node.right_node)
+        return ArrayNode(node.node_type, node_value, None, None)
+
+    tree = BinaryNode(MOANodeTypes.CAT, None,
+                      UnaryNode(MOANodeTypes.PLUSRED, None,
+                                ArrayNode(MOANodeTypes.ARRAY, None, None, None)),
+                      BinaryNode(MOANodeTypes.PLUS, None,
+                                 UnaryNode(MOANodeTypes.SHAPE, None,
+                                           ArrayNode(MOANodeTypes.ARRAY, None, None, None)),
+                                 UnaryNode(MOANodeTypes.RAV, None,
+                                           ArrayNode(MOANodeTypes.ARRAY, None, None, None))))
+
+    expected_tree = (MOANodeTypes.CAT, (0,),
+                     (MOANodeTypes.PLUSRED, (1,),
+                      (MOANodeTypes.ARRAY, (2,), None, None)),
+                     (MOANodeTypes.PLUS, (3,),
+                      (MOANodeTypes.SHAPE, (4,),
+                       (MOANodeTypes.ARRAY, (5,), None, None)),
+                      (MOANodeTypes.RAV, (6,),
+                       (MOANodeTypes.ARRAY, (7,), None, None))))
+
+    new_tree = preorder_replacement(tree, replacement_function)
+    assert new_tree == expected_tree

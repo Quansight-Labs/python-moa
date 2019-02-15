@@ -13,6 +13,7 @@ from .ast import (
 
 
 _NODE_LABEL_MAP = {
+    MOANodeTypes.ARRAY: "Array",
     # Unary
     MOANodeTypes.PLUSRED: "+red",
     MOANodeTypes.MINUSRED: "-red",
@@ -36,6 +37,28 @@ _NODE_LABEL_MAP = {
     MOANodeTypes.DROP: "drop(▿)",
     MOANodeTypes.CAT: "cat(++)",
 }
+
+
+def print_ast(node):
+    def _node_label(node):
+        node_label = _NODE_LABEL_MAP[node.node_type]
+        if node.shape:
+            node_label += " <" + " ".join(str(_) for _ in node.shape) + ">"
+        return node_label
+
+    def _print_node(node, prefix=""):
+        if is_unary_operation(node):
+            print(prefix + "└── ", _node_label(node.right_node))
+            _print_node(node.right_node, prefix + "    ")
+        elif is_binary_operation(node):
+            print(prefix + "├── ", _node_label(node.left_node))
+            _print_node(node.left_node,  prefix + "│   ")
+            print(prefix + "└── ", _node_label(node.right_node))
+            _print_node(node.right_node, prefix + "    ")
+
+    print(_node_label(node))
+    _print_node(node)
+
 
 
 def visualize_ast(tree, comment='MOA AST', with_attrs=True):

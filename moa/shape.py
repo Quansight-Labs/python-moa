@@ -15,7 +15,7 @@ def dimension(node):
 
 
 def calculate_shapes(tree):
-    """Postorder Traversal of ast tree to calculate shapes
+    """Postorder traversal to calculate node shapes
 
     """
     return postorder_replacement(tree, _shape_replacement)

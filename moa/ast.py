@@ -65,5 +65,13 @@ def postorder_replacement(node, replacement_function):
     return replacement_function(node)
 
 
-def preorder_replacement(node):
-    pass
+def preorder_replacement(node, replacement_function):
+    node = replacement_function(node)
+    if is_unary_operation(node):
+        right_node = preorder_replacement(node.right_node, replacement_function)
+        node = UnaryNode(node.node_type, node.shape, right_node)
+    elif is_binary_operation(node):
+        left_node = preorder_replacement(node.left_node, replacement_function)
+        right_node = preorder_replacement(node.right_node, replacement_function)
+        node = BinaryNode(node.node_type, node.shape, left_node, right_node)
+    return node
