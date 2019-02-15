@@ -1,6 +1,6 @@
 { pkgs ? import <nixpkgs> { }, pythonPackages ? pkgs.python3Packages }:
 
-{
+rec {
   python-moa = pythonPackages.buildPythonPackage {
     name = "python-moa";
     format = "flit";
@@ -10,10 +10,18 @@
       ./.;
 
     propagatedBuildInputs = with pythonPackages; [ sly ];
-    checkInputs = with pythonPackages; [ pytest ];
+    checkInputs = with pythonPackages; [ pytest graphviz ];
 
     checkPhase = ''
       pytest moa
+    '';
+  };
+
+  shell = pkgs.mkShell {
+    buildInputs = with pythonPackages; [ python-moa jupyterlab graphviz pkgs.graphviz ];
+
+    shellHook = ''
+      cd notebooks; jupyter lab
     '';
   };
 

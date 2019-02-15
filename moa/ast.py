@@ -64,5 +64,6 @@ def postorder_replacement(node, replacement_function):
         node = BinaryNode(node.node_type, node.shape, left_node, right_node)
     return replacement_function(node)
 
+
 def preorder_replacement(node):
     pass
