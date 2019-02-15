@@ -14,6 +14,7 @@ class MOANodeTypes(enum.Enum):
     TAU       = 107
     SHAPE     = 108
     RAV       = 109
+    TRANSPOSE = 110
 
     # binary
     PLUS    = 201

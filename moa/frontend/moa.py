@@ -1,4 +1,6 @@
 import sly
+from sly.lex import LexError
+from sly.yacc import YaccError
 
 from ..core import MOANodeTypes
 
@@ -8,7 +10,7 @@ class MOALexer(sly.Lexer):
         PLUS, MINUS, TIMES, DIVIDE,
         PSI, TAKE, DROP, CAT,
         PLUSRED, MINUSRED, TIMESRED, DIVIDERED,
-        IOTA, DIM, TAU, SHAPE, RAV,
+        IOTA, DIM, TAU, SHAPE, RAV, TRANSPOSE,
         LANGLEBRACKET, RANGLEBRACKET,
         LPAREN, RPAREN,
         CARROT,
@@ -25,6 +27,13 @@ class MOALexer(sly.Lexer):
     def comment(self, t):
         pass # skip comments
 
+    @_(r'[+-]?\d+')
+    def INTEGER(self, t):
+        t.value = int(t.value)
+        return t
+
+    IDENTIFIER = r'[a-zA-Z][a-zA-Z0-9_]*'
+
     ## containers
     LPAREN = r'\('
     RPAREN = r'\)'
@@ -32,26 +41,27 @@ class MOALexer(sly.Lexer):
     RANGLEBRACKET = r'>'
     CARROT = r'\^'
 
-    ## binary operators
-    PLUS   = r'\+'
-    MINUS  = r'\-'
-    TIMES  = r'\*'
-    DIVIDE = r'/'
-
     ## unary operators
     PLUSRED   = r'\+red'
     MINUSRED  = r'\-red'
     TIMESRED  = r'\*red'
     DIVIDERED = r'/red'
+    IDENTIFIER['iota'] = IOTA
+    IDENTIFIER['dim']  = DIM
+    IDENTIFIER['shp']  = SHAPE
+    IDENTIFIER['tau']  = TAU
+    IDENTIFIER['rav']  = RAV
+    IDENTIFIER['tran'] = TRANSPOSE
 
-    @_(r'[+-]?\d+')
-    def INTEGER(self, t):
-        t.value = int(t.value)
-        return t
-
-    @_(r'[a-zA-Z][a-zA-Z0-9_]*')
-    def IDENTIFIER(self, t):
-        return t
+    ## binary operators
+    PLUS   = r'\+'
+    MINUS  = r'\-'
+    TIMES  = r'\*'
+    DIVIDE = r'/'
+    IDENTIFIER['psi'] = PSI
+    IDENTIFIER['take'] = TAKE
+    IDENTIFIER['drop'] = DROP
+    IDENTIFIER['cat'] = CAT
 
     def error(self, t):
         raise ValueError(f"Illegal character '{t.value[0]}' no valid token can be formed from '{t.value}' on line {t.lexer.lineno}")
@@ -74,8 +84,9 @@ class MOAParser(sly.Parser):
     @_('IOTA expr',
        'DIM expr',
        'TAU expr',
-       'SHP expr',
+       'SHAPE expr',
        'RAV expr',
+       'TRANSPOSE expr',
        'PLUSRED expr',
        'MINUSRED expr',
        'TIMESRED expr',
@@ -86,6 +97,7 @@ class MOAParser(sly.Parser):
             '-red': MOANodeTypes.MINUSRED,
             '*red': MOANodeTypes.TIMESRED,
             '/red': MOANodeTypes.DIVIDERED,
+            'tran': MOANodeTypes.TRANSPOSE,
             'iota': MOANodeTypes.IOTA,
             'dim': MOANodeTypes.DIM,
             'tau': MOANodeTypes.TAU,
@@ -114,7 +126,7 @@ class MOAParser(sly.Parser):
             'drop': MOANodeTypes.DROP,
             'cat': MOANodeTypes.CAT,
         }
-        return (binary_map[p[0].lower()], None, p.expr0, p.expr1)
+        return (binary_map[p[1].lower()], None, p.expr0, p.expr1)
 
     @_('array')
     def expr(self, p):
@@ -134,8 +146,7 @@ class MOAParser(sly.Parser):
 
     @_('INTEGER integer_list')
     def integer_list(self, p):
-        p.integer_list.append(p.INTEGER)
-        return p.integer_list
+        return [p.INTEGER] + p.integer_list
 
     @_('empty')
     def integer_list(self, p):
@@ -144,3 +155,16 @@ class MOAParser(sly.Parser):
     @_('')
     def empty(self, p):
         pass
+
+    def error(self, p):
+        if p:
+            raise YaccError(f'Syntax error at line {p.lineno}, token={p.type}, value={p.value}\n')
+        else:
+            raise YaccError('Parse error in input. EOF\n')
+
+    def parse(self, text):
+        lexer = MOALexer()
+        tokens = lexer.tokenize(text)
+        tree = super().parse(tokens)
+        # lexer.symbol_table
+        return tree
