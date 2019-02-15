@@ -1,8 +1,10 @@
 import enum
 import collections
 
+from .core import MOAException
 
-class MOAReplacementError(Exception):
+
+class MOAReplacementError(MOAException):
     pass
 
 

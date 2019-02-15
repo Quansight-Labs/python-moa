@@ -6,10 +6,10 @@ from moa.reduction import reduce_ast
 
 @pytest.mark.parametrize("tree,result", [
     # Lenore Simple Example #1 06/01/2018
-    (BinaryNode(MOANodeTypes.PSI, None,
+    (BinaryNode(MOANodeTypes.PSI, (3,),
                 ArrayNode(MOANodeTypes.ARRAY, (1,), None, (0,)),
-                UnaryNode(MOANodeTypes.TRANSPOSE, None,
-                          BinaryNode(MOANodeTypes.PLUS, None,
+                UnaryNode(MOANodeTypes.TRANSPOSE, (4, 3),
+                          BinaryNode(MOANodeTypes.PLUS, (3, 4),
                                      ArrayNode(MOANodeTypes.ARRAY, (3, 4), 'A', None),
                                      ArrayNode(MOANodeTypes.ARRAY, (3, 4), 'B', None)))),
      ({'i1': (0, 2)},
