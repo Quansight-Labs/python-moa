@@ -27,6 +27,7 @@ class MOANodeTypes(enum.Enum):
     CAT     = 208
 
 
+# node methods
 def is_array(node):
     return node[0] == MOANodeTypes.ARRAY
 
@@ -37,3 +38,19 @@ def is_unary_operation(node):
 
 def is_binary_operation(node):
     return 200 < node[0].value < 300
+
+
+## replacement methods
+# recursive for simplicity
+def postorder_replacement(node, replacement_function):
+    if is_unary_operation(node):
+        right_node = postorder_replacement(node[2], replacement_function)
+        node = node[:2] + (right_node,)
+    elif is_binary_operation(node):
+        left_node = postorder_replacement(node[2], replacement_function)
+        right_node = postorder_replacement(node[3], replacement_function)
+        node = node[:2] + (left_node, right_node)
+    return replacement_function(node)
+
+def preorder_replacement(node):
+    pass
