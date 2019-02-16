@@ -10,6 +10,7 @@ from .ast import (
     MOANodeTypes,
     is_array, is_unary_operation, is_binary_operation
 )
+from .shape import is_vector
 
 
 _NODE_LABEL_MAP = {
@@ -39,11 +40,13 @@ _NODE_LABEL_MAP = {
 }
 
 
-def print_ast(node):
+def print_ast(node, vector_value=True):
     def _node_label(node):
         node_label = _NODE_LABEL_MAP[node.node_type]
         if node.shape:
             node_label += " <" + " ".join(str(_) for _ in node.shape) + ">"
+        if is_vector(node) and node.value and vector_value:
+            node_label += ': ' + " (" + " ".join(str(_) for _ in node.value) + ")"
         return node_label
 
     def _print_node(node, prefix=""):
