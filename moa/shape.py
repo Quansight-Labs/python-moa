@@ -10,6 +10,10 @@ def is_vector(node):
     return node.node_type == MOANodeTypes.ARRAY and len(node.shape) == 1
 
 
+def is_scalar(node):
+    return node.node_type == MOANodeTypes.ARRAY and len(node.shape) == 0
+
+
 def dimension(node):
     return len(node.shape)
 
@@ -50,7 +54,7 @@ def _shape_psi(node):
 
 
 def _shape_plus(node):
-    if node.left_node.shape != node.right_node.shape:
-        raise MOAShapeException('(+,-,/,*) for now requires shapes to match')
+    if (node.left_node.shape != node.right_node.shape) and not is_scalar(node.left_node) and not is_scalar(node.right_node):
+        raise MOAShapeException('(+,-,/,*) requires shapes to match or single argument to be scalar')
 
-    return BinaryNode(node.node_type, node.left_node.shape, node.left_node, node.right_node)
+    return BinaryNode(node.node_type, node.left_node.shape or node.right_node.shape, node.left_node, node.right_node)

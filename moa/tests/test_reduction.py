@@ -34,7 +34,7 @@ def test_reduce_psi_transpose():
     assert new_tree == expected_tree
 
 
-def test_reduce_psi_plus():
+def test_reduce_psi_plus_equal_shape():
     tree = BinaryNode(MOANodeTypes.PSI, (0,),
                       ArrayNode(MOANodeTypes.ARRAY, (4,), None, (1, 2, 'i0', 'i1')),
                       BinaryNode(MOANodeTypes.PLUS, (1, 2, 3, 4),
@@ -50,6 +50,23 @@ def test_reduce_psi_plus():
                                           ArrayNode(MOANodeTypes.ARRAY, (4,), None, (1, 2, 'i0', 'i1')),
                                           ArrayNode(MOANodeTypes.ARRAY, (1, 2, 3, 4), None, None)))
     assert new_tree == expected_tree
+
+
+def test_reduce_psi_plus_scalar():
+    tree = BinaryNode(MOANodeTypes.PSI, (0,),
+                      ArrayNode(MOANodeTypes.ARRAY, (4,), None, (1, 3, 5, 7)),
+                      BinaryNode(MOANodeTypes.PLUS, (1, 2, 3, 4),
+                                 ArrayNode(MOANodeTypes.ARRAY, (), None, (4,)),
+                                 ArrayNode(MOANodeTypes.ARRAY, (1, 2, 3, 4), None, None)))
+
+    new_tree = _reduce_psi_plus(tree)
+    expected_tree = BinaryNode(MOANodeTypes.PLUS, (0,),
+                               ArrayNode(MOANodeTypes.ARRAY, (), None, (4,)),
+                               BinaryNode(MOANodeTypes.PSI, (0,),
+                                          ArrayNode(MOANodeTypes.ARRAY, (4,), None, (1, 3, 5, 7)),
+                                          ArrayNode(MOANodeTypes.ARRAY, (1, 2, 3, 4), None, None)))
+    assert new_tree == expected_tree
+
 
 
 

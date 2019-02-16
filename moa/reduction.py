@@ -6,7 +6,7 @@ from .ast import (
     ArrayNode, BinaryNode,
     preorder_replacement
 )
-from .shape import is_vector
+from .shape import is_vector, is_scalar
 
 
 class MOAReductionError(MOAException):
@@ -78,12 +78,23 @@ def _reduce_psi_transpose(node):
 
 
 def _reduce_psi_plus(node):
-    """<i j> psi (... plus ...) => (<i j> psi ...) plus (<k l> psi ...)"""
-    index_node = node.left_node
-    return BinaryNode(MOANodeTypes.PLUS, node.shape,
-                      BinaryNode(MOANodeTypes.PSI, node.shape,
-                                 index_node,
-                                 node.right_node.left_node),
-                      BinaryNode(MOANodeTypes.PSI, node.shape,
-                                 index_node,
-                                 node.right_node.right_node))
+    """<i j> psi (... plus ...) => (<i j> psi ...) plus (<k l> psi ...)
+
+    Scalar Extension
+      <i j> psi (scalar plus ...) = scalar plus <i j> psi ...
+    """
+    if is_scalar(node.right_node.left_node):
+        left_node = node.right_node.left_node
+    else:
+        left_node = BinaryNode(MOANodeTypes.PSI, node.shape,
+                               node.left_node,
+                               node.right_node.left_node)
+
+    if is_scalar(node.right_node.right_node):
+        right_node = node.right_node.right_node
+    else:
+        right_node = BinaryNode(MOANodeTypes.PSI, node.shape,
+                                node.left_node,
+                                node.right_node.right_node)
+
+    return BinaryNode(MOANodeTypes.PLUS, node.shape, left_node, right_node)
