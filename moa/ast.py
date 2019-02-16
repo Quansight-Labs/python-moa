@@ -75,7 +75,7 @@ def postorder_replacement(node, replacement_function):
     return replacement_function(node)
 
 
-def preorder_replacement(node, replacement_function, max_iterations=100):
+def preorder_replacement(node, replacement_function, max_iterations=range(100)):
     """Preorder (Root, Left, Right) traversal of AST
 
     Used for reducing the ast. Note that "replacement_function" is
@@ -83,7 +83,7 @@ def preorder_replacement(node, replacement_function, max_iterations=100):
     reductions to perform on the root node. This behavior is different
     than the "postorder_replacement" function.
     """
-    for i in range(max_iterations):
+    for iteration in max_iterations:
         replacement_node = replacement_function(node)
         if replacement_node is None:
             break
@@ -92,10 +92,10 @@ def preorder_replacement(node, replacement_function, max_iterations=100):
         raise MOAReplacementError(f'reduction on node {node.node_type} failed to complete in {max_iterations} iterations')
 
     if is_unary_operation(node):
-        right_node = preorder_replacement(node.right_node, replacement_function)
+        right_node = preorder_replacement(node.right_node, replacement_function, max_iterations)
         node = UnaryNode(node.node_type, node.shape, right_node)
     elif is_binary_operation(node):
-        left_node = preorder_replacement(node.left_node, replacement_function)
-        right_node = preorder_replacement(node.right_node, replacement_function)
+        left_node = preorder_replacement(node.left_node, replacement_function, max_iterations)
+        right_node = preorder_replacement(node.right_node, replacement_function, max_iterations)
         node = BinaryNode(node.node_type, node.shape, left_node, right_node)
     return node

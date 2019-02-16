@@ -29,7 +29,7 @@ def add_indexing_node(node, symbol_table, counter):
                       node)
 
 
-def reduce_ast(tree):
+def reduce_ast(tree, max_iterations=100):
     """Preorder traversal and replacement of ast tree
 
     In the future the symbol table will have to be constructed earlier
@@ -39,7 +39,7 @@ def reduce_ast(tree):
     symbol_table = {}
 
     tree = add_indexing_node(tree, symbol_table, counter)
-    tree = preorder_replacement(tree, _reduce_replacement)
+    tree = preorder_replacement(tree, _reduce_replacement, range(max_iterations))
     return symbol_table, tree
 
 
