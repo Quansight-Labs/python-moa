@@ -30,7 +30,10 @@ def _shape_replacement(node):
         MOANodeTypes.ARRAY: lambda node: node,
         MOANodeTypes.TRANSPOSE: _shape_transpose,
         MOANodeTypes.PSI: _shape_psi,
-        MOANodeTypes.PLUS: _shape_plus,
+        MOANodeTypes.PLUS: _shape_plus_minus_divide_times,
+        MOANodeTypes.MINUS: _shape_plus_minus_divide_times,
+        MOANodeTypes.TIMES: _shape_plus_minus_divide_times,
+        MOANodeTypes.DIVIDE: _shape_plus_minus_divide_times,
     }
     return shape_map[node.node_type](node)
 
@@ -53,7 +56,7 @@ def _shape_psi(node):
     return BinaryNode(node.node_type, node.right_node.shape[drop_dims:], node.left_node, node.right_node)
 
 
-def _shape_plus(node):
+def _shape_plus_minus_divide_times(node):
     if (node.left_node.shape != node.right_node.shape) and not is_scalar(node.left_node) and not is_scalar(node.right_node):
         raise MOAShapeException('(+,-,/,*) requires shapes to match or single argument to be scalar')
 

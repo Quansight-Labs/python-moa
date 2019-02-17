@@ -47,7 +47,10 @@ def _reduce_replacement(node):
     reduce_psi_map = {
         MOANodeTypes.PSI: _reduce_psi_psi,
         MOANodeTypes.TRANSPOSE: _reduce_psi_transpose,
-        MOANodeTypes.PLUS: _reduce_psi_plus
+        MOANodeTypes.PLUS: _reduce_psi_plus_minus_times_divide,
+        MOANodeTypes.MINUS: _reduce_psi_plus_minus_times_divide,
+        MOANodeTypes.TIMES: _reduce_psi_plus_minus_times_divide,
+        MOANodeTypes.DIVIDE: _reduce_psi_plus_minus_times_divide,
     }
 
     # Is reduction as simple as exclusively looking at psi nodes?
@@ -77,11 +80,11 @@ def _reduce_psi_transpose(node):
                       node.right_node.right_node)
 
 
-def _reduce_psi_plus(node):
-    """<i j> psi (... plus ...) => (<i j> psi ...) plus (<k l> psi ...)
+def _reduce_psi_plus_minus_times_divide(node):
+    """<i j> psi (... (+-*/) ...) => (<i j> psi ...) (+-*/) (<k l> psi ...)
 
     Scalar Extension
-      <i j> psi (scalar plus ...) = scalar plus <i j> psi ...
+      <i j> psi (scalar (+-*/) ...) = scalar (+-*/) <i j> psi ...
     """
     if is_scalar(node.right_node.left_node):
         left_node = node.right_node.left_node
@@ -97,4 +100,4 @@ def _reduce_psi_plus(node):
                                 node.left_node,
                                 node.right_node.right_node)
 
-    return BinaryNode(MOANodeTypes.PLUS, node.shape, left_node, right_node)
+    return BinaryNode(node.right_node.node_type, node.shape, left_node, right_node)

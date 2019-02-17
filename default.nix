@@ -10,10 +10,10 @@ rec {
       ./.;
 
     propagatedBuildInputs = with pythonPackages; [ sly astunparse ];
-    checkInputs = with pythonPackages; [ pytest graphviz ];
+    checkInputs = with pythonPackages; [ pytest pytestcov graphviz ];
 
     checkPhase = ''
-      pytest moa
+      pytest --cov=moa
     '';
   };
 
