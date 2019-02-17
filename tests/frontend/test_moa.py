@@ -53,6 +53,9 @@ def test_lexer_single_token(expression, result):
        (MOANodeTypes.PLUS, None,
         (MOANodeTypes.ARRAY, None, 'A', None),
         (MOANodeTypes.ARRAY, None, 'B', None))))),
+    ('+red A ^ <3 4 5>',
+     (MOANodeTypes.PLUSRED, None,
+      (MOANodeTypes.ARRAY, (3, 4, 5), 'A', None))),
     # Lenore Simple Example #1 06/01/2018
     ('<0> psi ( tran (A^<3 4> + B^<3 4>))',
      (MOANodeTypes.PSI, None,

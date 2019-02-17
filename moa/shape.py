@@ -29,6 +29,7 @@ def _shape_replacement(node):
     shape_map = {
         MOANodeTypes.ARRAY: lambda node: node,
         MOANodeTypes.TRANSPOSE: _shape_transpose,
+        MOANodeTypes.PLUSRED: _shape_plus_red,
         MOANodeTypes.PSI: _shape_psi,
         MOANodeTypes.PLUS: _shape_plus_minus_divide_times,
         MOANodeTypes.MINUS: _shape_plus_minus_divide_times,
@@ -41,6 +42,10 @@ def _shape_replacement(node):
 # Unary Operations
 def _shape_transpose(node):
     return UnaryNode(node.node_type, node.right_node.shape[::-1], node.right_node)
+
+
+def _shape_plus_red(node):
+    return UnaryNode(node.node_type, node.right_node.shape[1:], node.right_node)
 
 
 # Binary Operations

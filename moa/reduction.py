@@ -47,6 +47,7 @@ def _reduce_replacement(node):
     reduce_psi_map = {
         MOANodeTypes.PSI: _reduce_psi_psi,
         MOANodeTypes.TRANSPOSE: _reduce_psi_transpose,
+        MOANodeTypes.PLUSRED: _reduce_psi_plus_red,
         MOANodeTypes.PLUS: _reduce_psi_plus_minus_times_divide,
         MOANodeTypes.MINUS: _reduce_psi_plus_minus_times_divide,
         MOANodeTypes.TIMES: _reduce_psi_plus_minus_times_divide,
@@ -78,6 +79,10 @@ def _reduce_psi_transpose(node):
     return BinaryNode(MOANodeTypes.PSI, node.shape,
                       ArrayNode(MOANodeTypes.ARRAY, (len(index_values),), None, index_values),
                       node.right_node.right_node)
+
+
+def _reduce_psi_plus_red(node):
+    raise NotImplemenetedError('PSI +RED')
 
 
 def _reduce_psi_plus_minus_times_divide(node):
