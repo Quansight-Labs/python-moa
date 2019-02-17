@@ -65,5 +65,4 @@ def test_lexer_single_token(expression, result):
 def test_parser_simple_expressions(expression, result):
     parser = MOAParser()
     tree = parser.parse(expression)
-    print(tree)
     assert tree == result

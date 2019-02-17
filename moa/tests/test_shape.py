@@ -60,7 +60,6 @@ def test_is_not_vector():
 ])
 def test_shape_unit(tree, result):
     new_tree = calculate_shapes(tree)
-    print(new_tree)
     assert new_tree == result
 
 
@@ -81,5 +80,4 @@ def test_shape_unit(tree, result):
 ])
 def test_shape_integration(tree, result):
     new_tree = calculate_shapes(tree)
-    print(new_tree)
     assert new_tree == result

@@ -75,27 +75,31 @@ class MOAParser(sly.Parser):
     tokens = MOALexer.tokens
 
     precedence = (
-        ('left', 'PSI', 'TAKE', 'DROP', 'CAT'),
+        ('right', 'UNARYOP'),
+        ('left', 'BINARYOP'),
         ('left', 'PLUS', 'MINUS'),
         ('left', 'TIMES', 'DIVIDE'),
-        ('right', 'IOTA', 'DIM', 'TAU', 'SHAPE', 'RAV', 'PLUSRED', 'MINUSRED', 'TIMESRED', 'DIVIDERED')
     )
 
     @_('LPAREN expr RPAREN')
     def expr(self, p):
         return p.expr
 
-    @_('IOTA expr',
-       'DIM expr',
-       'TAU expr',
-       'SHAPE expr',
-       'RAV expr',
-       'TRANSPOSE expr',
-       'PLUSRED expr',
-       'MINUSRED expr',
-       'TIMESRED expr',
-       'DIVIDERED expr')
+    @_('unary_operation expr %prec UNARYOP')
     def expr(self, p):
+        return UnaryNode(p.unary_operation, None, p.expr)
+
+    @_('IOTA',
+       'DIM',
+       'TAU',
+       'SHAPE',
+       'RAV',
+       'TRANSPOSE',
+       'PLUSRED',
+       'MINUSRED',
+       'TIMESRED',
+       'DIVIDERED')
+    def unary_operation(self, p):
         unary_map = {
             '+red': MOANodeTypes.PLUSRED,
             '-red': MOANodeTypes.MINUSRED,
@@ -108,18 +112,21 @@ class MOAParser(sly.Parser):
             'shp': MOANodeTypes.SHAPE,
             'rav': MOANodeTypes.RAV,
         }
-        return UnaryNode(unary_map[p[0].lower()], None, p.expr)
+        return unary_map[p[0].lower()]
 
-    @_('expr PLUS   expr',
-       'expr MINUS  expr',
-       'expr TIMES  expr',
-       'expr DIVIDE expr',
-       'expr PSI    expr',
-       'expr TAKE   expr',
-       'expr DROP   expr',
-       'expr CAT    expr'
-    )
+    @_('expr binary_operation expr %prec BINARYOP')
     def expr(self, p):
+        return BinaryNode(p.binary_operation, None, p.expr0, p.expr1)
+
+    @_('PLUS',
+       'MINUS',
+       'TIMES',
+       'DIVIDE',
+       'PSI',
+       'TAKE',
+       'DROP',
+       'CAT')
+    def binary_operation(self, p):
         binary_map = {
             '+': MOANodeTypes.PLUS,
             '-': MOANodeTypes.MINUS,
@@ -130,7 +137,7 @@ class MOAParser(sly.Parser):
             'drop': MOANodeTypes.DROP,
             'cat': MOANodeTypes.CAT,
         }
-        return BinaryNode(binary_map[p[1].lower()], None, p.expr0, p.expr1)
+        return binary_map[p[0].lower()]
 
     @_('array')
     def expr(self, p):
