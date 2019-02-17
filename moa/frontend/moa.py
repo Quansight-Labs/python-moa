@@ -1,3 +1,7 @@
+"""Parse Matematics of Arrays (MOA) Expression to internal ast representation
+
+"""
+
 import sly
 from sly.lex import LexError
 from sly.yacc import YaccError

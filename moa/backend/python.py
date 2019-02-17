@@ -1,39 +1,33 @@
 import ast
 
-from ..ast import MOANodeTypes
+from ..ast import MOANodeTypes, postorder_replacement
 
 
-def export_backend_python(tree):
-    return _NODE_AST_MAP[tree.node_type](tree)
+def python_backend(tree):
+    return postorder_replacement(tree, _ast_replacement)
+
+
+def _ast_replacement(node):
+    _NODE_AST_MAP = {
+        MOANodeTypes.ARRAY: _ast_array,
+        MOANodeTypes.PSI: _ast_psi,
+        MOANodeTypes.PLUS: _ast_plus
+    }
+    return _NODE_AST_MAP[node.node_type](node)
 
 
 def _ast_psi(node):
-    indicies = []
-    for i in node.left_node.value:
-        if isinstance(i, int):
-            indicies.append(ast.Num(n=i))
-        elif isinstance(i, str):
-            indicies.append(ast.Str(s=i))
-
-    array = _ast_array(node.right_node)
-    return ast.Subscript(value=array,
-                         slice=ast.Index(value=ast.Tuple(elts=indicies, ctx=ast.Load())),
+    return ast.Subscript(value=node.right_node,
+                         slice=ast.Index(value=node.left_node),
                          ctx=ast.Load())
 
 
 def _ast_array(node):
+    if node.name is None: # materialize view
+        indicies = [ast.Str(i) if isinstance(i, str) else ast.Num(i) for i in node.value]
+        return ast.Tuple(elts=indicies, ctx=ast.Load())
     return ast.Name(id=node.name, ctx=ast.Load())
 
 
 def _ast_plus(node):
-    left_ast = _NODE_AST_MAP[node.left_node.node_type](node.left_node)
-    right_ast = _NODE_AST_MAP[node.right_node.node_type](node.right_node)
-
-    return ast.BinOp(left=left_ast, op=ast.Add(), right=right_ast)
-
-
-_NODE_AST_MAP = {
-    MOANodeTypes.ARRAY: _ast_array,
-    MOANodeTypes.PSI: _ast_psi,
-    MOANodeTypes.PLUS: _ast_plus
-}
+    return ast.BinOp(left=node.left_node, op=ast.Add(), right=node.right_node)

@@ -2,7 +2,7 @@ import astunparse
 import pytest
 
 from moa.ast import BinaryNode, UnaryNode, ArrayNode, MOANodeTypes
-from moa.backend import export_backend_python
+from moa.backend import python_backend
 
 
 @pytest.mark.parametrize('tree,result', [
@@ -16,7 +16,7 @@ from moa.backend import export_backend_python
      "(A[('i0', 0)] + B[('i0', 0)])"
     )
 ])
-def test_backend_python(tree, result):
-    ast = export_backend_python(tree)
+def test_python_backend(tree, result):
+    ast = python_backend(tree)
     source = astunparse.unparse(ast)[:-1] # remove newline
     assert source == result
