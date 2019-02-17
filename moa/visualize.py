@@ -75,22 +75,28 @@ def visualize_ast(tree, comment='MOA AST', with_attrs=True):
     def _label_node(dot, node):
         unique_id = str(next(counter))
 
+        labels = []
         if is_array(node):
-            node_label = f"Array {node.name}"
+            labels.append(f"Array {node.name}")
             shape = 'box'
         else: # operation
-            node_label = _NODE_LABEL_MAP[node.node_type]
+            labels.append(_NODE_LABEL_MAP[node.node_type])
             shape = 'ellipse'
 
         if node.shape:
-            shape_label = '&lt;' + ', '.join(str(_) for _ in node.shape) + '&gt;'
+            labels.append('ρ: &lt;' + ', '.join(str(_) for _ in node.shape) + '&gt;')
+        if is_vector(node) and node.value:
+            labels.append(" (" + ", ".join(str(_) for _ in node.value) + ")")
+
+        labels_str = '\n'.join('<TR><TD>{}</TD></TR>'.format(_) for _ in labels)
+        if len(labels) == 1:
+            node_description = labels[0]
+        else:
             node_description = f'''<
             <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
-              <TR><TD>{node_label}</TD></TR>
-              <TR><TD>ρ: {shape_label}</TD></TR>
+              {labels_str}
             </TABLE>>'''
-        else:
-            node_description = node_label
+
         dot.node(unique_id, label=node_description, shape=shape)
         return unique_id
 

@@ -9,7 +9,7 @@ rec {
       (path: _: !builtins.elem  (builtins.baseNameOf path) [".git"])
       ./.;
 
-    propagatedBuildInputs = with pythonPackages; [ sly ];
+    propagatedBuildInputs = with pythonPackages; [ sly astunparse ];
     checkInputs = with pythonPackages; [ pytest graphviz ];
 
     checkPhase = ''

@@ -9,6 +9,7 @@ author-email = "costrouchov@quansight.com"
 description-file = "README.md"
 requires = [
   "sly",
+  "astunparse",
 ]
 classifiers=[
     "License :: OSI Approved :: BSD License",
