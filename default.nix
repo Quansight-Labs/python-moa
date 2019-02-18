@@ -21,8 +21,13 @@ rec {
     propagatedBuildInputs = with pythonPackages; [ sly astunparse ];
     checkInputs = with pythonPackages; [ pytest pytestcov graphviz ];
 
+    postConfigure = ''
+      # flit requires a home directory...
+      export HOME=$(mktemp -d)
+    '';
+
     checkPhase = ''
-      mkdir -p $HOME; pytest --cov=moa
+      pytest --cov=moa
     '';
   };
 
