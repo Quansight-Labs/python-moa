@@ -103,6 +103,40 @@ the resulting shape is known. However, more work will be done soon to
 include named arrays and allowing for known dimension variable shape
 arrays.
 
+# Development
+
+Maybe this is a neat project to show off my favorite build/development
+tool of all time!? Please just try. Download
+[nix](https://nixos.org/nix/download.html) and you will see. Nope no
+other dependencies and all our builds will be identical on Linux and
+OSX.
+
+## Demoing / Jupyter Lab
+
+```
+nix-shell -A shell
+```
+
+## Testing
+
+```
+nix-build -A python-moa
+```
+
+## Documentation
+
+```
+nix-build -A docs
+firefox result/index.html
+```
+
+## Docker
+
+```
+nix-build -A docker
+docker load < result
+```
+
 # Philosophy
 
 This is a proof of concept which should be guided by assumptions and

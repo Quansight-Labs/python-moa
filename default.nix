@@ -50,6 +50,17 @@ rec {
      '';
    };
 
+  # docker load < result
+  docker = pkgs.dockerTools.buildLayeredImage {
+    name = "python-moa";
+    tag = "latest";
+    contents = [
+      (pythonPackages.python.withPackages (ps: with ps; [ python-moa ipython ]))
+    ];
+    config.Cmd = [ "ipython" ];
+    maxLayers = 120;
+  };
+
   shell = pkgs.mkShell {
     buildInputs = with pythonPackages; [ python-moa jupyterlab graphviz pkgs.graphviz ];
 
