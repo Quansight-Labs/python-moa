@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/costrouc/python-moa.svg?branch=master)](https://travis-ci.org/costrouc/python-moa)
+
 # Mathematics of Arrays (MOA)
 
 Important questions that should guide development most likely in this order:
