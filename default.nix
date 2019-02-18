@@ -1,8 +1,8 @@
 let
   # pin version
-  pkgs = import (builtins.fetchGit {
-    url = "https://github.com/nixos/nixpkgs.git";
-    rev = "36f316007494c388df1fec434c1e658542e3c3cc";
+  pkgs = import (builtins.fetchTarball {
+    url = "https://github.com/NixOS/nixpkgs/archive/36f316007494c388df1fec434c1e658542e3c3cc.tar.gz";
+    sha256 = "1w1dg9ankgi59r2mh0jilccz5c4gv30a6q1k6kv2sn8vfjazwp9k";
   }) { };
 
   pythonPackages = pkgs.python3Packages;
@@ -22,7 +22,7 @@ rec {
     checkInputs = with pythonPackages; [ pytest pytestcov graphviz ];
 
     checkPhase = ''
-      pytest --cov=moa
+      mkdir -p $HOME; pytest --cov=moa
     '';
   };
 
