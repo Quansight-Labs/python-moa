@@ -25,8 +25,8 @@ For example the following moa expression :math:`\vc0 \psi \transpose (A + B)` ca
               ArrayNode(MOANodeTypes.ARRAY, (1,), None, (0,)),
               UnaryNode(MOANodeTypes.TRANSPOSE, None,
                        BinaryNode(MOANodeTypes.PLUS, None,
-                                  ArrayNode(MOANodeTypes.ARRAY, (3, 4), 'A', None),
-                                  ArrayNode(MOANodeTypes.ARRAY, (3, 4), 'B', None))))
+                                  ArrayNode(MOANodeTypes.ARRAY, None, 'A', None),
+                                  ArrayNode(MOANodeTypes.ARRAY, None, 'B', None))))
 
 Array
 +++++
