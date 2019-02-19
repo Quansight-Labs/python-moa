@@ -14,3 +14,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 pygments_style = 'sphinx'
 html_theme = 'alabaster'
 html_static_path = ['_static']
+
+
+def setup(app):
+    app.add_js_file('mathconf.js', **{'async': 'async'})
