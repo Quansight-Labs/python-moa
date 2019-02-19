@@ -25,6 +25,7 @@ from moa.ast import MOANodeTypes
     ('tau', ('TAU',)),
     ('shp', ('SHAPE',)),
     ('rav', ('RAV',)),
+    ('tran', ('TRANSPOSE',)),
     ('(', ('LPAREN',)),
     (')', ('RPAREN',)),
     ('<', ('LANGLEBRACKET',)),
