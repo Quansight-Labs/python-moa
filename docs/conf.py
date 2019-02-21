@@ -4,6 +4,7 @@ author = 'Quansight'
 version = '0.0.1'
 release = '0.0.1'
 extensions = [
+    'sphinx.ext.autodoc',
     'sphinx.ext.doctest',
     'sphinx.ext.mathjax',
 ]
@@ -14,7 +15,6 @@ language = None
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 pygments_style = 'sphinx'
 html_theme = 'alabaster'
-html_static_path = ['_static']
 
 doctest_global_setup = '''
 from moa.ast import MOANodeTypes, ArrayNode, UnaryNode, BinaryNode
