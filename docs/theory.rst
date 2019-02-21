@@ -7,7 +7,7 @@ Arrays
 In MOA everything is an array or operations on arrays. To help with
 discussion we will be using the following notation. More detailed
 
-Constants are defined as a zero dimensional array :math:`\emptyset`
+Constants are defined as a zero dimensional array :math:`\emptyset` or :math:`< \;\; >`
 
 A **vector** :math:`\vccc123` is a a one dimensional array.
 
