@@ -19,27 +19,34 @@ allowed a similar experience with ``node.right_node.shape``.
 
 For example the following moa expression :math:`\vc0 \psi \transpose (A + B)` can be represented with the following ast.
 
-.. code-block:: python
+.. doctest::
 
-   BinaryNode(MOANodeTypes.PSI, None,
-              ArrayNode(MOANodeTypes.ARRAY, (1,), None, (0,)),
-              UnaryNode(MOANodeTypes.TRANSPOSE, None,
-                       BinaryNode(MOANodeTypes.PLUS, None,
-                                  ArrayNode(MOANodeTypes.ARRAY, None, 'A', None),
-                                  ArrayNode(MOANodeTypes.ARRAY, None, 'B', None))))
+   >>> BinaryNode(MOANodeTypes.PSI, None,
+   ...            ArrayNode(MOANodeTypes.ARRAY, (1,), None, (0,)),
+   ...                      UnaryNode(MOANodeTypes.TRANSPOSE, None,
+   ...                                BinaryNode(MOANodeTypes.PLUS, None,
+   ...                                           ArrayNode(MOANodeTypes.ARRAY, None, 'A', None),
+   ...                                           ArrayNode(MOANodeTypes.ARRAY, None, 'B', None))))
+   BinaryNode(node_type=<MOANodeTypes.PSI: 205>, shape=None, left_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(1,), name=None, value=(0,)), right_node=UnaryNode(node_type=<MOANodeTypes.TRANSPOSE: 110>, shape=None, right_node=BinaryNode(node_type=<MOANodeTypes.PLUS: 201>, shape=None, left_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=None, name='A', value=None), right_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=None, name='B', value=None))))
 
 Array
 +++++
 
 Tuple representation ``ArrayNode(type, shape, name, value)``
 
-.. code-block:: python
+Create array named A with shape (1, 3) values (1, 2, 3)
 
-   # Array named A with shape (1, 3) values (1, 2, 3)
-   ArrayNode(MOANodeTypes.ARRAY, (1, 3), "A", (1, 2, 3))
+.. doctest::
 
-   # Array without name and unknown values
-   ArrayNode(MOANodeTypes.ARRAY, (1, 3), None, None)
+   >>> ArrayNode(MOANodeTypes.ARRAY, (1, 3), "A", (1, 2, 3))
+   ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(1, 3), name='A', value=(1, 2, 3))
+
+Create array without name and unknown values
+
+.. doctest::
+
+   >>> ArrayNode(MOANodeTypes.ARRAY, (1, 3), None, None)
+   ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(1, 3), name=None, value=None)
 
 Unary Operation
 +++++++++++++++
@@ -50,10 +57,11 @@ Available unary operations: ``PLUSRED``, ``MINUSRED``, ``TIMESRED``,
 ``DIVIDERED``, ``IOTA``, ``DIM``, ``TAU``, ``SHAPE``, ``RAV``,
 ``TRANSPOSE``.
 
-.. code-block:: python
+.. doctest::
 
-   UnaryNode(MOANodeType.TRANSPOSE, (3, 1),
-             ArrayNode(MOANodeTypes.ARRAY, (1, 3), "A", (1, 2, 3)))
+   >>> UnaryNode(MOANodeTypes.TRANSPOSE, (3, 1),
+   ...          ArrayNode(MOANodeTypes.ARRAY, (1, 3), "A", (1, 2, 3)))
+   UnaryNode(node_type=<MOANodeTypes.TRANSPOSE: 110>, shape=(3, 1), right_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(1, 3), name='A', value=(1, 2, 3)))
 
 Binary Operation
 ++++++++++++++++
@@ -61,13 +69,14 @@ Binary Operation
 Binary representation ``BinaryNode(type, shape, left_node, right_node)``
 
 Available binary operations: ``PLUS``, ``MINUS``, ``TIMES``,
-``DIVIDE``, ``PSI``, ``TAKE``, ``DROP``, ``CAT``.
+``DIVIDE``, ``PSI``, ``TAKE``, ``DROP``, ``CAT``, ``TRANSPOSEV``.
 
-.. code-block:: python
+.. doctest::
 
-   BinaryNode(MOANodeType.PLUS, (2, 3),
-              ArrayNode(MOANodeTypes.ARRAY, (), "A", (1)),
-              ArrayNode(MOANodeTypes.ARRAY, (2, 3), "A", None))
+   >>> BinaryNode(MOANodeTypes.PLUS, (2, 3),
+   ...           ArrayNode(MOANodeTypes.ARRAY, (), "A", (1)),
+   ...           ArrayNode(MOANodeTypes.ARRAY, (2, 3), "A", None))
+   BinaryNode(node_type=<MOANodeTypes.PLUS: 201>, shape=(2, 3), left_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(), name='A', value=1), right_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(2, 3), name='A', value=None))
 
 Symbol Table
 ------------
@@ -80,3 +89,37 @@ Shape Calculation
 
 Shape calculation can be done with a single pass post-order traversal
 (left, right, root) node.
+
+How shapes are calculated for given types.
+
+Array
++++++
+
+For now the shape of an array is required to be defined on the node
+and cannot be computed from another value. Thus the second argument
+(shape) cannot be ``None``.
+
+.. code-block:: python
+
+   ArrayNode(MOANodeTypes.ARRAY, (2, 3), None, None))
+
+Transpose
++++++++++
+
+Transpose has two forms a unary and binary definition.
+
+.. math::
+
+   \transpose A = (\reverse \iota \dims A) \transpose A
+
+For the simple case of the unary operator.
+
+
+Reduction
+---------
+
+Reduction can be done with a single pass pre-order traversal with
+multiple replacements on each node (root, left, right) node. These
+replacements have the Church-Rosser property meaning that when
+applying reductions the ordering of the replacements does not change
+the final result.

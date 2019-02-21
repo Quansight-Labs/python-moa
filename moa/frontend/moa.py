@@ -125,7 +125,8 @@ class MOAParser(sly.Parser):
        'PSI',
        'TAKE',
        'DROP',
-       'CAT')
+       'CAT',
+       'TRANSPOSE')
     def binary_operation(self, p):
         binary_map = {
             '+': MOANodeTypes.PLUS,
@@ -136,6 +137,7 @@ class MOAParser(sly.Parser):
             'take': MOANodeTypes.TAKE,
             'drop': MOANodeTypes.DROP,
             'cat': MOANodeTypes.CAT,
+            'tran': MOANodeTypes.TRANSPOSEV,
         }
         return binary_map[p[0].lower()]
 

@@ -33,9 +33,16 @@ def test_is_not_vector():
      ArrayNode(MOANodeTypes.ARRAY, (2,), None, (3, 5))),
     # TRANSPOSE
     (UnaryNode(MOANodeTypes.TRANSPOSE, None,
-                ArrayNode(MOANodeTypes.ARRAY, (3, 4, 5), None, None)),
+               ArrayNode(MOANodeTypes.ARRAY, (3, 4, 5), None, None)),
      UnaryNode(MOANodeTypes.TRANSPOSE, (5, 4, 3),
-                ArrayNode(MOANodeTypes.ARRAY, (3, 4, 5), None, None))),
+               ArrayNode(MOANodeTypes.ARRAY, (3, 4, 5), None, None))),
+    # TRANSPOSE VECTOR
+    (BinaryNode(MOANodeTypes.TRANSPOSEV, None,
+               ArrayNode(MOANodeTypes.ARRAY, (3,), None, (2, 0, 1)),
+               ArrayNode(MOANodeTypes.ARRAY, (3, 4, 5), None, None)),
+     BinaryNode(MOANodeTypes.TRANSPOSEV, (4, 5, 3),
+               ArrayNode(MOANodeTypes.ARRAY, (3,), None, (2, 0, 1)),
+               ArrayNode(MOANodeTypes.ARRAY, (3, 4, 5), None, None))),
     # PLUSRED
     (UnaryNode(MOANodeTypes.PLUSRED, None,
                 ArrayNode(MOANodeTypes.ARRAY, (3, 4, 5), None, None)),

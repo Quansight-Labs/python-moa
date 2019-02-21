@@ -39,6 +39,10 @@ def test_lexer_single_token(expression, result):
 
 
 @pytest.mark.parametrize("expression,result", [
+    ('<3 1 2> tran A',
+     (MOANodeTypes.TRANSPOSEV, None,
+      (MOANodeTypes.ARRAY, (3,), None, (3, 1, 2)),
+      (MOANodeTypes.ARRAY, None, 'A', None))),
     ('<1 2 3> psi A',
      (MOANodeTypes.PSI, None,
       (MOANodeTypes.ARRAY, (3,), None, (1, 2, 3)),

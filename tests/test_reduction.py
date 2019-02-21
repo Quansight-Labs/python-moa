@@ -3,7 +3,9 @@ import pytest
 from moa.ast import MOANodeTypes, BinaryNode, UnaryNode, ArrayNode
 from moa.reduction import (
     reduce_ast,
-    _reduce_psi_psi, _reduce_psi_transpose, _reduce_psi_plus_minus_times_divide
+    _reduce_psi_psi,
+    _reduce_psi_transpose, _reduce_psi_transposev,
+    _reduce_psi_plus_minus_times_divide,
 )
 
 
@@ -31,6 +33,20 @@ def test_reduce_psi_transpose():
     new_tree = _reduce_psi_transpose(tree)
     expected_tree = BinaryNode(MOANodeTypes.PSI, (0,),
                                ArrayNode(MOANodeTypes.ARRAY, (4,), None, ('i1', 'i0', 2, 3)),
+                               ArrayNode(MOANodeTypes.ARRAY, (1, 2, 3, 4), None, None))
+    assert new_tree == expected_tree
+
+
+def test_reduce_psi_transposev():
+    tree = BinaryNode(MOANodeTypes.PSI, (0,),
+                      ArrayNode(MOANodeTypes.ARRAY, (4,), None, (3, 2, 'i0', 'i1')),
+                      BinaryNode(MOANodeTypes.TRANSPOSEV, (4, 3, 2, 1),
+                                 ArrayNode(MOANodeTypes.ARRAY, (4), None, (1, 0, 3, 2)),
+                                 ArrayNode(MOANodeTypes.ARRAY, (1, 2, 3, 4), None, None)))
+
+    new_tree = _reduce_psi_transposev(tree)
+    expected_tree = BinaryNode(MOANodeTypes.PSI, (0,),
+                               ArrayNode(MOANodeTypes.ARRAY, (4,), None, (2, 3, 'i1', 'i0')),
                                ArrayNode(MOANodeTypes.ARRAY, (1, 2, 3, 4), None, None))
     assert new_tree == expected_tree
 

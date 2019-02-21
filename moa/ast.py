@@ -25,14 +25,15 @@ class MOANodeTypes(enum.Enum):
     TRANSPOSE = 110
 
     # binary
-    PLUS    = 201
-    MINUS   = 202
-    TIMES   = 203
-    DIVIDE  = 204
-    PSI     = 205
-    TAKE    = 206
-    DROP    = 207
-    CAT     = 208
+    PLUS       = 201
+    MINUS      = 202
+    TIMES      = 203
+    DIVIDE     = 204
+    PSI        = 205
+    TAKE       = 206
+    DROP       = 207
+    CAT        = 208
+    TRANSPOSEV = 209
 
 
 # I was hesitant to add this but it makes

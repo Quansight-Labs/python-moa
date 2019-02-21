@@ -47,6 +47,7 @@ def _reduce_replacement(node):
     reduce_psi_map = {
         MOANodeTypes.PSI: _reduce_psi_psi,
         MOANodeTypes.TRANSPOSE: _reduce_psi_transpose,
+        MOANodeTypes.TRANSPOSEV: _reduce_psi_transposev,
         MOANodeTypes.PLUSRED: _reduce_psi_plus_red,
         MOANodeTypes.PLUS: _reduce_psi_plus_minus_times_divide,
         MOANodeTypes.MINUS: _reduce_psi_plus_minus_times_divide,
@@ -76,6 +77,15 @@ def _reduce_psi_psi(node):
 def _reduce_psi_transpose(node):
     """<i j k> psi transpose ... => <k j i> psi ..."""
     index_values = node.left_node.value[::-1]
+    return BinaryNode(MOANodeTypes.PSI, node.shape,
+                      ArrayNode(MOANodeTypes.ARRAY, (len(index_values),), None, index_values),
+                      node.right_node.right_node)
+
+
+def _reduce_psi_transposev(node):
+    """<i j k> psi <2 0 1> transpose ... => <k i j> psi ..."""
+    # sort two lists according to one list
+    index_values = tuple(s for _, s in sorted(zip(node.right_node.left_node.value, node.left_node.value), key=lambda pair: pair[0]))
     return BinaryNode(MOANodeTypes.PSI, node.shape,
                       ArrayNode(MOANodeTypes.ARRAY, (len(index_values),), None, index_values),
                       node.right_node.right_node)

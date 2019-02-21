@@ -6,17 +6,15 @@ let
   }) { };
 
   pythonPackages = pkgs.python3Packages;
-
-  src = builtins.filterSource
-      (path: _: !builtins.elem  (builtins.baseNameOf path) [".git" "result"])
-      ./.;
 in
 rec {
   python-moa = pythonPackages.buildPythonPackage {
     name = "python-moa";
     format = "flit";
 
-    inherit src;
+    src = builtins.filterSource
+      (path: _: !builtins.elem  (builtins.baseNameOf path) [".git" "result" "docs"])
+      ./.;
 
     propagatedBuildInputs = with pythonPackages; [ sly astunparse ];
     checkInputs = with pythonPackages; [ pytest pytestcov graphviz ];
@@ -34,13 +32,16 @@ rec {
   docs = pkgs.stdenv.mkDerivation {
      name = "python-moa-docs";
 
-     inherit src;
+     src = builtins.filterSource
+      (path: _: !builtins.elem  (builtins.baseNameOf path) [".git" "result"])
+      ./.;
 
      buildInputs = with pythonPackages; [ python-moa sphinx ];
 
      buildPhase = ''
        cd docs;
        sphinx-apidoc -f -o source/ ../moa
+       sphinx-build -b doctest . _build/doctest
        sphinx-build -b html . _build/html
      '';
 
