@@ -1,2 +1,4 @@
 language: nix
-script: nix-build -A python-moa
+# docs in turn build package which runs the tests so this tests
+# everything
+script: nix-build -A docs
