@@ -10,7 +10,7 @@ provide predictions on the runtime and performance of a computation.
    :maxdepth: 2
    :caption: Contents:
 
-   moa
+   theory
    implementation
    publications
 

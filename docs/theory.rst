@@ -1,5 +1,5 @@
-Mathematics of Arrays (MOA)
-===========================
+Theory
+======
 
 Arrays
 ^^^^^^
