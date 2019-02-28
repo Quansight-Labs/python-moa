@@ -25,7 +25,6 @@ class Array:
         stride = 1
         offset = 0
         for i, s in zip(index[::-1], self.shape[::-1]):
-            print(i, s, stride, offset)
             if i >= s:
                 raise IndexError(f'index {i} >= {s} is incompatible with shape')
 

@@ -145,24 +145,33 @@ class MOAParser(sly.Parser):
     def expr(self, p):
         return p.array
 
-    @_('IDENTIFIER CARROT LANGLEBRACKET integer_list RANGLEBRACKET')
+    @_('IDENTIFIER CARROT LANGLEBRACKET vector_list RANGLEBRACKET')
     def array(self, p):
-        return ArrayNode(MOANodeTypes.ARRAY, tuple(p.integer_list), p.IDENTIFIER, None)
+        self.symbol_table[p.IDENTIFIER] = (MOANodeTypes.ARRAY, tuple(p.vector_list), None)
+        return ArrayNode(MOANodeTypes.ARRAY, None, p.IDENTIFIER)
 
     @_('IDENTIFIER')
     def array(self, p):
-        return ArrayNode(MOANodeTypes.ARRAY, None, p.IDENTIFIER, None)
+        self.symbol_table[p.IDENTIFIER] = (MOANodeTypes.ARRAY, None, None)
+        return ArrayNode(MOANodeTypes.ARRAY, None, p.IDENTIFIER)
 
-    @_('LANGLEBRACKET integer_list RANGLEBRACKET')
+    @_('LANGLEBRACKET vector_list RANGLEBRACKET')
     def array(self, p):
-        return ArrayNode(MOANodeTypes.ARRAY, (len(p.integer_list),), None, tuple(p.integer_list))
+        unique_symbol_name = self._generate_unique_symbol_name()
+        self.symbol_table[unique_symbol_name] = (MOANodeTypes.ARRAY, (len(p.vector_list),), tuple(p.vector_list))
+        return ArrayNode(MOANodeTypes.ARRAY, None, unique_symbol_name)
 
-    @_('INTEGER integer_list')
-    def integer_list(self, p):
-        return (p.INTEGER,) + p.integer_list
+    @_('INTEGER vector_list')
+    def vector_list(self, p):
+        return (p.INTEGER,) + p.vector_list
+
+    @_('IDENTIFIER vector_list')
+    def vector_list(self, p):
+        self.symbol_table[p.IDENTIFIER] = (MOANodeTypes.INDEX, None)
+        return (p.IDENTIFIER,) + p.vector_list
 
     @_('empty')
-    def integer_list(self, p):
+    def vector_list(self, p):
         return tuple()
 
     @_('')
@@ -175,8 +184,15 @@ class MOAParser(sly.Parser):
         else:
             raise YaccError('Parse error in input. EOF\n')
 
+    def _generate_unique_symbol_name(self):
+        self.counter += 1
+        return f'_{self.counter}'
+
     def parse(self, text):
+        self.symbol_table = {}
+        self.counter = 0
+
         lexer = MOALexer()
         tokens = lexer.tokenize(text)
         tree = super().parse(tokens)
-        return tree
+        return self.symbol_table, tree

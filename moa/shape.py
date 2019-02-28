@@ -10,16 +10,16 @@ class MOAShapeException(MOAException):
     pass
 
 
-def is_vector(node):
-    return node.node_type == MOANodeTypes.ARRAY and len(node.shape) == 1
+def is_vector(node, symbol_table):
+    return node.node_type == MOANodeTypes.ARRAY and dimension(node, symbol_table) == 1
 
 
-def is_scalar(node):
-    return node.node_type == MOANodeTypes.ARRAY and len(node.shape) == 0
+def is_scalar(node, symbol_table):
+    return node.node_type == MOANodeTypes.ARRAY and dimension(node, symbol_table) == 0
 
 
-def dimension(node):
-    return len(node.shape)
+def dimension(node, symbol_table):
+    return node.symbol_node[2] # TODO: make namedtuple
 
 
 def calculate_shapes(tree):

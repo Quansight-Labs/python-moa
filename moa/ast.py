@@ -40,7 +40,7 @@ class MOANodeTypes(enum.Enum):
 # readibility **SO** much better
 # and it is rougly equivalent to C struct
 ArrayNode = collections.namedtuple(
-    'ArrayNode', ['node_type', 'shape', 'name', 'value'])
+    'ArrayNode', ['node_type', 'shape', 'symbol_node'])
 UnaryNode = collections.namedtuple(
     'UnaryNode', ['node_type', 'shape', 'right_node'])
 BinaryNode = collections.namedtuple(
@@ -61,42 +61,46 @@ def is_binary_operation(node):
 
 
 ## replacement methods
-def postorder_replacement(node, replacement_function):
+def postorder_replacement(node, replacement_function, symbol_table):
     """Postorder (Left, Right, Root) traversal of AST
 
     Used for calculating the shape of the ast at each node.
+
+    new_node = replacement_function(node, symbol_table)
     """
     if is_unary_operation(node):
-        right_node = postorder_replacement(node.right_node, replacement_function)
+        right_node = postorder_replacement(node.right_node, replacement_function, symbol_table)
         node = UnaryNode(node.node_type, node.shape, right_node)
     elif is_binary_operation(node):
-        left_node = postorder_replacement(node.left_node, replacement_function)
-        right_node = postorder_replacement(node.right_node, replacement_function)
+        left_node = postorder_replacement(node.left_node, replacement_function, symbol_table)
+        right_node = postorder_replacement(node.right_node, replacement_function, symbol_table)
         node = BinaryNode(node.node_type, node.shape, left_node, right_node)
-    return replacement_function(node)
+    return replacement_function(node, symbol_table)
 
 
-def preorder_replacement(node, replacement_function, max_iterations=range(100)):
+def preorder_replacement(node, replacement_function, symbol_table, max_iterations=range(100)):
     """Preorder (Root, Left, Right) traversal of AST
 
     Used for reducing the ast. Note that "replacement_function" is
     called until it returns "None" indicating that there are no more
     reductions to perform on the root node. This behavior is different
     than the "postorder_replacement" function.
+
+    new_node = replacement_function(node, symbol_table)
     """
     for iteration in max_iterations:
-        replacement_node = replacement_function(node)
+        replacement_node = replacement_function(node, symbol_table)
         if replacement_node is None:
             break
         node = replacement_node
     else:
-        raise MOAReplacementError(f'reduction on node {node.node_type} failed to complete in {max_iterations} iterations')
+        raise MOAReplacementError(f'reduction on node {node.node_type} failed to complete max_iterations')
 
     if is_unary_operation(node):
-        right_node = preorder_replacement(node.right_node, replacement_function, max_iterations)
+        right_node = preorder_replacement(node.right_node, replacement_function, symbol_table, max_iterations)
         node = UnaryNode(node.node_type, node.shape, right_node)
     elif is_binary_operation(node):
-        left_node = preorder_replacement(node.left_node, replacement_function, max_iterations)
-        right_node = preorder_replacement(node.right_node, replacement_function, max_iterations)
+        left_node = preorder_replacement(node.left_node, replacement_function, symbol_table, max_iterations)
+        right_node = preorder_replacement(node.right_node, replacement_function, symbol_table, max_iterations)
         node = BinaryNode(node.node_type, node.shape, left_node, right_node)
     return node
