@@ -34,6 +34,8 @@ def reduce_ast(tree, max_iterations=100):
 
     In the future the symbol table will have to be constructed earlier
     for arrays and variables for shapes.
+
+    TODO: change exception to warning to allow for partial replacement
     """
     counter = itertools.count()
     symbol_table = {}

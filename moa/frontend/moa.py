@@ -6,7 +6,10 @@ import sly
 from sly.lex import LexError
 from sly.yacc import YaccError
 
-from ..ast import MOANodeTypes, ArrayNode, UnaryNode, BinaryNode
+from ..ast import (
+    MOANodeTypes, ArrayNode, UnaryNode, BinaryNode,
+    add_symbol, generate_unique_array_name
+)
 
 
 class MOALexer(sly.Lexer):
@@ -147,19 +150,19 @@ class MOAParser(sly.Parser):
 
     @_('IDENTIFIER CARROT LANGLEBRACKET vector_list RANGLEBRACKET')
     def array(self, p):
-        self.symbol_table[p.IDENTIFIER] = (MOANodeTypes.ARRAY, tuple(p.vector_list), None)
+        self.symbol_table = add_symbol(self.symbol_table, p.IDENTIFIER, MOANodeTypes.ARRAY, tuple(p.vector_list), None)
         return ArrayNode(MOANodeTypes.ARRAY, None, p.IDENTIFIER)
 
     @_('IDENTIFIER')
     def array(self, p):
-        self.symbol_table[p.IDENTIFIER] = (MOANodeTypes.ARRAY, None, None)
+        self.symbol_table = add_symbol(self.symbol_table, p.IDENTIFIER, MOANodeTypes.ARRAY, None, None)
         return ArrayNode(MOANodeTypes.ARRAY, None, p.IDENTIFIER)
 
     @_('LANGLEBRACKET vector_list RANGLEBRACKET')
     def array(self, p):
-        unique_symbol_name = self._generate_unique_symbol_name()
-        self.symbol_table[unique_symbol_name] = (MOANodeTypes.ARRAY, (len(p.vector_list),), tuple(p.vector_list))
-        return ArrayNode(MOANodeTypes.ARRAY, None, unique_symbol_name)
+        unique_array_name = generate_unique_array_name(self.symbol_table)
+        self.symbol_table = add_symbol(self.symbol_table, unique_array_name, MOANodeTypes.ARRAY, (len(p.vector_list),), tuple(p.vector_list))
+        return ArrayNode(MOANodeTypes.ARRAY, None, unique_array_name)
 
     @_('INTEGER vector_list')
     def vector_list(self, p):
@@ -167,8 +170,8 @@ class MOAParser(sly.Parser):
 
     @_('IDENTIFIER vector_list')
     def vector_list(self, p):
-        self.symbol_table[p.IDENTIFIER] = (MOANodeTypes.INDEX, None)
-        return (p.IDENTIFIER,) + p.vector_list
+        self.symbol_table = add_symbol(self.symbol_table, p.IDENTIFIER, MOANodeTypes.ARRAY, (), None)
+        return ((MOANodeTypes.ARRAY, (), p.IDENTIFIER),) + p.vector_list
 
     @_('empty')
     def vector_list(self, p):
@@ -183,10 +186,6 @@ class MOAParser(sly.Parser):
             raise YaccError(f'Syntax error at line {p.lineno}, token={p.type}, value={p.value}\n')
         else:
             raise YaccError('Parse error in input. EOF\n')
-
-    def _generate_unique_symbol_name(self):
-        self.counter += 1
-        return f'_{self.counter}'
 
     def parse(self, text):
         self.symbol_table = {}

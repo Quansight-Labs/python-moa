@@ -1,5 +1,6 @@
 import enum
 import collections
+import copy
 
 from .core import MOAException
 
@@ -9,8 +10,13 @@ class MOAReplacementError(MOAException):
 
 
 class MOANodeTypes(enum.Enum):
-    ARRAY = 1
-    INDEX = 2
+    # storage
+    ARRAY = 1 # scalars, vectors, array
+    INDEX = 2 # indexing (takes range of scalar values)
+
+    # control flow
+    LOOP = 50
+    CONDITION = 51
 
     # unary
     PLUSRED   = 101
@@ -35,16 +41,28 @@ class MOANodeTypes(enum.Enum):
     CAT        = 208
     TRANSPOSEV = 209
 
+    # comparison
+    EQUAL            = 250
+    NOTEQUAL         = 251
+    LESSTHAN         = 252
+    LESSTTANEQUAL    = 253
+    GREATERTHAN      = 252
+    GREATERTHANEQUAL = 253
+    AND              = 254
+    OR               = 255
 
-# I was hesitant to add this but it makes
-# readibility **SO** much better
-# and it is rougly equivalent to C struct
+
+# AST Representation
 ArrayNode = collections.namedtuple(
     'ArrayNode', ['node_type', 'shape', 'symbol_node'])
 UnaryNode = collections.namedtuple(
     'UnaryNode', ['node_type', 'shape', 'right_node'])
 BinaryNode = collections.namedtuple(
     'BinaryNode', ['node_type', 'shape', 'left_node', 'right_node'])
+
+# Symbol Table
+SymbolNode = collections.namedtuple(
+    'SymbolNode', ['node_type', 'shape', 'value'])
 
 
 # node methods
@@ -60,25 +78,42 @@ def is_binary_operation(node):
     return 200 < node.node_type.value < 300
 
 
+# symbol table methods
+def add_symbol(symbol_table, name, node_type, shape, value):
+    # idempotency makes debugging way easier dict(str: tuple)
+    # deep copy not necessary
+    symbol_table_copy = copy.copy(symbol_table)
+    symbol_table_copy[name] = SymbolNode(node_type, shape, value)
+    return symbol_table_copy
+
+
+def generate_unique_array_name(symbol_table):
+    return f'_a{len(symbol_table)}'
+
+
+def generate_unique_index_name(symbol_table):
+    return f'_i{len(symbol_table)}'
+
+
 ## replacement methods
-def postorder_replacement(node, replacement_function, symbol_table):
+def postorder_replacement(symbol_table, node, replacement_function):
     """Postorder (Left, Right, Root) traversal of AST
 
     Used for calculating the shape of the ast at each node.
 
-    new_node = replacement_function(node, symbol_table)
+    new_symbol_table, new_node = replacement_function(symbol_table, node)
     """
     if is_unary_operation(node):
-        right_node = postorder_replacement(node.right_node, replacement_function, symbol_table)
+        symbol_table, right_node = postorder_replacement(symbol_table, node.right_node, replacement_function)
         node = UnaryNode(node.node_type, node.shape, right_node)
     elif is_binary_operation(node):
-        left_node = postorder_replacement(node.left_node, replacement_function, symbol_table)
-        right_node = postorder_replacement(node.right_node, replacement_function, symbol_table)
+        symbol_table, left_node = postorder_replacement(symbol_table, node.left_node, replacement_function)
+        symbol_table, right_node = postorder_replacement(symbol_table, node.right_node, replacement_function)
         node = BinaryNode(node.node_type, node.shape, left_node, right_node)
-    return replacement_function(node, symbol_table)
+    return replacement_function(symbol_table, node)
 
 
-def preorder_replacement(node, replacement_function, symbol_table, max_iterations=range(100)):
+def preorder_replacement(symbol_table, node, replacement_function, max_iterations=range(100)):
     """Preorder (Root, Left, Right) traversal of AST
 
     Used for reducing the ast. Note that "replacement_function" is
@@ -86,21 +121,22 @@ def preorder_replacement(node, replacement_function, symbol_table, max_iteration
     reductions to perform on the root node. This behavior is different
     than the "postorder_replacement" function.
 
-    new_node = replacement_function(node, symbol_table)
+    new_symbol_table, new_node = replacement_function(symbol_table, node)
     """
     for iteration in max_iterations:
-        replacement_node = replacement_function(node, symbol_table)
+        replacement_symbol_table, replacement_node = replacement_function(symbol_table, node)
         if replacement_node is None:
             break
+        symbol_table = replacement_symbol_table
         node = replacement_node
     else:
-        raise MOAReplacementError(f'reduction on node {node.node_type} failed to complete max_iterations')
+        raise MOAReplacementError(f'reduction on node {node.node_type} failed to complete in max_iterations')
 
     if is_unary_operation(node):
-        right_node = preorder_replacement(node.right_node, replacement_function, symbol_table, max_iterations)
+        symbol_table, right_node = preorder_replacement(symbol_table, node.right_node, replacement_function, max_iterations)
         node = UnaryNode(node.node_type, node.shape, right_node)
     elif is_binary_operation(node):
-        left_node = preorder_replacement(node.left_node, replacement_function, symbol_table, max_iterations)
-        right_node = preorder_replacement(node.right_node, replacement_function, symbol_table, max_iterations)
+        symbol_table, left_node = preorder_replacement(symbol_table, node.left_node, replacement_function, max_iterations)
+        symbol_table, right_node = preorder_replacement(symbol_table, node.right_node, replacement_function, max_iterations)
         node = BinaryNode(node.node_type, node.shape, left_node, right_node)
-    return node
+    return symbol_table, node
