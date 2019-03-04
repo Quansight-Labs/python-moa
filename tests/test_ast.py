@@ -1,4 +1,5 @@
 import itertools
+import copy
 
 import pytest
 
@@ -6,86 +7,121 @@ from moa.ast import (
     MOANodeTypes,
     ArrayNode, UnaryNode, BinaryNode,
     is_array, is_unary_operation, is_binary_operation,
+    add_symbol,
+    generate_unique_array_name, generate_unique_index_name,
     postorder_replacement,
     preorder_replacement
 )
 
 @pytest.mark.parametrize('node, result', [
-    (ArrayNode(MOANodeTypes.ARRAY, None, None, None), (True, False, False)),
+    (ArrayNode(MOANodeTypes.ARRAY, None, None), (True, False, False)),
     (UnaryNode(MOANodeTypes.PLUSRED, None, None), (False, True, False)),
     (BinaryNode(MOANodeTypes.CAT, None, None, None), (False, False, True)),
 ])
 def test_ast_nodes(node, result):
-    assert is_array(node) == result[0]
-    assert is_unary_operation(node) == result[1]
-    assert is_binary_operation(node) == result[2]
+    assert result == (
+        is_array(node),
+        is_unary_operation(node),
+        is_binary_operation(node))
+
+
+def test_add_symbol_table_idempodent():
+    symbol_table = {}
+    symbol_table_copy = copy.deepcopy(symbol_table)
+    new_symbol_table = add_symbol(symbol_table, 'A', MOANodeTypes.ARRAY, (3, 4), None)
+    assert symbol_table == symbol_table_copy
+    assert new_symbol_table == {'A': (MOANodeTypes.ARRAY, (3, 4), None)}
+
+
+def test_symbol_table_unique_array():
+    symbol_table = {}
+    symbol_table_copy = copy.deepcopy(symbol_table)
+    symbol_array_name_1 = generate_unique_array_name(symbol_table)
+    new_symbol_table_1 = add_symbol(symbol_table, symbol_array_name_1, MOANodeTypes.ARRAY, (3, 4), None)
+    symbol_array_name_2 = generate_unique_array_name(new_symbol_table_1)
+    assert symbol_table == symbol_table_copy
+    assert symbol_array_name_1 != symbol_array_name_2
+
+
+def test_symbol_table_unique_array():
+    symbol_table = {}
+    symbol_table_copy = copy.deepcopy(symbol_table)
+    symbol_index_name_1 = generate_unique_index_name(symbol_table)
+    new_symbol_table_1 = add_symbol(symbol_table, symbol_index_name_1, MOANodeTypes.INDEX, (3, 4), None)
+    symbol_index_name_2 = generate_unique_index_name(new_symbol_table_1)
+    assert symbol_table == symbol_table_copy
+    assert symbol_index_name_1 != symbol_index_name_2
 
 
 def test_postorder_replacement():
     counter = itertools.count()
 
-    def replacement_function(node):
+    def replacement_function(symbol_table, node):
         node_value = (next(counter),)
         if is_unary_operation(node):
-            return UnaryNode(node.node_type, node_value, node.right_node)
+            return symbol_table, UnaryNode(node.node_type, node_value, node.right_node)
         elif is_binary_operation(node):
-            return BinaryNode(node.node_type, node_value, node.left_node, node.right_node)
-        return ArrayNode(node.node_type, node_value, None, None)
+            return symbol_table, BinaryNode(node.node_type, node_value, node.left_node, node.right_node)
+        return symbol_table, ArrayNode(node.node_type, node_value, None)
 
     tree = BinaryNode(MOANodeTypes.CAT, None,
                       UnaryNode(MOANodeTypes.PLUSRED, None,
-                                ArrayNode(MOANodeTypes.ARRAY, None, None, None)),
+                                ArrayNode(MOANodeTypes.ARRAY, None, None)),
                       BinaryNode(MOANodeTypes.PLUS, None,
                                  UnaryNode(MOANodeTypes.SHAPE, None,
-                                           ArrayNode(MOANodeTypes.ARRAY, None, None, None)),
+                                           ArrayNode(MOANodeTypes.ARRAY, None, None)),
                                  UnaryNode(MOANodeTypes.RAV, None,
-                                           ArrayNode(MOANodeTypes.ARRAY, None, None, None))))
+                                           ArrayNode(MOANodeTypes.ARRAY, None, None))))
+    symbol_table = {} # can get away with not contructing symbol table
 
     expected_tree = (MOANodeTypes.CAT, (7,),
                      (MOANodeTypes.PLUSRED, (1,),
-                      (MOANodeTypes.ARRAY, (0,), None, None)),
+                      (MOANodeTypes.ARRAY, (0,), None)),
                      (MOANodeTypes.PLUS, (6,),
                       (MOANodeTypes.SHAPE, (3,),
-                       (MOANodeTypes.ARRAY, (2,), None, None)),
+                       (MOANodeTypes.ARRAY, (2,), None)),
                       (MOANodeTypes.RAV, (5,),
-                       (MOANodeTypes.ARRAY, (4,), None, None))))
+                       (MOANodeTypes.ARRAY, (4,), None))))
 
-    new_tree = postorder_replacement(tree, replacement_function)
+    new_symbol_table, new_tree = postorder_replacement(symbol_table, tree, replacement_function)
+    assert new_symbol_table == symbol_table
     assert new_tree == expected_tree
 
 
 def test_preorder_replacement():
     counter = itertools.count()
 
-    def replacement_function(node):
+    def replacement_function(symbol_table, node):
         # termination condition we end up visiting each node twice
         if node.shape is not None:
-            return None
+            return None, None
 
         node_value = (next(counter),)
         if is_unary_operation(node):
-            return UnaryNode(node.node_type, node_value, node.right_node)
+            return symbol_table, UnaryNode(node.node_type, node_value, node.right_node)
         elif is_binary_operation(node):
-            return BinaryNode(node.node_type, node_value, node.left_node, node.right_node)
-        return ArrayNode(node.node_type, node_value, None, None)
+            return symbol_table, BinaryNode(node.node_type, node_value, node.left_node, node.right_node)
+        return symbol_table, ArrayNode(node.node_type, node_value, None)
 
     tree = BinaryNode(MOANodeTypes.CAT, None,
                       UnaryNode(MOANodeTypes.PLUSRED, None,
-                                ArrayNode(MOANodeTypes.ARRAY, None, None, None)),
+                                ArrayNode(MOANodeTypes.ARRAY, None, None)),
                       BinaryNode(MOANodeTypes.PLUS, None,
                                  UnaryNode(MOANodeTypes.SHAPE, None,
-                                           ArrayNode(MOANodeTypes.ARRAY, None, None, None)),
+                                           ArrayNode(MOANodeTypes.ARRAY, None, None)),
                                  UnaryNode(MOANodeTypes.RAV, None,
-                                           ArrayNode(MOANodeTypes.ARRAY, None, None, None))))
+                                           ArrayNode(MOANodeTypes.ARRAY, None, None))))
+    symbol_table = {} # can get away with not contructing symbol table
 
     expected_tree = (MOANodeTypes.CAT, (0,),
                      (MOANodeTypes.PLUSRED, (1,),
-                      (MOANodeTypes.ARRAY, (2,), None, None)),
+                      (MOANodeTypes.ARRAY, (2,), None)),
                      (MOANodeTypes.PLUS, (3,),
                       (MOANodeTypes.SHAPE, (4,),
-                       (MOANodeTypes.ARRAY, (5,), None, None)),
+                       (MOANodeTypes.ARRAY, (5,), None)),
                       (MOANodeTypes.RAV, (6,),
-                       (MOANodeTypes.ARRAY, (7,), None, None))))
+                       (MOANodeTypes.ARRAY, (7,), None))))
 
-    new_tree = preorder_replacement(tree, replacement_function)
+    new_symbol_table, new_tree = preorder_replacement(symbol_table, tree, replacement_function)
+    assert symbol_table == new_symbol_table
     assert new_tree == expected_tree

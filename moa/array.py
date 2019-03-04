@@ -1,3 +1,9 @@
+"""Pure python slow array "indexing" class. Best to ignore this module
+hopefully "psi reduction" will be implemented earlier as opossed to
+later and this module will be unnecissary. For now it is unused
+
+"""
+
 class Array:
     """This will be changed to a simple namedtuple once psi reduction is
     fully implemented. "row" based format is assumed.
@@ -25,7 +31,6 @@ class Array:
         stride = 1
         offset = 0
         for i, s in zip(index[::-1], self.shape[::-1]):
-            print(i, s, stride, offset)
             if i >= s:
                 raise IndexError(f'index {i} >= {s} is incompatible with shape')
 
