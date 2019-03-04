@@ -10,7 +10,7 @@ from .ast import (
     MOANodeTypes,
     is_array, is_unary_operation, is_binary_operation
 )
-from .shape import is_vector
+from .shape import is_vector, is_symbolic_element
 from .backend import generate_python_source
 
 
@@ -38,42 +38,80 @@ _NODE_LABEL_MAP = {
     MOANodeTypes.TAKE: "take(▵)",
     MOANodeTypes.DROP: "drop(▿)",
     MOANodeTypes.CAT: "cat(++)",
+    MOANodeTypes.CONDITION: "condition"
 }
 
 
-def print_ast(symbol_table, node, vector_value=True):
-    def _node_label(symbol_table, node):
-        node_label = _NODE_LABEL_MAP[node.node_type]
-        if is_array(node): # cannot assume that shape traversal has already happened
-            symbol_node = symbol_table[node.symbol_node]
-            node_label += f' {node.symbol_node}'
-            if symbol_node.shape:
-                node_label += " <" + " ".join(str(_) for _ in symbol_node.shape) + ">"
-            if is_vector(symbol_table, node) and symbol_node.value and vector_value:
-                node_label += ': ' + " (" + " ".join(str(_) for _ in symbol_node.value) + ")"
-        elif node.node_type == MOANodeTypes.CONDITION:
-            if node.shape:
-                node_label += " <" + " ".join(str(_) for _ in node.shape) + ">"
-            node_label += " " + generate_python_source(node.left_node)
+def stringify_elements(symbol_table, elements):
+    strings = []
+    for element in elements:
+        if is_symbolic_element(element):
+            strings.append(generate_python_source(symbol_table, element, materialize_scalars=True))
         else:
-            if node.shape:
-                node_label += " <" + " ".join(str(_) for _ in node.shape) + ">"
-        return node_label
+            strings.append(str(element))
+    return strings
+    shape_str = '<'
+
+
+def shape_string(symbol_table, shape):
+    return "<" + " ".join(stringify_elements(symbol_table, shape)) + ">"
+
+
+def value_string(symbol_table, value):
+    return "(" + " ".join(stringify_elements(symbol_table, value)) + ")"
+
+
+def escape_dot_string(string):
+    return string.replace('<', '&lt;').replace('>', '&gt;')
+
+
+def _node_label(symbol_table, node):
+    node_label = {
+        'name': _NODE_LABEL_MAP[node.node_type],
+    }
+
+    if is_array(node): # cannot assume that shape traversal has already happened
+        symbol_node = symbol_table[node.symbol_node]
+        node_label['name'] += f' {node.symbol_node}'
+        if symbol_node.shape:
+            node_label['shape'] = shape_string(symbol_table, symbol_node.shape)
+        if is_vector(symbol_table, node) and symbol_node.value:
+            node_label['value'] = value_string(symbol_table, symbol_node.value)
+    elif node.node_type == MOANodeTypes.CONDITION:
+        if node.shape:
+            node_label['shape'] = shape_string(symbol_table, node.shape)
+        node_label['value'] = generate_python_source(symbol_table, node.left_node, materialize_scalars=True)
+    else:
+        if node.shape:
+            node_label['shape'] = shape_string(symbol_table, node.shape)
+    return node_label
+
+
+
+def print_ast(symbol_table, node, vector_value=True):
+    def _print_node_label(symbol_table, node):
+        node_label = _node_label(symbol_table, node)
+        label = '{name}'
+        if 'shape' in node_label:
+            label += ': ρ {shape}'
+        if 'value' in node_label:
+            label += ' {value}'
+        return label.format(**node_label)
 
     def _print_node(symbol_table, node, prefix=""):
         if is_unary_operation(node):
-            print(prefix + "└──", _node_label(symbol_table, node.right_node))
+            print(prefix + "└──", _print_node_label(symbol_table, node.right_node))
             _print_node(symbol_table, node.right_node, prefix + "    ")
         elif node.node_type == MOANodeTypes.CONDITION:
-            print(prefix + "└──", _node_label(symbol_table, node.right_node))
+            print(prefix + "└──", _print_node_label(symbol_table, node.right_node))
             _print_node(symbol_table, node.right_node, prefix + "    ")
         elif is_binary_operation(node):
-            print(prefix + "├──", _node_label(symbol_table, node.left_node))
+            print(prefix + "├──", _print_node_label(symbol_table, node.left_node))
             _print_node(symbol_table, node.left_node,  prefix + "│   ")
-            print(prefix + "└──", _node_label(symbol_table, node.right_node))
+            print(prefix + "└──", _print_node_label(symbol_table, node.right_node))
             _print_node(symbol_table, node.right_node, prefix + "    ")
 
-    print(_node_label(symbol_table, node))
+    print(_print_node_label(symbol_table, node))
     _print_node(symbol_table, node)
 
 
@@ -85,42 +123,43 @@ def visualize_ast(symbol_table, node, comment='MOA AST', with_attrs=True, vector
     counter = itertools.count()
     default_node_attr = dict(color='black', fillcolor='white', fontcolor='black')
 
-    def _label_node(dot, symbol_table, node):
+    def _visualize_node_label(dot, symbol_table, node):
         unique_id = str(next(counter))
+
+        node_label = _node_label(symbol_table, node)
+        for key, value in node_label.items():
+            node_label[key] = escape_dot_string(value)
 
         labels = []
         if is_array(node):
-            labels.append(f"Array {node.symbol_node}")
             shape = 'box'
-
-            symbol_node = symbol_table[node.symbol_node]
-            if symbol_node.shape:
-                labels.append('ρ: &lt;' + ', '.join(str(_) for _ in symbol_node.shape) + '&gt;')
-            if is_vector(symbol_table, node) and symbol_node.value and vector_value:
-                labels.append(" (" + ", ".join(str(_) for _ in symbol_node.value) + ")")
         else: # operation
-            labels.append(_NODE_LABEL_MAP[node.node_type])
             shape = 'ellipse'
 
-            if node.shape:
-                labels.append('ρ: &lt;' + ', '.join(str(_) for _ in node.shape) + '&gt;')
+        if len(node_label) > 1:
+            labels.append('<TR><TD>{}</TD></TR>'.format(node_label['name']))
+            if 'shape' in node_label:
+                labels.append('\n<TR><TD>{}</TD></TR>'.format(node_label['shape']))
+            if 'value' in node_label:
+                labels.append('\n<TR><TD>{}</TD></TR>'.format(node_label['value']))
 
-        labels_str = '\n'.join('<TR><TD>{}</TD></TR>'.format(_) for _ in labels)
-        if len(labels) == 1:
-            node_description = labels[0]
-        else:
             node_description = f'''<
             <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
-              {labels_str}
+               {''.join(labels)}
             </TABLE>>'''
+        else:
+            node_description = node_label['name']
 
         dot.node(unique_id, label=node_description, shape=shape)
         return unique_id
 
     def _visualize_node(dot, symbol_table, node):
-        node_id = _label_node(dot, symbol_table, node)
+        node_id = _visualize_node_label(dot, symbol_table, node)
 
         if is_unary_operation(node):
+            right_node_id = _visualize_node(dot, symbol_table, node.right_node)
+            dot.edge(node_id, right_node_id)
+        elif node.node_type == MOANodeTypes.CONDITION:
             right_node_id = _visualize_node(dot, symbol_table, node.right_node)
             dot.edge(node_id, right_node_id)
         elif is_binary_operation(node):

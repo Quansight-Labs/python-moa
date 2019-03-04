@@ -37,6 +37,7 @@ def _ast_replacement(symbol_table, node):
         MOANodeTypes.MINUS: _ast_plus_minus_times_divide,
         MOANodeTypes.TIMES: _ast_plus_minus_times_divide,
         MOANodeTypes.DIVIDE: _ast_plus_minus_times_divide,
+        MOANodeTypes.CONDITION: _ast_condition,
         MOANodeTypes.EQUAL: _ast_comparison_operations,
         MOANodeTypes.NOTEQUAL: _ast_comparison_operations,
         MOANodeTypes.LESSTHAN: _ast_comparison_operations,
@@ -69,6 +70,12 @@ def _ast_plus_minus_times_divide(symbol_table, node):
         MOANodeTypes.DIVIDE: ast.Div,
     }
     return symbol_table, ast.BinOp(left=node.left_node, op=binop_map[node.node_type](), right=node.right_node)
+
+
+def _ast_condition(symbol_table, node):
+    print(node.left_node)
+    print(node.right_node)
+    return symbol_table, ast.If(test=node.left_node, body=[ast.Expr(value=node.right_node)], orelse=[])
 
 
 def _ast_comparison_operations(symbol_table, node):
