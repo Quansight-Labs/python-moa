@@ -29,8 +29,8 @@ def is_vector(symbol_table, node):
 
 
 # symbolic
-def has_symbolic_elements(node):
-    return any(is_symbol_element(element) for element in node.shape)
+def has_symbolic_elements(elements):
+    return any(is_symbolic_element(element) for element in elements)
 
 
 def is_symbolic_element(element):
@@ -74,19 +74,19 @@ def _shape_transpose_vector(symbol_table, node):
     if not is_vector(symbol_table, node.left_node):
         raise MOAShapeException('TRANSPOSE VECTOR requires left node to be vector')
 
-    symbol_node = symbol_table[node.left_node.symbol_node]
-    if has_symbolic_elements(node.left_node.shape) or has_symbolic_elements(symbol_node.value):
+    left_symbol_node = symbol_table[node.left_node.symbol_node]
+    if has_symbolic_elements(node.left_node.shape) or has_symbolic_elements(left_symbol_node.value):
         raise MOAShapeException('TRANSPOSE VECTOR not implemented for left node to be vector with symbolic components')
 
     if node.left_node.shape[0] != dimension(symbol_table, node.right_node):
         raise MOAShapeException('TRANSPOSE VECTOR requires left node vector to have total number of elements equal to dimension of right node')
 
-    if len(set(node.left_node.value)) != len(node.left_node.value):
+    if len(set(left_symbol_node.value)) != len(left_symbol_node.value):
         raise MOAShapeException('TRANSPOSE VECTOR requires left node vector to have unique elements')
 
     # sort two lists according to one list
-    shape = tuple(s for _, s in sorted(zip(node.left_node.value, node.right_node.shape), key=lambda pair: pair[0]))
-    return BinaryNode(node.node_type, shape, node.left_node, node.right_node)
+    shape = tuple(s for _, s in sorted(zip(left_symbol_node.value, node.right_node.shape), key=lambda pair: pair[0]))
+    return symbol_table, BinaryNode(node.node_type, shape, node.left_node, node.right_node)
 
 
 def _shape_plus_red(symbol_table, node):
@@ -99,20 +99,39 @@ def _shape_plus_red(symbol_table, node):
 
 # Binary Operations
 def _shape_psi(symbol_table, node):
-    # TODO
     if not is_vector(symbol_table, node.left_node):
         raise MOAShapeException('PSI requires left node to be vector')
 
-    drop_dims = dimension(symbol_table, node.left_node)
-    node = BinaryNode(node.node_type, node.right_node[drop_dims:], node.left_node, node.right_node)
+    left_symbol_node = symbol_table[node.left_node.symbol_node]
+    if has_symbolic_elements(left_symbol_node.shape):
+        raise MOAShapeException('PSI not implemented for left node to be vector with symbolic shape')
 
-    # # check that indexing is within bounds
-    # for left_element, right_element in zip(symbol_table[node.left_node.symbol_node].value, node.right_node.shape):
-    #     return symbol_table, node
-    # else:
-    #     if drop_dims > dimension(symbol_table, node.right_node):
-    #         raise MOAShapeException('PSI requires that vector length be no greater than dimension of right node')
-    #     return node.right_node.shape[drop_dims:]
+    drop_dimensions = left_symbol_node.shape[0]
+    if drop_dimensions > dimension(symbol_table, node.right_node):
+        raise MOAShapeException('PSI requires that vector length be no greater than dimension of right node')
+
+    conditions = []
+    for i, (left_element, right_element) in enumerate(zip(left_symbol_node.value, node.right_node.shape)):
+        if is_symbolic_element(left_element) and is_symbolic_element(right_element): # both are symbolic
+            conditions.append(BinaryNode(MOANodeTypes.LESSTHAN, (), left_element, right_element))
+        elif is_symbolic_element(left_element): # only left is symbolic
+            array_name = generate_unique_array_name(symbol_table)
+            symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (), (left_element,))
+            conditions.append(BinaryNode(MOANodeTypes.LESSTHAN, (), left_element, (MOANodeTypes.ARRAY, (), array_name)))
+        elif is_symbolic_element(right_element): # only right is symbolic
+            array_name = generate_unique_array_name(symbol_table)
+            symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (), (left_element,))
+            conditions.append(BinaryNode(MOANodeTypes.LESSTHAN, (), (MOANodeTypes.ARRAY, (), array_name), right_element))
+        else: # neither symbolic
+            if left_element >= right_element:
+                raise MOAShapeException(f'PSI requires elements #{i} left {left_element} < right {right_element}')
+
+    node = BinaryNode(node.node_type, node.right_node.shape[drop_dimensions:], node.left_node, node.right_node)
+    if conditions:
+        condition_node = conditions[0]
+        for condition in conditions[1:]:
+            condition_node = BinaryNode(MOANodeTypes.AND, (), condition, condition_node)
+        node = BinaryNode(MOANodeTypes.CONDITION, node.shape, condition_node, node)
     return symbol_table, node
 
 

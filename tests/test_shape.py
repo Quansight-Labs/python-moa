@@ -10,39 +10,41 @@ from moa.shape import (
 
 
 def test_is_scalar():
-    node = ArrayNode(MOANodeTypes.ARRAY, (), '_1')
-    symbol_table = {'_1': SymbolNode(MOANodeTypes.ARRAY, (), (3,))}
-    assert is_scalar(node, symbol_table)
+    symbol_table = {'_a1': SymbolNode(MOANodeTypes.ARRAY, (), (3,))}
+    node = ArrayNode(MOANodeTypes.ARRAY, (), '_a1')
+    assert is_scalar(symbol_table, node)
 
 
-def test_is_not_scalar(): # vector
-    node = ArrayNode(MOANodeTypes.ARRAY, None, '_1')
-    symbol_table = {'_1', SymbolNode(MOANodeTypes.ARRAY, (2,), (1, 2))}
-    assert not is_scalar(tree, symbol_table)
+def test_is_not_scalar_1d(): # vector
+    symbol_table = {'_a1': SymbolNode(MOANodeTypes.ARRAY, (2,), (1, 2))}
+    node = ArrayNode(MOANodeTypes.ARRAY, None, '_a1')
+    assert not is_scalar(symbol_table, node)
 
 
-def test_is_not_scalar(): # 2D array
-    node = ArrayNode(MOANodeTypes.ARRAY, None, '_1')
-    symbol_table = {'_1', SymbolNode(MOANodeTypes.ARRAY, (2, 3), (1, 2, 3, 4, 5, 6))}
-    assert not is_scalar(node, symbol_table)
+def test_is_not_scalar_2d(): # 2D array
+    symbol_table = {'_a1': SymbolNode(MOANodeTypes.ARRAY, (2, 3), (1, 2, 3, 4, 5, 6))}
+    node = ArrayNode(MOANodeTypes.ARRAY, None, '_a1')
+    assert not is_scalar(symbol_table, node)
 
 
 def test_is_vector():
-    tree = ArrayNode(MOANodeTypes.ARRAY, None, '_1')
-    symbol_table = {'_1', SymbolNode(MOANodeTypes.ARRAY, (5,), (1, 2, 3, 4, 5))}
-    assert is_vector(node, symbol_table)
+    symbol_table = {'_a1': SymbolNode(MOANodeTypes.ARRAY, (5,), (1, 2, 3, 4, 5))}
+    node = ArrayNode(MOANodeTypes.ARRAY, None, '_a1')
+    assert is_vector(symbol_table, node)
 
 
-def test_is_not_vector(): # 2D array
-    tree = ArrayNode(MOANodeTypes.ARRAY, None, 'A')
-    symbol_table = {'A', SymbolNode(MOANodeTypes.ARRAY, (5, 1), (1, 2, 3, 4, 5))}
-    assert not is_vector(node, symbol_table)
-
-
-def test_is_not_vector(): # scalar
-    node = ArrayNode(MOANodeTypes.ARRAY, None, 'asdf')
+def test_is_not_vector_1d(): # scalar
     symbol_table = {'asdf': SymbolNode(MOANodeTypes.ARRAY, (), (3,))}
-    assert not is_vector(node, symbol_table)
+    node = ArrayNode(MOANodeTypes.ARRAY, None, 'asdf')
+    assert not is_vector(symbol_table, node)
+
+
+def test_is_not_vector_2d(): # 2D array
+    symbol_table = {'A': SymbolNode(MOANodeTypes.ARRAY, (5, 1), (1, 2, 3, 4, 5))}
+    node = ArrayNode(MOANodeTypes.ARRAY, None, 'A')
+    assert not is_vector(symbol_table, node)
+
+
 
 
 @pytest.mark.parametrize("symbol_table, tree, shape_symbol_table, shape_tree", [
@@ -59,15 +61,15 @@ def test_is_not_vector(): # scalar
      UnaryNode(MOANodeTypes.TRANSPOSE, (5, 4, 3),
                ArrayNode(MOANodeTypes.ARRAY, (3, 4, 5), '_a0'))),
     # TRANSPOSE VECTOR
-    ({'_1': SymbolNode(MOANodeTypes.ARRAY, (3,), (2, 0, 1)),
+    ({'_a1': SymbolNode(MOANodeTypes.ARRAY, (3,), (2, 0, 1)),
       'B': SymbolNode(MOANodeTypes.ARRAY, (3, 4, 5), None)},
      BinaryNode(MOANodeTypes.TRANSPOSEV, None,
-               ArrayNode(MOANodeTypes.ARRAY, None, '_1'),
+               ArrayNode(MOANodeTypes.ARRAY, None, '_a1'),
                ArrayNode(MOANodeTypes.ARRAY, None, 'B')),
-     {'_1': SymbolNode(MOANodeTypes.ARRAY, (3,), (2, 0, 1)),
+     {'_a1': SymbolNode(MOANodeTypes.ARRAY, (3,), (2, 0, 1)),
       'B': SymbolNode(MOANodeTypes.ARRAY, (3, 4, 5), None)},
      BinaryNode(MOANodeTypes.TRANSPOSEV, (4, 5, 3),
-               ArrayNode(MOANodeTypes.ARRAY, (3,), '_1'),
+               ArrayNode(MOANodeTypes.ARRAY, (3,), '_a1'),
                ArrayNode(MOANodeTypes.ARRAY, (3, 4, 5), 'B'))),
     # PLUSRED
     ({'A': SymbolNode(MOANodeTypes.ARRAY, (3, 4, 5), None)},
@@ -77,15 +79,15 @@ def test_is_not_vector(): # scalar
      UnaryNode(MOANodeTypes.PLUSRED, (4, 5),
                 ArrayNode(MOANodeTypes.ARRAY, (3, 4, 5), 'A'))),
     # PSI
-    ({'_1': SymbolNode(MOANodeTypes.ARRAY, (2,), (3, 5)),
+    ({'_a1': SymbolNode(MOANodeTypes.ARRAY, (2,), (3, 4)),
       'A': SymbolNode(MOANodeTypes.ARRAY, (4, 5, 6), None)},
      BinaryNode(MOANodeTypes.PSI, None,
-                ArrayNode(MOANodeTypes.ARRAY, None, '_1'),
+                ArrayNode(MOANodeTypes.ARRAY, None, '_a1'),
                 ArrayNode(MOANodeTypes.ARRAY, None, 'A')),
-     {'_1': SymbolNode(MOANodeTypes.ARRAY, (2,), (3, 5)),
+     {'_a1': SymbolNode(MOANodeTypes.ARRAY, (2,), (3, 4)),
       'A': SymbolNode(MOANodeTypes.ARRAY, (4, 5, 6), None)},
      BinaryNode(MOANodeTypes.PSI, (6,),
-                ArrayNode(MOANodeTypes.ARRAY, (2,), '_1'),
+                ArrayNode(MOANodeTypes.ARRAY, (2,), '_a1'),
                 ArrayNode(MOANodeTypes.ARRAY, (4, 5, 6), 'A'))),
 ])
 def test_shape_unit(symbol_table, tree, shape_symbol_table, shape_tree):
@@ -150,25 +152,30 @@ def test_shape_scalar_plus_minus_multiply_divide_no_symbol(operation):
     assert new_symbol_table == symbol_table
 
 
-@pytest.mark.parametrize("symbol_table, tree, shape_tree", [
+@pytest.mark.parametrize("symbol_table, tree, shape_symbol_table, shape_tree", [
     # Lenore Simple Example #1 06/01/2018
-    ({'_1': SymbolNode(MOANodeTypes.ARRAY, (1,), (0,)),
+    ({'_a1': SymbolNode(MOANodeTypes.ARRAY, (1,), (0,)),
       'A': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None),
       'B': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None)},
      BinaryNode(MOANodeTypes.PSI, None,
-                ArrayNode(MOANodeTypes.ARRAY, None, '_1'),
+                ArrayNode(MOANodeTypes.ARRAY, None, '_a1'),
                 UnaryNode(MOANodeTypes.TRANSPOSE, None,
                           BinaryNode(MOANodeTypes.PLUS, None,
                                      ArrayNode(MOANodeTypes.ARRAY, None, 'A'),
                                      ArrayNode(MOANodeTypes.ARRAY, None, 'B')))),
+     {'_a1': SymbolNode(MOANodeTypes.ARRAY, (1,), (0,)),
+      'A': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None),
+      'B': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None)},
      (MOANodeTypes.PSI, (3,),
-      (MOANodeTypes.ARRAY, (1,), '_1'),
+      (MOANodeTypes.ARRAY, (1,), '_a1'),
       (MOANodeTypes.TRANSPOSE, (4, 3),
        (MOANodeTypes.PLUS, (3, 4),
         (MOANodeTypes.ARRAY, (3, 4), 'A'),
         (MOANodeTypes.ARRAY, (3, 4), 'B'))))),
 ])
-def test_shape_integration(symbol_table, tree, shape_tree):
+def test_shape_integration(symbol_table, tree, shape_symbol_table, shape_tree):
     symbol_table_copy = copy.deepcopy(symbol_table)
-    assert calculate_shapes(symbol_table, tree) == shape_tree
-    assert symbol_table_copy == symbol_table
+    new_symbol_table, new_tree = calculate_shapes(symbol_table, tree)
+    assert symbol_table == symbol_table_copy
+    assert new_tree == shape_tree
+    assert new_symbol_table == shape_symbol_table
