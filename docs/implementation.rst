@@ -22,12 +22,12 @@ For example the following moa expression :math:`\vc0 \psi \transpose (A + B)` ca
 .. doctest::
 
    >>> BinaryNode(MOANodeTypes.PSI, None,
-   ...            ArrayNode(MOANodeTypes.ARRAY, (1,), None, (0,)),
+   ...            ArrayNode(MOANodeTypes.ARRAY, (1,), '_a0'),
    ...                      UnaryNode(MOANodeTypes.TRANSPOSE, None,
    ...                                BinaryNode(MOANodeTypes.PLUS, None,
-   ...                                           ArrayNode(MOANodeTypes.ARRAY, None, 'A', None),
-   ...                                           ArrayNode(MOANodeTypes.ARRAY, None, 'B', None))))
-   BinaryNode(node_type=<MOANodeTypes.PSI: 205>, shape=None, left_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(1,), name=None, value=(0,)), right_node=UnaryNode(node_type=<MOANodeTypes.TRANSPOSE: 110>, shape=None, right_node=BinaryNode(node_type=<MOANodeTypes.PLUS: 201>, shape=None, left_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=None, name='A', value=None), right_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=None, name='B', value=None))))
+   ...                                           ArrayNode(MOANodeTypes.ARRAY, None, 'A'),
+   ...                                           ArrayNode(MOANodeTypes.ARRAY, None, 'B'))))
+   BinaryNode(node_type=<MOANodeTypes.PSI: 205>, shape=None, left_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(1,), symbol_node='_a0'), right_node=UnaryNode(node_type=<MOANodeTypes.TRANSPOSE: 110>, shape=None, right_node=BinaryNode(node_type=<MOANodeTypes.PLUS: 201>, shape=None, left_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=None, symbol_node='A'), right_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=None, symbol_node='B'))))
 
 Array
 +++++
@@ -38,15 +38,15 @@ Create array named A with shape (1, 3) values (1, 2, 3)
 
 .. doctest::
 
-   >>> ArrayNode(MOANodeTypes.ARRAY, (1, 3), "A", (1, 2, 3))
-   ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(1, 3), name='A', value=(1, 2, 3))
+   >>> ArrayNode(MOANodeTypes.ARRAY, (1, 3), "A")
+   ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(1, 3), symbol_node='A')
 
 Create array without name and unknown values
 
 .. doctest::
 
-   >>> ArrayNode(MOANodeTypes.ARRAY, (1, 3), None, None)
-   ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(1, 3), name=None, value=None)
+   >>> ArrayNode(MOANodeTypes.ARRAY, (1, 3), '_a0')
+   ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(1, 3), symbol_node='_a0')
 
 Unary Operation
 +++++++++++++++
@@ -60,8 +60,8 @@ Available unary operations: ``PLUSRED``, ``MINUSRED``, ``TIMESRED``,
 .. doctest::
 
    >>> UnaryNode(MOANodeTypes.TRANSPOSE, (3, 1),
-   ...          ArrayNode(MOANodeTypes.ARRAY, (1, 3), "A", (1, 2, 3)))
-   UnaryNode(node_type=<MOANodeTypes.TRANSPOSE: 110>, shape=(3, 1), right_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(1, 3), name='A', value=(1, 2, 3)))
+   ...          ArrayNode(MOANodeTypes.ARRAY, (1, 3), "A"))
+   UnaryNode(node_type=<MOANodeTypes.TRANSPOSE: 110>, shape=(3, 1), right_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(1, 3), symbol_node='A'))
 
 Binary Operation
 ++++++++++++++++
@@ -74,9 +74,9 @@ Available binary operations: ``PLUS``, ``MINUS``, ``TIMES``,
 .. doctest::
 
    >>> BinaryNode(MOANodeTypes.PLUS, (2, 3),
-   ...           ArrayNode(MOANodeTypes.ARRAY, (), "A", (1)),
-   ...           ArrayNode(MOANodeTypes.ARRAY, (2, 3), "A", None))
-   BinaryNode(node_type=<MOANodeTypes.PLUS: 201>, shape=(2, 3), left_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(), name='A', value=1), right_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(2, 3), name='A', value=None))
+   ...           ArrayNode(MOANodeTypes.ARRAY, (), "A"),
+   ...           ArrayNode(MOANodeTypes.ARRAY, (2, 3), "B"))
+   BinaryNode(node_type=<MOANodeTypes.PLUS: 201>, shape=(2, 3), left_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(), symbol_node='A'), right_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(2, 3), symbol_node='B'))
 
 Symbol Table
 ------------
