@@ -58,8 +58,8 @@ def print_ast(symbol_table, node, vector_value=True):
     def _print_node(symbol_table, node, prefix=""):
         if is_unary_operation(node):
             print(prefix + "└──", _node_label(symbol_table, node.right_node))
-            _print_node(node.right_node, prefix + "    ")
-        elif is_binary_operation(symbol_table, node):
+            _print_node(symbol_table, node.right_node, prefix + "    ")
+        elif is_binary_operation(node):
             print(prefix + "├──", _node_label(symbol_table, node.left_node))
             _print_node(symbol_table, node.left_node,  prefix + "│   ")
             print(prefix + "└──", _node_label(symbol_table, node.right_node))
