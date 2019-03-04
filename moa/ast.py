@@ -45,11 +45,11 @@ class MOANodeTypes(enum.Enum):
     EQUAL            = 250
     NOTEQUAL         = 251
     LESSTHAN         = 252
-    LESSTTANEQUAL    = 253
-    GREATERTHAN      = 252
-    GREATERTHANEQUAL = 253
-    AND              = 254
-    OR               = 255
+    LESSTHANEQUAL    = 253
+    GREATERTHAN      = 254
+    GREATERTHANEQUAL = 255
+    AND              = 256
+    OR               = 257
 
 
 # AST Representation

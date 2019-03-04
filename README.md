@@ -113,10 +113,18 @@ tool of all time!? Please just try. Download
 other dependencies and all our builds will be identical on Linux and
 OSX.
 
-## Demoing / Jupyter Lab
+## Demoing
+
+`jupyter` environment
 
 ```
-nix-shell -A shell
+nix-shell -A jupyter-shell
+```
+
+`ipython` environment
+
+```
+nix-shell -A ipython-shell
 ```
 
 ## Testing

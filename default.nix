@@ -62,7 +62,15 @@ rec {
     maxLayers = 120;
   };
 
-  shell = pkgs.mkShell {
+  ipython-shell = pkgs.mkShell {
+    buildInputs = with pythonPackages; [ python-moa ipython ];
+
+    shellHook = ''
+      cd notebooks; ipython
+    '';
+  };
+
+  jupyter-shell = pkgs.mkShell {
     buildInputs = with pythonPackages; [ python-moa jupyterlab graphviz pkgs.graphviz ];
 
     shellHook = ''
