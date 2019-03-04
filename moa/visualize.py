@@ -11,6 +11,7 @@ from .ast import (
     is_array, is_unary_operation, is_binary_operation
 )
 from .shape import is_vector
+from .backend import generate_python_source
 
 
 _NODE_LABEL_MAP = {
@@ -50,6 +51,10 @@ def print_ast(symbol_table, node, vector_value=True):
                 node_label += " <" + " ".join(str(_) for _ in symbol_node.shape) + ">"
             if is_vector(symbol_table, node) and symbol_node.value and vector_value:
                 node_label += ': ' + " (" + " ".join(str(_) for _ in symbol_node.value) + ")"
+        elif node.node_type == MOANodeTypes.CONDITION:
+            if node.shape:
+                node_label += " <" + " ".join(str(_) for _ in node.shape) + ">"
+            node_label += " " + generate_python_source(node.left_node)
         else:
             if node.shape:
                 node_label += " <" + " ".join(str(_) for _ in node.shape) + ">"
@@ -57,6 +62,9 @@ def print_ast(symbol_table, node, vector_value=True):
 
     def _print_node(symbol_table, node, prefix=""):
         if is_unary_operation(node):
+            print(prefix + "└──", _node_label(symbol_table, node.right_node))
+            _print_node(symbol_table, node.right_node, prefix + "    ")
+        elif node.node_type == MOANodeTypes.CONDITION:
             print(prefix + "└──", _node_label(symbol_table, node.right_node))
             _print_node(symbol_table, node.right_node, prefix + "    ")
         elif is_binary_operation(node):

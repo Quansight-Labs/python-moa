@@ -1,11 +1,32 @@
 import ast
+import astunparse
 
 from ..ast import MOANodeTypes, postorder_replacement
+from ..shape import has_symbolic_elements
 
 
 def python_backend(symbol_table, tree):
+    """Convert MOA reduced AST to python source code
+
+    """
     symbol_table, python_ast = postorder_replacement(symbol_table, tree, _ast_replacement)
     return python_ast
+
+
+def generate_python_source(symbol_table, tree, materialize_scalars=False):
+    python_ast = python_backend(symbol_table, tree)
+
+    class ReplaceScalars(ast.NodeTransformer):
+        def visit_Name(self, node):
+            symbol_node = symbol_table[node.id]
+            if (symbol_node.shape == () and symbol_node.value is not None and not has_symbolic_elements(symbol_node.value)):
+                return ast.Num(symbol_node.value[0])
+            return node
+
+    if materialize_scalars:
+        python_ast = ReplaceScalars().visit(python_ast)
+
+    return astunparse.unparse(python_ast)[:-1] # remove newline
 
 
 def _ast_replacement(symbol_table, node):

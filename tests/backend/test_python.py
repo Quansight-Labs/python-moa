@@ -4,7 +4,7 @@ import astunparse
 import pytest
 
 from moa.ast import MOANodeTypes, BinaryNode, UnaryNode, ArrayNode, SymbolNode
-from moa.backend import python_backend
+from moa.backend import generate_python_source
 
 
 @pytest.mark.parametrize('symbol_table, tree, expected_source', [
@@ -100,9 +100,22 @@ from moa.backend import python_backend
       '((A < B) or (B == A))'),
 ])
 def test_python_backend_unit(symbol_table, tree, expected_source):
-    ast = python_backend(symbol_table, tree)
-    source = astunparse.unparse(ast)[:-1] # remove newline
-    assert source == expected_source
+    assert expected_source == generate_python_source(symbol_table, tree)
+
+
+def test_python_backend_materialize_scalar():
+    symbol_table = {'A': SymbolNode(MOANodeTypes.ARRAY, (), (4,)),
+                    'B': SymbolNode(MOANodeTypes.ARRAY, (), (3,))}
+
+    tree = BinaryNode(MOANodeTypes.OR, (),
+                      BinaryNode(MOANodeTypes.LESSTHAN, (),
+                                 ArrayNode(MOANodeTypes.ARRAY, (), 'A'),
+                                 ArrayNode(MOANodeTypes.ARRAY, (), 'B')),
+                      BinaryNode(MOANodeTypes.EQUAL, (),
+                                 ArrayNode(MOANodeTypes.ARRAY, (), 'B'),
+                                 ArrayNode(MOANodeTypes.ARRAY, (), 'A')))
+
+    assert generate_python_source(symbol_table, tree, materialize_scalars=True) == '((4 < 3) or (3 == 4))'
 
 
 @pytest.mark.parametrize('symbol_table, tree, expected_source', [
@@ -122,6 +135,4 @@ def test_python_backend_unit(symbol_table, tree, expected_source):
     )
 ])
 def test_python_backend_integration(symbol_table, tree, expected_source):
-    ast = python_backend(symbol_table, tree)
-    source = astunparse.unparse(ast)[:-1] # remove newline
-    assert source == expected_source
+    assert expected_source == generate_python_source(symbol_table, tree)
