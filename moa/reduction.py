@@ -47,6 +47,7 @@ def reduce_ast(symbol_table, tree, max_iterations=100):
 
 def _reduce_replacement(symbol_table, node):
     reduce_psi_map = {
+        MOANodeTypes.CONDITION: _reduce_psi_condition,
         MOANodeTypes.PSI: _reduce_psi_psi,
         MOANodeTypes.TRANSPOSE: _reduce_psi_transpose,
         MOANodeTypes.TRANSPOSEV: _reduce_psi_transposev,
@@ -65,6 +66,16 @@ def _reduce_replacement(symbol_table, node):
     return None, None
 
 
+def _reduce_psi_condition(symbol_table, node):
+    """<i j> psi ... condition ... => ... condition <i j> psi ..."""
+    condition_node = node.right_node
+    return symbol_table, BinaryNode(condition_node.node_type, node.shape,
+                                    condition_node.left_node,
+                                    BinaryNode(node.node_type, node.shape,
+                                               node.left_node,
+                                               condition_node.right_node))
+
+
 def _reduce_psi_psi(symbol_table, node):
     """<i j> psi <k l> psi ... => <k l i j> psi ..."""
     if not is_vector(symbol_table, node.right_node.left_node) or symbol_table[node.right_node.left_node.symbol_node].value is None:
@@ -74,7 +85,7 @@ def _reduce_psi_psi(symbol_table, node):
     array_values = symbol_table[node.right_node.left_node.symbol_node].value + symbol_table[node.left_node.symbol_node].value
     symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (len(array_values),), array_values)
 
-    return symbol_table, BinaryNode(MOANodeTypes.PSI, node.shape,
+    return symbol_table, BinaryNode(node.node_type, node.shape,
                                     ArrayNode(MOANodeTypes.ARRAY, (len(array_values),), array_name),
                                     node.right_node.right_node)
 

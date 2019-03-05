@@ -93,7 +93,7 @@ def print_ast(symbol_table, node, vector_value=True):
         node_label = _node_label(symbol_table, node)
         label = '{name}'
         if 'shape' in node_label:
-            label += ': ρ {shape}'
+            label += ': {shape}'
         if 'value' in node_label:
             label += ' {value}'
         return label.format(**node_label)

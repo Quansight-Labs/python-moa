@@ -135,6 +135,9 @@ def preorder_replacement(symbol_table, node, replacement_function, max_iteration
     if is_unary_operation(node):
         symbol_table, right_node = preorder_replacement(symbol_table, node.right_node, replacement_function, max_iterations)
         node = UnaryNode(node.node_type, node.shape, right_node)
+    elif node.node_type == MOANodeTypes.CONDITION:
+        symbol_table, right_node = preorder_replacement(symbol_table, node.right_node, replacement_function, max_iterations)
+        node = BinaryNode(node.node_type, node.shape, node.left_node, right_node)
     elif is_binary_operation(node):
         symbol_table, left_node = preorder_replacement(symbol_table, node.left_node, replacement_function, max_iterations)
         symbol_table, right_node = preorder_replacement(symbol_table, node.right_node, replacement_function, max_iterations)
