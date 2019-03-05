@@ -171,7 +171,7 @@ class MOAParser(sly.Parser):
     @_('IDENTIFIER vector_list')
     def vector_list(self, p):
         self.symbol_table = add_symbol(self.symbol_table, p.IDENTIFIER, MOANodeTypes.ARRAY, (), None)
-        return ((MOANodeTypes.ARRAY, (), p.IDENTIFIER),) + p.vector_list
+        return (ArrayNode(MOANodeTypes.ARRAY, (), p.IDENTIFIER),) + p.vector_list
 
     @_('empty')
     def vector_list(self, p):

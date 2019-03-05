@@ -117,11 +117,11 @@ def _shape_psi(symbol_table, node):
         elif is_symbolic_element(left_element): # only left is symbolic
             array_name = generate_unique_array_name(symbol_table)
             symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (), (left_element,))
-            conditions.append(BinaryNode(MOANodeTypes.LESSTHAN, (), left_element, (MOANodeTypes.ARRAY, (), array_name)))
+            conditions.append(BinaryNode(MOANodeTypes.LESSTHAN, (), left_element, ArrayNode(MOANodeTypes.ARRAY, (), array_name)))
         elif is_symbolic_element(right_element): # only right is symbolic
             array_name = generate_unique_array_name(symbol_table)
             symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (), (left_element,))
-            conditions.append(BinaryNode(MOANodeTypes.LESSTHAN, (), (MOANodeTypes.ARRAY, (), array_name), right_element))
+            conditions.append(BinaryNode(MOANodeTypes.LESSTHAN, (), ArrayNode(MOANodeTypes.ARRAY, (), array_name), right_element))
         else: # neither symbolic
             if left_element >= right_element:
                 raise MOAShapeException(f'PSI requires elements #{i} left {left_element} < right {right_element}')
@@ -153,12 +153,12 @@ def _shape_plus_minus_divide_times(symbol_table, node):
             elif is_symbolic_element(left_element): # only left is symbolic
                 array_name = generate_unique_array_name(symbol_table)
                 symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (), (left_element,))
-                conditions.append(BinaryNode(MOANodeTypes.EQUAL, (), left_element, (MOANodeTypes.ARRAY, (), array_name)))
+                conditions.append(BinaryNode(MOANodeTypes.EQUAL, (), left_element, ArrayNode(MOANodeTypes.ARRAY, (), array_name)))
                 shape = shape + (right_element,)
             elif is_symbolic_element(right_element): # only right is symbolic
                 array_name = generate_unique_array_name(symbol_table)
                 symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (), (left_element,))
-                conditions.append(BinaryNode(MOANodeTypes.EQUAL, (), (MOANodeTypes.ARRAY, (), array_name), right_element))
+                conditions.append(BinaryNode(MOANodeTypes.EQUAL, (), ArrayNode(MOANodeTypes.ARRAY, (), array_name), right_element))
                 shape = shape + (left_element,)
             else: # neither symbolic
                 if left_element != right_element:

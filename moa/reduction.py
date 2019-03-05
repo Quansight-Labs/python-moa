@@ -6,6 +6,7 @@ from .ast import (
     ArrayNode, BinaryNode, SymbolNode,
     add_symbol,
     generate_unique_index_name, generate_unique_array_name,
+    is_binary_operation, is_unary_operation, is_array,
     preorder_replacement
 )
 from .shape import is_vector, is_scalar
@@ -32,7 +33,7 @@ def add_indexing_node(symbol_table, node):
     return symbol_table, BinaryNode(MOANodeTypes.PSI, node.shape, vector_node, node)
 
 
-def reduce_ast(symbol_table, tree, max_iterations=100):
+def reduce_ast(symbol_table, tree, max_iterations=100, add_indexing=True):
     """Preorder traversal and replacement of ast tree
 
     In the future the symbol table will have to be constructed earlier
@@ -40,29 +41,74 @@ def reduce_ast(symbol_table, tree, max_iterations=100):
 
     TODO: change exception to warning to allow for partial replacement
     """
-    symbol_table, tree = add_indexing_node(symbol_table, tree)
+    if add_indexing:
+        symbol_table, tree = add_indexing_node(symbol_table, tree)
     symbol_table, tree = preorder_replacement(symbol_table, tree, _reduce_replacement, range(max_iterations))
     return symbol_table, tree
 
 
 def _reduce_replacement(symbol_table, node):
-    reduce_psi_map = {
-        MOANodeTypes.PSI: _reduce_psi_psi,
-        MOANodeTypes.TRANSPOSE: _reduce_psi_transpose,
-        MOANodeTypes.TRANSPOSEV: _reduce_psi_transposev,
-        MOANodeTypes.PLUSRED: _reduce_psi_plus_red,
-        MOANodeTypes.PLUS: _reduce_psi_plus_minus_times_divide,
-        MOANodeTypes.MINUS: _reduce_psi_plus_minus_times_divide,
-        MOANodeTypes.TIMES: _reduce_psi_plus_minus_times_divide,
-        MOANodeTypes.DIVIDE: _reduce_psi_plus_minus_times_divide,
+    reduction_rules = {
+        (None, None, MOANodeTypes.CONDITION): _reduce_condition,
+        (None, MOANodeTypes.CONDITION, None): _reduce_condition,
+        (MOANodeTypes.PSI, None, MOANodeTypes.PSI): _reduce_psi_psi,
+        (MOANodeTypes.PSI, None, MOANodeTypes.TRANSPOSE): _reduce_psi_transpose,
+        (MOANodeTypes.PSI, None, MOANodeTypes.TRANSPOSEV): _reduce_psi_transposev,
+        (MOANodeTypes.PSI, None, MOANodeTypes.PLUSRED): _reduce_psi_plus_red,
+        (MOANodeTypes.PSI, None, (MOANodeTypes.PLUS, MOANodeTypes.MINUS, MOANodeTypes.TIMES, MOANodeTypes.DIVIDE)): _reduce_psi_plus_minus_times_divide,
     }
 
-    # Is reduction as simple as exclusively looking at psi nodes?
-    if node.node_type == MOANodeTypes.PSI and node.right_node.node_type in reduce_psi_map:
-        if not is_vector(symbol_table, node.left_node) or symbol_table[node.left_node.symbol_node].value is None:
-            raise MOAReductionError('PSI replacement assumes that left_node is vector with defined values')
-        return reduce_psi_map[node.right_node.node_type](symbol_table, node)
+    def _matches(compare_node, node_rule):
+        if node_rule is not None:
+            if isinstance(node_rule, tuple) and compare_node.node_type not in node_rule:
+                return False
+            elif not isinstance(node_rule, tuple) and compare_node.node_type != node_rule:
+                return False
+        return True
+
+    if is_array(node):
+        return None, None
+
+    for rule, replacement_function in reduction_rules.items():
+        root_node, left_node, right_node = rule
+        if not _matches(node, root_node):
+            continue
+        if not is_binary_operation(node) and left_node is not None:
+            continue
+        if is_binary_operation(node) and not _matches(node.left_node, left_node):
+            continue
+        if not _matches(node.right_node, right_node):
+            continue
+        return replacement_function(symbol_table, node)
     return None, None
+
+
+def _reduce_condition(symbol_table, node):
+    """<i j> psi ... condition ... => ... condition <i j> psi ..."""
+    if node.node_type == MOANodeTypes.CONDITION:
+        condition = BinaryNode(MOANodeTypes.AND, (), node.left_node, node.right_node.left_node)
+        return symbol_table, BinaryNode(MOANodeTypes.CONDITION, node.right_node.shape, condition, node.right_node.right_node)
+
+    if is_binary_operation(node):
+        if node.left_node.node_type == MOANodeTypes.CONDITION:
+            return symbol_table, BinaryNode(MOANodeTypes.CONDITION, node.shape,
+                                            node.left_node.left_node,
+                                            BinaryNode(node.node_type, node.shape,
+                                                       node.left_node.right_node,
+                                                       node.right_node))
+        if node.right_node.node_type == MOANodeTypes.CONDITION:
+            return symbol_table, BinaryNode(MOANodeTypes.CONDITION, node.shape,
+                                            node.right_node.left_node,
+                                            BinaryNode(node.node_type, node.shape,
+                                                       node.left_node,
+                                                       node.right_node.right_node))
+    # unary node
+    if node.right_node.node_type == MOANodeTypes.CONDITION:
+        return symbol_table, BinaryNode(MOANodeTypes.CONDITION, node.shape,
+                                        node.right_node.left_node,
+                                        UnaryNode(node.node_type, node.shape,
+                                                  node.right_node.right_node))
+
 
 
 def _reduce_psi_psi(symbol_table, node):
@@ -74,7 +120,7 @@ def _reduce_psi_psi(symbol_table, node):
     array_values = symbol_table[node.right_node.left_node.symbol_node].value + symbol_table[node.left_node.symbol_node].value
     symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (len(array_values),), array_values)
 
-    return symbol_table, BinaryNode(MOANodeTypes.PSI, node.shape,
+    return symbol_table, BinaryNode(node.node_type, node.shape,
                                     ArrayNode(MOANodeTypes.ARRAY, (len(array_values),), array_name),
                                     node.right_node.right_node)
 

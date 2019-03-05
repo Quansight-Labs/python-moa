@@ -13,6 +13,27 @@ def python_backend(symbol_table, tree):
     return python_ast
 
 
+def add_function_wrapper(symbol_table):
+    assignments = []
+    function_arguments = set()
+    shape_indicies = set()
+    for name, symbol in symbol_table.items():
+        if '_' != name[0] and symbol.value is None:
+            function_arguments.add(name)
+
+    return ast.FunctionDef(name='f',
+                           args=ast.arguments(
+                               args=[ast.arg(arg=n, annotation=None) for n in function_arguments],
+                               vararg=None,
+                               kwonlyargs=[],
+                               kw_defaults=[],
+                               kwarg=None,
+                               defaults=[]),
+                           body=[ast.Pass()],
+                           decorator_list=[],
+                           returns=None)
+
+
 def generate_python_source(symbol_table, tree, materialize_scalars=False):
     python_ast = python_backend(symbol_table, tree)
 
@@ -37,6 +58,7 @@ def _ast_replacement(symbol_table, node):
         MOANodeTypes.MINUS: _ast_plus_minus_times_divide,
         MOANodeTypes.TIMES: _ast_plus_minus_times_divide,
         MOANodeTypes.DIVIDE: _ast_plus_minus_times_divide,
+        MOANodeTypes.CONDITION: _ast_condition,
         MOANodeTypes.EQUAL: _ast_comparison_operations,
         MOANodeTypes.NOTEQUAL: _ast_comparison_operations,
         MOANodeTypes.LESSTHAN: _ast_comparison_operations,
@@ -69,6 +91,10 @@ def _ast_plus_minus_times_divide(symbol_table, node):
         MOANodeTypes.DIVIDE: ast.Div,
     }
     return symbol_table, ast.BinOp(left=node.left_node, op=binop_map[node.node_type](), right=node.right_node)
+
+
+def _ast_condition(symbol_table, node):
+    return symbol_table, ast.If(test=node.left_node, body=[ast.Expr(value=node.right_node)], orelse=[])
 
 
 def _ast_comparison_operations(symbol_table, node):
