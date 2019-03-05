@@ -106,7 +106,7 @@ def postorder_replacement(symbol_table, node, replacement_function):
     if is_unary_operation(node):
         symbol_table, right_node = postorder_replacement(symbol_table, node.right_node, replacement_function)
         node = UnaryNode(node.node_type, node.shape, right_node)
-    elif is_binary_operation(node):
+    elif is_binary_operation(node) or node.node_type == MOANodeTypes.CONDITION:
         symbol_table, left_node = postorder_replacement(symbol_table, node.left_node, replacement_function)
         symbol_table, right_node = postorder_replacement(symbol_table, node.right_node, replacement_function)
         node = BinaryNode(node.node_type, node.shape, left_node, right_node)

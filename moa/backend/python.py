@@ -13,6 +13,27 @@ def python_backend(symbol_table, tree):
     return python_ast
 
 
+def add_function_wrapper(symbol_table):
+    assignments = []
+    function_arguments = set()
+    shape_indicies = set()
+    for name, symbol in symbol_table.items():
+        if '_' != name[0] and symbol.value is None:
+            function_arguments.add(name)
+
+    return ast.FunctionDef(name='f',
+                           args=ast.arguments(
+                               args=[ast.arg(arg=n, annotation=None) for n in function_arguments],
+                               vararg=None,
+                               kwonlyargs=[],
+                               kw_defaults=[],
+                               kwarg=None,
+                               defaults=[]),
+                           body=[ast.Pass()],
+                           decorator_list=[],
+                           returns=None)
+
+
 def generate_python_source(symbol_table, tree, materialize_scalars=False):
     python_ast = python_backend(symbol_table, tree)
 
@@ -73,8 +94,6 @@ def _ast_plus_minus_times_divide(symbol_table, node):
 
 
 def _ast_condition(symbol_table, node):
-    print(node.left_node)
-    print(node.right_node)
     return symbol_table, ast.If(test=node.left_node, body=[ast.Expr(value=node.right_node)], orelse=[])
 
 

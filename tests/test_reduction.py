@@ -9,7 +9,7 @@ from moa.ast import (
 from moa.reduction import (
     reduce_ast,
     add_indexing_node,
-    _reduce_psi_condition,
+    _reduce_condition,
     _reduce_psi_psi,
     _reduce_psi_transpose, _reduce_psi_transposev,
     _reduce_psi_plus_minus_times_divide,
@@ -49,7 +49,7 @@ def test_reduce_psi_condition():
                                             ArrayNode(MOANodeTypes.ARRAY, (3,), '_a2')),
                                  ArrayNode(MOANodeTypes.ARRAY, (1, 2, 3, 4), '_a3')))
 
-    new_symbol_table, new_tree = _reduce_psi_condition(symbol_table, tree)
+    new_symbol_table, new_tree = _reduce_condition(symbol_table, tree)
     assert symbol_table_copy == symbol_table
     assert new_symbol_table == symbol_table
     assert new_tree == BinaryNode(MOANodeTypes.CONDITION, (0,),
