@@ -28,7 +28,7 @@ class MOALexer(sly.Lexer):
 
     @_(r'\n+')
     def newline(self, t):
-        t.lineno += len(t.value)
+        self.lineno += len(t.value)
         pass
 
     def comment(self, t):
@@ -71,7 +71,7 @@ class MOALexer(sly.Lexer):
     IDENTIFIER['cat'] = CAT
 
     def error(self, t):
-        raise ValueError(f"Illegal character '{t.value[0]}' no valid token can be formed from '{t.value}' on line {t.lexer.lineno}")
+        raise ValueError(f"Illegal character '{t.value[0]}' no valid token can be formed from '{t.value}' on line {self.lineno}")
 
 
 class MOAParser(sly.Parser):
