@@ -57,7 +57,37 @@ def _shape_replacement(symbol_table, node):
         MOANodeTypes.TIMES: _shape_plus_minus_divide_times,
         MOANodeTypes.DIVIDE: _shape_plus_minus_divide_times,
     }
-    return shape_map[node.node_type](symbol_table, node)
+
+    condition_node = None
+    # condition propagation
+    if is_binary_operation(node):
+        if node.left_node.node_type == MOANodeTypes.CONDITION and node.right_node.node_type == MOANodeTypes.CONDITION:
+            condition_node = BinaryNode(MOANodeTypes.AND, None, node.left_node.left_node, node.right_node.left_node)
+            node = BinaryNode(node.node_type, None, node.left_node.right_node, node.right_node.right_node)
+        if node.left_node.node_type == MOANodeTypes.CONDITION:
+            condition_node = node.left_node.left_node
+            node = BinaryNode(node.node_type, None, node.left_node.right_node, node.right_node)
+        elif node.right_node.node_type == MOANodeTypes.CONDITION:
+            condition_node = node.right_node.left_node
+            node = BinaryNode(node.node_type, None, node.left_node, node.right_node.right_node)
+    elif is_unary_operation(node):
+        if node.right_node.node_type == MOANodeTypes.CONDITION:
+            condition_node = node.right_node.left_node
+            node = UnaryNode(node.node_type, None, node.right_node.right_node)
+
+    symbol_table, node = shape_map[node.node_type](symbol_table, node)
+
+    # combine possible two conditions and set shape
+    if node.node_type == MOANodeTypes.CONDITION and condition_node:
+       node = BinaryNode(MOANodeTypes.CONDITION, node.shape,
+                         BinaryNode(MOANodeTypes.AND, (), condition_node, node.left_node),
+                         node.right_node)
+    elif condition_node:
+        node = BinaryNode(MOANodeTypes.CONDITION, node.shape,
+                          condition_node,
+                          node)
+
+    return symbol_table, node
 
 
 # Array Operations

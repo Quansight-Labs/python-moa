@@ -49,8 +49,6 @@ def reduce_ast(symbol_table, tree, max_iterations=100, add_indexing=True):
 
 def _reduce_replacement(symbol_table, node):
     reduction_rules = {
-        (None, None, MOANodeTypes.CONDITION): _reduce_condition,
-        (None, MOANodeTypes.CONDITION, None): _reduce_condition,
         (MOANodeTypes.PSI, None, MOANodeTypes.PSI): _reduce_psi_psi,
         (MOANodeTypes.PSI, None, MOANodeTypes.TRANSPOSE): _reduce_psi_transpose,
         (MOANodeTypes.PSI, None, MOANodeTypes.TRANSPOSEV): _reduce_psi_transposev,
@@ -81,34 +79,6 @@ def _reduce_replacement(symbol_table, node):
             continue
         return replacement_function(symbol_table, node)
     return None, None
-
-
-def _reduce_condition(symbol_table, node):
-    """<i j> psi ... condition ... => ... condition <i j> psi ..."""
-    if node.node_type == MOANodeTypes.CONDITION:
-        condition = BinaryNode(MOANodeTypes.AND, (), node.left_node, node.right_node.left_node)
-        return symbol_table, BinaryNode(MOANodeTypes.CONDITION, node.right_node.shape, condition, node.right_node.right_node)
-
-    if is_binary_operation(node):
-        if node.left_node.node_type == MOANodeTypes.CONDITION:
-            return symbol_table, BinaryNode(MOANodeTypes.CONDITION, node.shape,
-                                            node.left_node.left_node,
-                                            BinaryNode(node.node_type, node.shape,
-                                                       node.left_node.right_node,
-                                                       node.right_node))
-        if node.right_node.node_type == MOANodeTypes.CONDITION:
-            return symbol_table, BinaryNode(MOANodeTypes.CONDITION, node.shape,
-                                            node.right_node.left_node,
-                                            BinaryNode(node.node_type, node.shape,
-                                                       node.left_node,
-                                                       node.right_node.right_node))
-    # unary node
-    if node.right_node.node_type == MOANodeTypes.CONDITION:
-        return symbol_table, BinaryNode(MOANodeTypes.CONDITION, node.shape,
-                                        node.right_node.left_node,
-                                        UnaryNode(node.node_type, node.shape,
-                                                  node.right_node.right_node))
-
 
 
 def _reduce_psi_psi(symbol_table, node):
