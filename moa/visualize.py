@@ -27,6 +27,7 @@ _NODE_LABEL_MAP = {
     MOANodeTypes.SHAPE: "shape(ρ)",
     MOANodeTypes.RAV: "rav",
     MOANodeTypes.TRANSPOSE: "transpose(Ø)",
+    MOANodeTypes.TRANSPOSEV: "transpose(Ø)",
     # Binary
     MOANodeTypes.PLUS: "+",
     MOANodeTypes.MINUS: "-",

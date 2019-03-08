@@ -152,7 +152,7 @@ def _shape_plus_minus_divide_times(symbol_table, node):
                 shape = shape + (left_element,)
             elif is_symbolic_element(left_element): # only left is symbolic
                 array_name = generate_unique_array_name(symbol_table)
-                symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (), (left_element,))
+                symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (), (right_element,))
                 conditions.append(BinaryNode(MOANodeTypes.EQUAL, (), left_element, ArrayNode(MOANodeTypes.ARRAY, (), array_name)))
                 shape = shape + (right_element,)
             elif is_symbolic_element(right_element): # only right is symbolic
