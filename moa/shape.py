@@ -50,6 +50,7 @@ def _shape_replacement(symbol_table, node):
         MOANodeTypes.ARRAY: _shape_array,
         MOANodeTypes.TRANSPOSE: _shape_transpose,
         MOANodeTypes.TRANSPOSEV: _shape_transpose_vector,
+        MOANodeTypes.FUNCTION: _shape_function,
         MOANodeTypes.PLUSRED: _shape_plus_red,
         MOANodeTypes.PSI: _shape_psi,
         MOANodeTypes.PLUS: _shape_plus_minus_divide_times,
@@ -117,6 +118,12 @@ def _shape_transpose_vector(symbol_table, node):
     # sort two lists according to one list
     shape = tuple(s for _, s in sorted(zip(left_symbol_node.value, node.right_node.shape), key=lambda pair: pair[0]))
     return symbol_table, BinaryNode(node.node_type, shape, node.left_node, node.right_node)
+
+
+def _shape_function(symbol_table, node):
+    # condition node move into body as statement
+    # calculate shape of function and return value
+    raise NotImplemenetedError('shape FUNCTION')
 
 
 def _shape_plus_red(symbol_table, node):
