@@ -17,6 +17,8 @@ class MOANodeTypes(enum.Enum):
     # control flow
     LOOP = 50
     CONDITION = 51
+    ASSIGN = 52
+    FUNCTION = 53
 
     # unary
     PLUSRED   = 101
