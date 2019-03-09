@@ -15,10 +15,11 @@ class MOANodeTypes(enum.Enum):
     INDEX = 2 # indexing
 
     # control flow
-    FUNCTION  = 50
-    CONDITION = 51
-    LOOP      = 52
-    ASSIGN    = 53
+    INITIALIZE = 50
+    FUNCTION   = 51
+    CONDITION  = 52
+    LOOP       = 53
+    ASSIGN     = 54
 
     # unary
     PLUSRED   = 101
@@ -58,7 +59,7 @@ class MOANodeTypes(enum.Enum):
 ArrayNode = collections.namedtuple(
     'ArrayNode', ['node_type', 'shape', 'symbol_node'])
 FunctionNode = collections.namedtuple(
-    'FunctionNode', ['node_type', 'shape', 'arguments', 'body'])
+    'FunctionNode', ['node_type', 'shape', 'arguments', 'result', 'body'])
 ConditionNode = collections.namedtuple(
     'ConditionNode', ['node_type', 'shape', 'condition_node', 'right_node'])
 LoopNode = collections.namedtuple(

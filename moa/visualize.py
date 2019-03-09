@@ -122,7 +122,7 @@ def print_ast(symbol_table, node, vector_value=True):
             print(prefix + "└──", _print_node_label(symbol_table, node.right_node))
             _print_node(symbol_table, node.right_node, prefix + "    ")
 
-        elif node.node_type == MOANodeTypes.FUNCTION:
+        elif node.node_type in {MOANodeTypes.FUNCTION, MOANodeTypes.LOOP}:
             for child_node in node.body[:-1]:
                 print(prefix + "├──", _print_node_label(symbol_table, child_node))
                 _print_node(symbol_table, child_node,  prefix + "│   ")
@@ -184,7 +184,7 @@ def visualize_ast(symbol_table, node, comment='MOA AST', with_attrs=True, vector
             right_node_id = _visualize_node(dot, symbol_table, node.right_node)
             dot.edge(node_id, right_node_id)
 
-        elif node.node_type == MOANodeTypes.FUNCTION:
+        elif node.node_type in {MOANodeTypes.FUNCTION, MOANodeTypes.LOOP}:
             for child_node in node.body:
                 child_node_id = _visualize_node(dot, symbol_table, child_node)
                 dot.edge(node_id, child_node_id)

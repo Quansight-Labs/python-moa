@@ -26,12 +26,6 @@ def add_indexing_node(symbol_table, node):
         condition_node = node.condition_node
         node = node.right_node
 
-    # adding result node
-    result_array_name = generate_unique_array_name(symbol_table)
-    symbol_table = add_symbol(symbol_table, result_array_name, MOANodeTypes.ARRAY, node.shape, None)
-    result_node = ArrayNode(MOANodeTypes.ARRAY, node.shape, result_array_name)
-    node = BinaryNode(MOANodeTypes.ASSIGN, node.shape, result_node, node)
-
     index_symbols = ()
     for bound in node.shape:
         index_name = generate_unique_index_name(symbol_table)
