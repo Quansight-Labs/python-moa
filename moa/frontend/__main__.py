@@ -1,4 +1,5 @@
 from .moa import MOAParser
+from ..visualize import print_ast
 
 
 if __name__ == "__main__":
@@ -8,4 +9,4 @@ if __name__ == "__main__":
     while True:
         text = input('>>> ')
         if text in {'q', 'quit'}: break
-        print(parser.parse(text))
+        print_ast(*parser.parse(text))

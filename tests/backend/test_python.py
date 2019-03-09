@@ -131,7 +131,7 @@ def test_python_backend_materialize_scalar():
                 BinaryNode(MOANodeTypes.PSI, (3,),
                            ArrayNode(MOANodeTypes.ARRAY, (2,), '_a4'),
                            ArrayNode(MOANodeTypes.ARRAY, (3, 4), 'B'))),
-     "(A[('_i3', 0)] + B[('_i3', 0)])"
+     "(A[(_i3, 0)] + B[(_i3, 0)])"
     )
 ])
 def test_python_backend_integration(symbol_table, tree, expected_source):

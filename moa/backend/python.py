@@ -53,12 +53,14 @@ def generate_python_source(symbol_table, tree, materialize_scalars=False):
 def _ast_replacement(symbol_table, node):
     _NODE_AST_MAP = {
         MOANodeTypes.ARRAY: _ast_array,
+        MOANodeTypes.CONDITION: _ast_condition,
+        MOANodeTypes.ASSIGN: _ast_assignment,
+        MOANodeTypes.LOOP: _ast_loop,
         MOANodeTypes.PSI: _ast_psi,
         MOANodeTypes.PLUS: _ast_plus_minus_times_divide,
         MOANodeTypes.MINUS: _ast_plus_minus_times_divide,
         MOANodeTypes.TIMES: _ast_plus_minus_times_divide,
         MOANodeTypes.DIVIDE: _ast_plus_minus_times_divide,
-        MOANodeTypes.CONDITION: _ast_condition,
         MOANodeTypes.EQUAL: _ast_comparison_operations,
         MOANodeTypes.NOTEQUAL: _ast_comparison_operations,
         MOANodeTypes.LESSTHAN: _ast_comparison_operations,
@@ -73,7 +75,7 @@ def _ast_replacement(symbol_table, node):
 
 def _ast_psi(symbol_table, node):
     left_symbol_node = node.left_node.id
-    indicies = [ast.Str(i) if isinstance(i, str) else ast.Num(i) for i in symbol_table[left_symbol_node].value]
+    indicies = [ast.Name(id=i) if isinstance(i, str) else ast.Num(i) for i in symbol_table[left_symbol_node].value]
     return symbol_table, ast.Subscript(value=node.right_node,
                                        slice=ast.Index(value=ast.Tuple(elts=indicies, ctx=ast.Load())),
                                        ctx=ast.Load())
@@ -81,6 +83,14 @@ def _ast_psi(symbol_table, node):
 
 def _ast_array(symbol_table, node):
     return symbol_table, ast.Name(id=node.symbol_node, ctx=ast.Load())
+
+
+def _ast_assignment(symbol_table, node):
+    return symbol_table, ast.Assign(targets=[node.left_node], value=node.right_node)
+
+
+def _ast_loop(symbol_table, node):
+    raise NotImplemenetedError('backend loop')
 
 
 def _ast_plus_minus_times_divide(symbol_table, node):
