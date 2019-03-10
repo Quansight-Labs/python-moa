@@ -22,6 +22,9 @@ _NODE_LABEL_MAP = {
     MOANodeTypes.CONDITION: "condition",
     MOANodeTypes.LOOP: "loop",
     MOANodeTypes.ASSIGN: 'assign',
+    MOANodeTypes.INITIALIZE: 'initialize',
+    MOANodeTypes.ERROR: 'error',
+    MOANodeTypes.IF: 'if',
     # Unary
     MOANodeTypes.PLUSRED: "+red",
     MOANodeTypes.MINUSRED: "-red",
@@ -83,14 +86,34 @@ def _node_label(symbol_table, node):
             node_label['shape'] = shape_string(symbol_table, symbol_node.shape)
         if is_vector(symbol_table, node) and symbol_node.value:
             node_label['value'] = value_string(symbol_table, symbol_node.value)
+
+    elif node.node_type == MOANodeTypes.INITIALIZE:
+        if node.shape:
+            node_label['shape'] = shape_string(symbol_table, node.shape)
+        node_label['value'] = node.symbol_node
+
+    elif node.node_type == MOANodeTypes.ERROR:
+        node_label['value'] = node.message
+
+    elif node.node_type == MOANodeTypes.LOOP:
+        if node.shape:
+            node_label['shape'] = shape_string(symbol_table, node.shape)
+        node_label['value'] = node.symbol_node
+
     elif node.node_type == MOANodeTypes.CONDITION:
         if node.shape:
             node_label['shape'] = shape_string(symbol_table, node.shape)
         node_label['value'] = generate_python_source(symbol_table, node.condition_node, materialize_scalars=True)
+
+    elif node.node_type == MOANodeTypes.IF:
+        if node.shape:
+            node_label['shape'] = shape_string(symbol_table, node.shape)
+        node_label['value'] = generate_python_source(symbol_table, node.condition_node, materialize_scalars=True)
+
     elif node.node_type == MOANodeTypes.FUNCTION:
         if node.shape:
-            node_label['shape'] = None
-        node_label['value'] = value_string(symbol_table, node.arguments)
+            node_label['shape'] = shape_string(symbol_table, node.shape)
+        node_label['value'] = value_string(symbol_table, node.arguments) + ' -> ' + node.result
     else:
         if node.shape:
             node_label['shape'] = shape_string(symbol_table, node.shape)
@@ -112,7 +135,7 @@ def print_ast(symbol_table, node, vector_value=True):
             print(prefix + "└──", _print_node_label(symbol_table, node.right_node))
             _print_node(symbol_table, node.right_node, prefix + "    ")
 
-        elif is_binary_operation(node):
+        elif is_binary_operation(node) or node.node_type == MOANodeTypes.ASSIGN:
             print(prefix + "├──", _print_node_label(symbol_table, node.left_node))
             _print_node(symbol_table, node.left_node,  prefix + "│   ")
             print(prefix + "└──", _print_node_label(symbol_table, node.right_node))
@@ -122,7 +145,7 @@ def print_ast(symbol_table, node, vector_value=True):
             print(prefix + "└──", _print_node_label(symbol_table, node.right_node))
             _print_node(symbol_table, node.right_node, prefix + "    ")
 
-        elif node.node_type in {MOANodeTypes.FUNCTION, MOANodeTypes.LOOP}:
+        elif node.node_type in {MOANodeTypes.FUNCTION, MOANodeTypes.LOOP, MOANodeTypes.IF}:
             for child_node in node.body[:-1]:
                 print(prefix + "├──", _print_node_label(symbol_table, child_node))
                 _print_node(symbol_table, child_node,  prefix + "│   ")
@@ -184,7 +207,7 @@ def visualize_ast(symbol_table, node, comment='MOA AST', with_attrs=True, vector
             right_node_id = _visualize_node(dot, symbol_table, node.right_node)
             dot.edge(node_id, right_node_id)
 
-        elif node.node_type in {MOANodeTypes.FUNCTION, MOANodeTypes.LOOP}:
+        elif node.node_type in {MOANodeTypes.FUNCTION, MOANodeTypes.LOOP, MOANodeTypes.IF}:
             for child_node in node.body:
                 child_node_id = _visualize_node(dot, symbol_table, child_node)
                 dot.edge(node_id, child_node_id)

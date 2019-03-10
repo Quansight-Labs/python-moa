@@ -14,12 +14,14 @@ class MOANodeTypes(enum.Enum):
     ARRAY = 1 # scalars, vectors, array
     INDEX = 2 # indexing
 
-    # control flow
+    # control
     INITIALIZE = 50
     FUNCTION   = 51
     CONDITION  = 52
     LOOP       = 53
     ASSIGN     = 54
+    ERROR      = 55
+    IF         = 56
 
     # unary
     PLUSRED   = 101
@@ -56,14 +58,20 @@ class MOANodeTypes(enum.Enum):
 
 
 # AST Representation
-ArrayNode = collections.namedtuple(
-    'ArrayNode', ['node_type', 'shape', 'symbol_node'])
 FunctionNode = collections.namedtuple(
     'FunctionNode', ['node_type', 'shape', 'arguments', 'result', 'body'])
-ConditionNode = collections.namedtuple(
-    'ConditionNode', ['node_type', 'shape', 'condition_node', 'right_node'])
 LoopNode = collections.namedtuple(
     'LoopNode', ['node_type', 'shape', 'symbol_node', 'body'])
+IfNode = collections.namedtuple(
+    'IfNode', ['node_type', 'shape', 'condition_node', 'body'])
+InitializeNode = collections.namedtuple(
+    'InitializeNode', ['node_type', 'shape', 'symbol_node'])
+ErrorNode = collections.namedtuple(
+    'ErrorNode', ['node_type', 'shape', 'message'])
+ConditionNode = collections.namedtuple(
+    'ConditionNode', ['node_type', 'shape', 'condition_node', 'right_node'])
+ArrayNode = collections.namedtuple(
+    'ArrayNode', ['node_type', 'shape', 'symbol_node'])
 UnaryNode = collections.namedtuple(
     'UnaryNode', ['node_type', 'shape', 'right_node'])
 BinaryNode = collections.namedtuple(
@@ -116,17 +124,33 @@ def postorder_replacement(symbol_table, node, replacement_function):
         symbol_table, right_node = postorder_replacement(symbol_table, node.right_node, replacement_function)
         node = UnaryNode(node.node_type, node.shape, right_node)
 
-    elif is_binary_operation(node):
+    elif is_binary_operation(node) or node.node_type in {MOANodeTypes.ASSIGN}:
         symbol_table, left_node = postorder_replacement(symbol_table, node.left_node, replacement_function)
         symbol_table, right_node = postorder_replacement(symbol_table, node.right_node, replacement_function)
         node = BinaryNode(node.node_type, node.shape, left_node, right_node)
+
+    elif node.node_type == MOANodeTypes.IF:
+        symbol_table, condition_node = postorder_replacement(symbol_table, node.condition_node, replacement_function)
+
+        replacement_nodes = ()
+        for child_node in node.body:
+            symbol_table, replacement_node = postorder_replacement(symbol_table, child_node, replacement_function)
+            replacement_nodes = replacement_nodes + (replacement_node,)
+        node = IfNode(node.node_type, node.shape, condition_node, replacement_nodes)
 
     elif node.node_type == MOANodeTypes.FUNCTION:
         replacement_nodes = ()
         for child_node in node.body:
             symbol_table, replacement_node = postorder_replacement(symbol_table, child_node, replacement_function)
             replacement_nodes = replacement_nodes + (replacement_node,)
-        node = FunctionNode(node.node_type, node.shape, node.arguments, replacement_nodes)
+        node = FunctionNode(node.node_type, node.shape, node.arguments, node.result, replacement_nodes)
+
+    elif node.node_type == MOANodeTypes.LOOP:
+        replacement_nodes = ()
+        for child_node in node.body:
+            symbol_table, replacement_node = postorder_replacement(symbol_table, child_node, replacement_function)
+            replacement_nodes = replacement_nodes + (replacement_node,)
+        node = LoopNode(node.node_type, node.shape, node.symbol_node, replacement_nodes)
 
     return replacement_function(symbol_table, node)
 

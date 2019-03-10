@@ -1,6 +1,6 @@
 from ..core import MOAException
 from ..ast import (
-    MOANodeTypes, ArrayNode, BinaryNode, ConditionNode, FunctionNode, LoopNode,
+    MOANodeTypes, ArrayNode, BinaryNode, ConditionNode, FunctionNode, LoopNode, ErrorNode, InitializeNode, IfNode,
     generate_unique_array_name, add_symbol
 )
 from ..shape import (
@@ -52,7 +52,7 @@ def determine_function_arguments(symbol_table):
 def determine_indicies(symbol_table):
     indicies = set()
     for symbol_name, symbol_node in symbol_table.items():
-        if symbol_node == MOANodeTypes.INDEX:
+        if symbol_node.node_type == MOANodeTypes.INDEX:
             indicies.add(symbol_name)
     return tuple(sorted(indicies))
 
@@ -64,15 +64,18 @@ def add_function_node(symbol_table, node):
 
     # grab condition node
     if node.node_type == MOANodeTypes.CONDITION:
-        function_body = (ConditionNode(node.node_type, (), node.condition_node, ArrayNode(MOANodeTypes.ARRAY, (3, 4), 'A')),)
+        function_body = (IfNode(MOANodeTypes.IF, (), node.condition_node, (ErrorNode(MOANodeTypes.ERROR, (), 'arguments have invalid shape'),)),)
         node = node.right_node
 
     indicies = determine_indicies(symbol_table)
 
+    # eventually get shapes and match with conditions
     result_array_name = generate_unique_array_name(symbol_table)
     symbol_table = add_symbol(symbol_table, result_array_name, MOANodeTypes.ARRAY, node.shape, None)
     result_index_name = generate_unique_array_name(symbol_table)
     symbol_table = add_symbol(symbol_table, result_index_name, MOANodeTypes.ARRAY, (len(indicies),), indicies)
+
+    function_body = function_body + (InitializeNode(MOANodeTypes.INITIALIZE, node.shape, result_array_name),)
 
     loop_node =  BinaryNode(MOANodeTypes.ASSIGN, node.shape,
                             BinaryNode(MOANodeTypes.PSI, node.shape,
@@ -80,13 +83,12 @@ def add_function_node(symbol_table, node):
                                        ArrayNode(MOANodeTypes.ARRAY, node.shape, result_array_name)),
                              node)
 
-    print('indicies', indicies)
     for index in indicies:
-        loop_node = LoopNode(MOANodeTypes.LOOP, index, (loop_node,))
+        loop_node = LoopNode(MOANodeTypes.LOOP, node.shape, index, (loop_node,))
 
     function_body = function_body + (loop_node,)
 
-    return symbol_table, FunctionNode(MOANodeTypes.FUNCTION, None, tuple(symbols), result_array_name, function_body)
+    return symbol_table, FunctionNode(MOANodeTypes.FUNCTION, node.shape, tuple(symbols), result_array_name, function_body)
 
 
 
