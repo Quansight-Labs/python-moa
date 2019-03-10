@@ -87,25 +87,15 @@ def _node_label(symbol_table, node):
         if is_vector(symbol_table, node) and symbol_node.value:
             node_label['value'] = value_string(symbol_table, symbol_node.value)
 
-    elif node.node_type == MOANodeTypes.INITIALIZE:
-        if node.shape:
-            node_label['shape'] = shape_string(symbol_table, node.shape)
-        node_label['value'] = node.symbol_node
-
     elif node.node_type == MOANodeTypes.ERROR:
         node_label['value'] = node.message
 
-    elif node.node_type == MOANodeTypes.LOOP:
+    elif node.node_type in {MOANodeTypes.LOOP, MOANodeTypes.INITIALIZE}:
         if node.shape:
             node_label['shape'] = shape_string(symbol_table, node.shape)
         node_label['value'] = node.symbol_node
 
-    elif node.node_type == MOANodeTypes.CONDITION:
-        if node.shape:
-            node_label['shape'] = shape_string(symbol_table, node.shape)
-        node_label['value'] = generate_python_source(symbol_table, node.condition_node, materialize_scalars=True)
-
-    elif node.node_type == MOANodeTypes.IF:
+    elif node.node_type in {MOANodeTypes.CONDITION, MOANodeTypes.IF}:
         if node.shape:
             node_label['shape'] = shape_string(symbol_table, node.shape)
         node_label['value'] = generate_python_source(symbol_table, node.condition_node, materialize_scalars=True)
@@ -114,6 +104,7 @@ def _node_label(symbol_table, node):
         if node.shape:
             node_label['shape'] = shape_string(symbol_table, node.shape)
         node_label['value'] = value_string(symbol_table, node.arguments) + ' -> ' + node.result
+
     else:
         if node.shape:
             node_label['shape'] = shape_string(symbol_table, node.shape)

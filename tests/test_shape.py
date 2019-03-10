@@ -71,6 +71,13 @@ def test_is_not_vector_2d(): # 2D array
      BinaryNode(MOANodeTypes.TRANSPOSEV, (4, 5, 3),
                ArrayNode(MOANodeTypes.ARRAY, (3,), '_a1'),
                ArrayNode(MOANodeTypes.ARRAY, (3, 4, 5), 'B'))),
+    # SHAPE
+    ({'_a1': SymbolNode(MOANodeTypes.ARRAY, (3, 2, 1), None)},
+     UnaryNode(MOANodeTypes.SHAPE, None,
+               ArrayNode(MOANodeTypes.ARRAY, (3, 2, 1), '_a1')),
+     {'_a1': SymbolNode(MOANodeTypes.ARRAY, (3, 2, 1), None)},
+     UnaryNode(MOANodeTypes.SHAPE, (3,),
+               ArrayNode(MOANodeTypes.ARRAY, (3, 2, 1), '_a1'))),
     # PLUSRED
     ({'A': SymbolNode(MOANodeTypes.ARRAY, (3, 4, 5), None)},
      UnaryNode(MOANodeTypes.PLUSRED, None,
@@ -102,7 +109,7 @@ def test_shape_unit(symbol_table, tree, shape_symbol_table, shape_tree):
     MOANodeTypes.PLUS, MOANodeTypes.MINUS,
     MOANodeTypes.DIVIDE, MOANodeTypes.TIMES,
 ])
-def test_shape_plus_minus_multiply_divide_no_symbol(operation):
+def test_shape_unit_plus_minus_multiply_divide_no_symbol(operation):
     symbol_table = {
         'A': SymbolNode(MOANodeTypes.ARRAY, (3, 4, 5), None),
         'B': SymbolNode(MOANodeTypes.ARRAY, (3, 4, 5), None)

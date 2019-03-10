@@ -50,7 +50,8 @@ def _shape_replacement(symbol_table, node):
         MOANodeTypes.ARRAY: _shape_array,
         MOANodeTypes.TRANSPOSE: _shape_transpose,
         MOANodeTypes.TRANSPOSEV: _shape_transpose_vector,
-        MOANodeTypes.FUNCTION: _shape_function,
+        MOANodeTypes.ASSIGN: _shape_assign,
+        MOANodeTypes.SHAPE: _shape_shape,
         MOANodeTypes.PLUSRED: _shape_plus_red,
         MOANodeTypes.PSI: _shape_psi,
         MOANodeTypes.PLUS: _shape_plus_minus_divide_times,
@@ -120,13 +121,6 @@ def _shape_transpose_vector(symbol_table, node):
     return symbol_table, BinaryNode(node.node_type, shape, node.left_node, node.right_node)
 
 
-def _shape_function(symbol_table, node):
-    # functions don't have shape...
-    # at least I don't know how to handle a function returning
-    # multiple arrays (ragged arrays?)
-    return symbol_table, node
-
-
 def _shape_assign(symbol_table, node):
     if dimension(symbol_table, node.left_node) and dimension(symbol_table, node.right_node):
         raise MOAShapeException('ASSIGN requires that the dimension of the left and right nodes to be same')
@@ -158,6 +152,10 @@ def _shape_assign(symbol_table, node):
             condition_node = BinaryNode(MOANodeTypes.AND, (), condition, condition_node)
         node = ConditionNode(MOANodeTypes.CONDITION, node.shape, condition_node, node)
     return symbol_table, node
+
+
+def _shape_shape(symbol_table, node):
+    return symbol_table, UnaryNode(node.node_type, (dimension(symbol_table, node.right_node),), node.right_node)
 
 
 def _shape_plus_red(symbol_table, node):
