@@ -6,8 +6,8 @@ from moa.ast import (
     MOANodeTypes,
     BinaryNode, UnaryNode, ArrayNode, SymbolNode
 )
-from moa.reduction import (
-    reduce_ast,
+from moa.dnf import (
+    reduce_to_dnf,
     add_indexing_node,
     _reduce_psi_psi,
     _reduce_psi_transpose, _reduce_psi_transposev,
@@ -196,7 +196,7 @@ def test_reduce_psi_plus_minus_times_divide_scalar(operation):
 ])
 def test_reduce_integration(symbol_table, tree, expected_symbol_table, expected_tree):
     symbol_table_copy = copy.deepcopy(symbol_table)
-    new_symbol_table, new_tree = reduce_ast(symbol_table, tree)
+    new_symbol_table, new_tree = reduce_to_dnf(symbol_table, tree)
     assert symbol_table_copy == symbol_table
     assert new_symbol_table == expected_symbol_table
     assert new_tree == expected_tree

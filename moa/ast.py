@@ -17,10 +17,10 @@ class MOANodeTypes(enum.Enum):
     # control
     INITIALIZE = 50
     FUNCTION   = 51
-    CONDITION  = 52
-    LOOP       = 53
-    ASSIGN     = 54
-    ERROR      = 55
+    LOOP       = 52
+    ASSIGN     = 53
+    ERROR      = 54
+    CONDITION  = 55
     IF         = 56
 
     # unary

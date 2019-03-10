@@ -1,6 +1,5 @@
-"""Pure python slow array "indexing" class. Best to ignore this module
-hopefully "psi reduction" will be implemented earlier as opossed to
-later and this module will be unnecissary. For now it is unused
+"""Pure python slow array "indexing" class. "psi reduction" will soon
+be implemented and this module will be unnecissary.
 
 """
 

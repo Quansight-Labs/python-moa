@@ -42,7 +42,7 @@ def add_indexing_node(symbol_table, node):
     return symbol_table, node
 
 
-def reduce_ast(symbol_table, node, max_iterations=100):
+def reduce_to_dnf(symbol_table, node, max_iterations=100):
     """Preorder traversal and replacement of ast tree
 
     In the future the symbol table will have to be constructed earlier
@@ -125,10 +125,12 @@ def _reduce_psi_transpose(symbol_table, node):
 
 def _reduce_psi_transposev(symbol_table, node):
     """<i j k> psi <2 0 1> transpose ... => <k i j> psi ..."""
-    array_values = tuple(s for _, s in sorted(zip(node.right_node.left_node.value, node.left_node.value), key=lambda pair: pair[0]))
-    return BinaryNode(MOANodeTypes.PSI, node.shape,
-                      ArrayNode(MOANodeTypes.ARRAY, (len(index_values),), None, index_values),
-                      node.right_node.right_node)
+    array_name = generate_unique_array_name(symbol_table)
+    array_values = tuple(s for _, s in sorted(zip(symbol_table[node.right_node.left_node.symbol_node].value, symbol_table[node.left_node.symbol_node].value), key=lambda pair: pair[0]))
+    symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (len(array_values),), array_values)
+    return symbol_table, BinaryNode(MOANodeTypes.PSI, node.shape,
+                                    ArrayNode(MOANodeTypes.ARRAY, (len(array_values),), array_name),
+                                    node.right_node.right_node)
 
 
 def _reduce_psi_plus_red(node):

@@ -7,8 +7,17 @@
 import pytest
 
 from moa.compiler import compiler
+from moa.array import Array
 
 
 def test_lenore_example_1():
     python_source = compiler('<0> psi (tran(A ^ <2 3> + B ^ <2 3>))')
-    assert python_source == "(A[(_i3, 0)] + B[(_i3, 0)])"
+
+    local_dict = {}
+    exec(python_source, globals(), local_dict)
+
+    A = Array((2, 3), (1, 2, 3, 4, 5, 6))
+    B = Array((2, 3), (7, 8, 9, 10, 11, 12))
+    C = local_dict['f'](A, B)
+    assert C.shape == (2,)
+    assert C.value == [8, 14]

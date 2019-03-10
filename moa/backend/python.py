@@ -1,7 +1,7 @@
 import ast
 import astunparse
 
-from ..ast import MOANodeTypes, postorder_replacement
+from ..ast import MOANodeTypes, ArrayNode, postorder_replacement
 from ..shape import has_symbolic_elements
 
 

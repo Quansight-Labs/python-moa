@@ -1,15 +1,57 @@
-from ..core import MOAException
-from ..ast import (
+from .core import MOAException
+from .ast import (
     MOANodeTypes, ArrayNode, BinaryNode, ConditionNode, FunctionNode, LoopNode, ErrorNode, InitializeNode, IfNode,
     generate_unique_array_name, add_symbol
 )
-from ..shape import (
+from .shape import (
     has_symbolic_elements, is_symbolic_element
 )
 
 
-class MOABackendError(MOAException):
+class MOAONFReductionError(MOAException):
     pass
+
+
+def reduce_to_onf(symbol_table, node):
+    return naive_reduction(symbol_table, node)
+
+
+def naive_reduction(symbol_table, node):
+    """Simple backend does not simplify loops and directly converts moa reduced statement to ONF
+
+    ONF AST is a language independent representation
+    """
+    symbols = determine_function_arguments(symbol_table)
+
+    function_body = ()
+
+    # grab condition node
+    if node.node_type == MOANodeTypes.CONDITION:
+        function_body = (IfNode(MOANodeTypes.IF, (), node.condition_node, (ErrorNode(MOANodeTypes.ERROR, (), 'arguments have invalid shape'),)),)
+        node = node.right_node
+
+    indicies = determine_indicies(symbol_table)
+
+    # eventually get shapes and match with conditions
+    result_array_name = generate_unique_array_name(symbol_table)
+    symbol_table = add_symbol(symbol_table, result_array_name, MOANodeTypes.ARRAY, node.shape, None)
+    result_index_name = generate_unique_array_name(symbol_table)
+    symbol_table = add_symbol(symbol_table, result_index_name, MOANodeTypes.ARRAY, (len(indicies),), indicies)
+
+    function_body = function_body + (InitializeNode(MOANodeTypes.INITIALIZE, node.shape, result_array_name),)
+
+    loop_node =  BinaryNode(MOANodeTypes.ASSIGN, node.shape,
+                            BinaryNode(MOANodeTypes.PSI, node.shape,
+                                       ArrayNode(MOANodeTypes.ARRAY, node.shape, result_index_name),
+                                       ArrayNode(MOANodeTypes.ARRAY, node.shape, result_array_name)),
+                             node)
+
+    for index in indicies:
+        loop_node = LoopNode(MOANodeTypes.LOOP, node.shape, index, (loop_node,))
+
+    function_body = function_body + (loop_node,)
+
+    return symbol_table, FunctionNode(MOANodeTypes.FUNCTION, node.shape, tuple(symbols), result_array_name, function_body)
 
 
 def determine_function_arguments(symbol_table):
@@ -55,45 +97,3 @@ def determine_indicies(symbol_table):
         if symbol_node.node_type == MOANodeTypes.INDEX:
             indicies.add(symbol_name)
     return tuple(sorted(indicies))
-
-
-def add_function_node(symbol_table, node):
-    symbols = determine_function_arguments(symbol_table)
-
-    function_body = ()
-
-    # grab condition node
-    if node.node_type == MOANodeTypes.CONDITION:
-        function_body = (IfNode(MOANodeTypes.IF, (), node.condition_node, (ErrorNode(MOANodeTypes.ERROR, (), 'arguments have invalid shape'),)),)
-        node = node.right_node
-
-    indicies = determine_indicies(symbol_table)
-
-    # eventually get shapes and match with conditions
-    result_array_name = generate_unique_array_name(symbol_table)
-    symbol_table = add_symbol(symbol_table, result_array_name, MOANodeTypes.ARRAY, node.shape, None)
-    result_index_name = generate_unique_array_name(symbol_table)
-    symbol_table = add_symbol(symbol_table, result_index_name, MOANodeTypes.ARRAY, (len(indicies),), indicies)
-
-    function_body = function_body + (InitializeNode(MOANodeTypes.INITIALIZE, node.shape, result_array_name),)
-
-    loop_node =  BinaryNode(MOANodeTypes.ASSIGN, node.shape,
-                            BinaryNode(MOANodeTypes.PSI, node.shape,
-                                       ArrayNode(MOANodeTypes.ARRAY, node.shape, result_index_name),
-                                       ArrayNode(MOANodeTypes.ARRAY, node.shape, result_array_name)),
-                             node)
-
-    for index in indicies:
-        loop_node = LoopNode(MOANodeTypes.LOOP, node.shape, index, (loop_node,))
-
-    function_body = function_body + (loop_node,)
-
-    return symbol_table, FunctionNode(MOANodeTypes.FUNCTION, node.shape, tuple(symbols), result_array_name, function_body)
-
-
-
-def simple_backend(symbol_table, node):
-    """Simple backend does not simplify loops and directly converts moa reduced statement to ONF
-
-    """
-    pass
