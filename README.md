@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/costrouc/python-moa.svg?branch=master)](https://travis-ci.org/costrouc/python-moa)
+[![Documentation Status](https://readthedocs.org/projects/python-moa/badge/?version=latest)](https://python-moa.readthedocs.io/en/latest/?badge=latest)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/costrouc/python-moa/master)
 
 
