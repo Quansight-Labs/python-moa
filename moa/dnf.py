@@ -3,13 +3,13 @@ import itertools
 from .core import MOAException
 from .ast import (
     MOANodeTypes,
-    ArrayNode, BinaryNode, SymbolNode,
+    ArrayNode, BinaryNode, SymbolNode, ConditionNode, FunctionNode,
     add_symbol,
     generate_unique_index_name, generate_unique_array_name,
     is_binary_operation, is_unary_operation, is_array,
     preorder_replacement
 )
-from .shape import is_vector, is_scalar
+from .shape import is_vector, is_scalar, has_symbolic_elements, is_symbolic_element
 
 
 class MOAReductionError(MOAException):
@@ -21,6 +21,11 @@ def add_indexing_node(symbol_table, node):
 
     For example: <i0 i1> psi (A + B)
     """
+    condition_node = None
+    if node.node_type == MOANodeTypes.CONDITION:
+        condition_node = node.condition_node
+        node = node.right_node
+
     index_symbols = ()
     for bound in node.shape:
         index_name = generate_unique_index_name(symbol_table)
@@ -30,10 +35,14 @@ def add_indexing_node(symbol_table, node):
     array_name = generate_unique_array_name(symbol_table)
     symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (len(index_symbols),), index_symbols)
     vector_node = ArrayNode(MOANodeTypes.ARRAY, (len(index_symbols),), array_name)
-    return symbol_table, BinaryNode(MOANodeTypes.PSI, node.shape, vector_node, node)
+    node = BinaryNode(MOANodeTypes.PSI, node.shape, vector_node, node)
+
+    if condition_node:
+        node = ConditionNode(MOANodeTypes.CONDITION, node.shape, condition_node, node)
+    return symbol_table, node
 
 
-def reduce_ast(symbol_table, tree, max_iterations=100, add_indexing=True):
+def reduce_to_dnf(symbol_table, node, max_iterations=100):
     """Preorder traversal and replacement of ast tree
 
     In the future the symbol table will have to be constructed earlier
@@ -41,14 +50,14 @@ def reduce_ast(symbol_table, tree, max_iterations=100, add_indexing=True):
 
     TODO: change exception to warning to allow for partial replacement
     """
-    if add_indexing:
-        symbol_table, tree = add_indexing_node(symbol_table, tree)
-    symbol_table, tree = preorder_replacement(symbol_table, tree, _reduce_replacement, range(max_iterations))
-    return symbol_table, tree
+    symbol_table, node = add_indexing_node(symbol_table, node)
+    symbol_table, node = preorder_replacement(symbol_table, node, _reduce_replacement, range(max_iterations))
+    return symbol_table, node
 
 
 def _reduce_replacement(symbol_table, node):
     reduction_rules = {
+        (MOANodeTypes.PSI, None, MOANodeTypes.ASSIGN): _reduce_psi_assign,
         (MOANodeTypes.PSI, None, MOANodeTypes.PSI): _reduce_psi_psi,
         (MOANodeTypes.PSI, None, MOANodeTypes.TRANSPOSE): _reduce_psi_transpose,
         (MOANodeTypes.PSI, None, MOANodeTypes.TRANSPOSEV): _reduce_psi_transposev,
@@ -81,6 +90,14 @@ def _reduce_replacement(symbol_table, node):
     return None, None
 
 
+def _reduce_psi_assign(symbol_table, node):
+    """<i j> psi ... assign ... => <i j> psi ... assign <i j> psi ..."""
+    return symbol_table, BinaryNode(MOANodeTypes.ASSIGN, node.shape,
+                                    BinaryNode(MOANodeTypes.PSI, node.shape, node.left_node, node.right_node.left_node),
+                                    BinaryNode(MOANodeTypes.PSI, node.shape, node.left_node, node.right_node.right_node))
+
+
+
 def _reduce_psi_psi(symbol_table, node):
     """<i j> psi <k l> psi ... => <k l i j> psi ..."""
     if not is_vector(symbol_table, node.right_node.left_node) or symbol_table[node.right_node.left_node.symbol_node].value is None:
@@ -108,10 +125,12 @@ def _reduce_psi_transpose(symbol_table, node):
 
 def _reduce_psi_transposev(symbol_table, node):
     """<i j k> psi <2 0 1> transpose ... => <k i j> psi ..."""
-    array_values = tuple(s for _, s in sorted(zip(node.right_node.left_node.value, node.left_node.value), key=lambda pair: pair[0]))
-    return BinaryNode(MOANodeTypes.PSI, node.shape,
-                      ArrayNode(MOANodeTypes.ARRAY, (len(index_values),), None, index_values),
-                      node.right_node.right_node)
+    array_name = generate_unique_array_name(symbol_table)
+    array_values = tuple(s for _, s in sorted(zip(symbol_table[node.right_node.left_node.symbol_node].value, symbol_table[node.left_node.symbol_node].value), key=lambda pair: pair[0]))
+    symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (len(array_values),), array_values)
+    return symbol_table, BinaryNode(MOANodeTypes.PSI, node.shape,
+                                    ArrayNode(MOANodeTypes.ARRAY, (len(array_values),), array_name),
+                                    node.right_node.right_node)
 
 
 def _reduce_psi_plus_red(node):
