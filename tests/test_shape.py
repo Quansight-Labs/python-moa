@@ -157,32 +157,3 @@ def test_shape_scalar_plus_minus_multiply_divide_no_symbol(operation):
     assert symbol_table == symbol_table_copy
     assert new_tree == generate_expected_ast(operation)
     assert new_symbol_table == symbol_table
-
-
-@pytest.mark.parametrize("symbol_table, tree, shape_symbol_table, shape_tree", [
-    # Lenore Simple Example #1 06/01/2018
-    ({'_a1': SymbolNode(MOANodeTypes.ARRAY, (1,), (0,)),
-      'A': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None),
-      'B': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None)},
-     BinaryNode(MOANodeTypes.PSI, None,
-                ArrayNode(MOANodeTypes.ARRAY, None, '_a1'),
-                UnaryNode(MOANodeTypes.TRANSPOSE, None,
-                          BinaryNode(MOANodeTypes.PLUS, None,
-                                     ArrayNode(MOANodeTypes.ARRAY, None, 'A'),
-                                     ArrayNode(MOANodeTypes.ARRAY, None, 'B')))),
-     {'_a1': SymbolNode(MOANodeTypes.ARRAY, (1,), (0,)),
-      'A': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None),
-      'B': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None)},
-     (MOANodeTypes.PSI, (3,),
-      (MOANodeTypes.ARRAY, (1,), '_a1'),
-      (MOANodeTypes.TRANSPOSE, (4, 3),
-       (MOANodeTypes.PLUS, (3, 4),
-        (MOANodeTypes.ARRAY, (3, 4), 'A'),
-        (MOANodeTypes.ARRAY, (3, 4), 'B'))))),
-])
-def test_shape_integration(symbol_table, tree, shape_symbol_table, shape_tree):
-    symbol_table_copy = copy.deepcopy(symbol_table)
-    new_symbol_table, new_tree = calculate_shapes(symbol_table, tree)
-    assert symbol_table == symbol_table_copy
-    assert new_tree == shape_tree
-    assert new_symbol_table == shape_symbol_table

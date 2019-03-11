@@ -202,37 +202,3 @@ def test_reduce_psi_plus_minus_times_divide_scalar(operation):
     assert symbol_table_copy == symbol_table
     assert new_tree == expected_tree
     assert new_symbol_table == symbol_table
-
-
-@pytest.mark.parametrize("symbol_table, tree, expected_symbol_table, expected_tree", [
-    # Lenore Simple Example #1 06/01/2018
-    ({'_a0': SymbolNode(MOANodeTypes.ARRAY, (1,), (0,)),
-      'A': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None),
-      'B': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None)},
-     BinaryNode(MOANodeTypes.PSI, (3,),
-                ArrayNode(MOANodeTypes.ARRAY, (1,), '_a0'),
-                UnaryNode(MOANodeTypes.TRANSPOSE, (4, 3),
-                          BinaryNode(MOANodeTypes.PLUS, (3, 4),
-                                     ArrayNode(MOANodeTypes.ARRAY, (3, 4), 'A'),
-                                     ArrayNode(MOANodeTypes.ARRAY, (3, 4), 'B')))),
-     {'_a0': SymbolNode(MOANodeTypes.ARRAY, (1,), (0,)),
-      'A': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None),
-      'B': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None),
-      '_i3': SymbolNode(MOANodeTypes.INDEX, (), (0, 3)),
-      '_a4': SymbolNode(MOANodeTypes.ARRAY, (1,), ('_i3',)),
-      '_a5': SymbolNode(MOANodeTypes.ARRAY, shape=(2,), value=(0, '_i3')),
-      '_a6': SymbolNode(MOANodeTypes.ARRAY, shape=(2,), value=('_i3', 0))},
-      BinaryNode(MOANodeTypes.PLUS, (3,),
-                 BinaryNode(MOANodeTypes.PSI, (3,),
-                            ArrayNode(MOANodeTypes.ARRAY, (2,), '_a6'),
-                            ArrayNode(MOANodeTypes.ARRAY, (3, 4), 'A')),
-                 BinaryNode(MOANodeTypes.PSI, (3,),
-                            ArrayNode(MOANodeTypes.ARRAY, (2,), '_a6'),
-                            ArrayNode(MOANodeTypes.ARRAY, (3, 4), 'B')))),
-])
-def test_reduce_dnf_integration(symbol_table, tree, expected_symbol_table, expected_tree):
-    symbol_table_copy = copy.deepcopy(symbol_table)
-    new_symbol_table, new_tree = reduce_to_dnf(symbol_table, tree)
-    assert symbol_table_copy == symbol_table
-    assert new_symbol_table == expected_symbol_table
-    assert new_tree == expected_tree
