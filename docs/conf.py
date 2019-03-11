@@ -17,7 +17,7 @@ pygments_style = 'sphinx'
 html_theme = 'alabaster'
 
 doctest_global_setup = '''
-from moa.ast import MOANodeTypes, ArrayNode, UnaryNode, BinaryNode
+from moa.ast import MOANodeTypes, ArrayNode, UnaryNode, BinaryNode, SymbolNode
 '''
 
 mathjax_config = {
