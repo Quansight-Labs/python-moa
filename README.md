@@ -1,13 +1,20 @@
 [![Build Status](https://travis-ci.org/costrouc/python-moa.svg?branch=master)](https://travis-ci.org/costrouc/python-moa)
 
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/costrouc/python-moa/master)
+
+
 # Mathematics of Arrays (MOA)
 
 Important questions that should guide development most likely in this order:
 
- - [ ] Is a simple implementation of moa possible with only knowing the dimension?
- - [ ] Can we represent complex operations and einsum math: requires `+red, omega`?
+ - [X] Is a simple implementation of moa possible with only knowing the dimension?
+ - [ ] Can we represent complex operations and einsum math: requires `+red, transpose`?
  - [ ] What is the interface for arrays? (shape, indexing function)
  - [ ] How does one wrap pre-existing numerical routines?
+ 
+# Documentation
+
+
 
 # Example
 
@@ -18,17 +25,17 @@ from moa.frontend import MOAParser
 from moa.visualize import print_ast
 
 parser = MOAParser()
-ast = parser.parse('<0> psi (tran(A ^ <2 3> + B ^ <2 3>))')
-print_ast(ast)
+symbol_table, tree = parser.parse('<0> psi (tran(A ^ <2 3> + B ^ <2 3>))')
+print_ast(symbol_table, tree)
 ```
 
 ```
 psi(Ψ)
-├── Array <1>:  (0)
+├── Array _a0: <1> (0)
 └── transpose(Ø)
     └── +
-        ├── Array <2 3>
-        └── Array <2 3>
+        ├── Array A: <2 3>
+        └── Array B: <2 3>
 ```
 
 ## Shape Calculation
@@ -36,114 +43,116 @@ psi(Ψ)
 ```
 from moa.shape import calculate_shapes
 
-shape_ast = calculate_shapes(ast)
-print_ast(shape_ast)
+shape_symbol_table, shape_tree = calculate_shapes(symbol_table, tree)
+print_ast(shape_symbol_table, shape_tree)
 ```
 
 ```
-psi(Ψ) <2>
-├── Array <1>:  (0)
-└── transpose(Ø) <3 2>
-    └── + <2 3>
-        ├── Array <2 3>
-        └── Array <2 3>
+psi(Ψ): <2>
+├── Array _a0: <1> (0)
+└── transpose(Ø): <3 2>
+    └── +: <2 3>
+        ├── Array A: <2 3>
+        └── Array B: <2 3>
 ```
 
-## AST Reduction
+## Reduction to DNF
 
 ```
-from moa.reduction import reduce_ast
+from moa.dnf import reduce_to_dnf
 
-symbol_table, reduced_ast = reduce_ast(shape_ast)
-print_ast(reduced_ast)
+dnf_symbol_table, dnf_tree = reduce_to_dnf(shape_symbol_table, shape_tree)
+print_ast(dnf_symbol_table, dnf_tree)
 ```
 
 ```
-+ <2>
-├── psi(Ψ) <2>
-│   ├── Array <2>:  (i0 0)
-│   └── Array <2 3>
-└── psi(Ψ) <2>
-    ├── Array <2>:  (i0 0)
-    └── Array <2 3>
++: <2>
+├── psi(Ψ): <2>
+│   ├── Array _a6: <2> (_i3 0)
+│   └── Array A: <2 3>
+└── psi(Ψ): <2>
+    ├── Array _a6: <2> (_i3 0)
+    └── Array B: <2 3>
 ```
 
-## Python Backend Code Generation
+## Reduction to ONF
 
 ```
-import astunparse
+from moa.onf import reduce_to_onf
 
-from moa.backend import python_backend
+onf_symbol_table, onf_tree = reduce_to_onf(dnf_symbol_table, dnf_tree)
+print_ast(onf_symbol_table, onf_tree)
+```
 
-ast = python_backend(reduced_ast)
-print(astunparse.unparse(ast))
+```
+function: <2> (B A) -> _a7
+├── initialize: <2> _a7
+└── loop: <2> _i3
+    └── assign: <2>
+        ├── psi(Ψ): <2>
+        │   ├── Array _a8: <1> (_i3)
+        │   └── Array _a7: <2>
+        └── +: <2>
+            ├── psi(Ψ): <2>
+            │   ├── Array _a6: <2> (_i3 0)
+            │   └── Array A: <2 3>
+            └── psi(Ψ): <2>
+                ├── Array _a6: <2> (_i3 0)
+                └── Array B: <2 3>
+```
+
+## Generate Python Source
+
+```
+from moa.backend import generate_python_source
+
+print(generate_python_source(onf_symbol_table, onf_tree))
 ```
 
 ```python
-(A[('i0', 0)] + B[('i0', 0)])
+def f(B, A):
+    _a7 = Array((2,))
+    for _i3 in range(0, 2):
+        _a7[(_i3,)] = (A[(_i3, 0)] + B[(_i3, 0)])
+    return _a7
 ```
-
-# AST Representation
-
-Initially I used strictly tuples for representing the ast but using
-indexes only lead to unreadable code. I have used `namedtuple` which
-easily maps to `C structs`. `node_type` is a python enum which
-determines the node type an easily maps to c enums. This will need
-some work when dealing with operations of operations like `omega` and
-`+red`.
-
- - array `(node_type, shape, name, value)`
-
- - unary functions `(node_type, shape, right_node)`
-
- - binary functions `(node_type, shape, left_node, right_node)`
-
-## Symbol Table
-
-For now a symbol table is used to generate the index variables once
-the resulting shape is known. However, more work will be done soon to
-include named arrays and allowing for known dimension variable shape
-arrays.
 
 # Development
 
-Maybe this is a neat project to show off my favorite build/development
-tool of all time!? Please just try. Download
-[nix](https://nixos.org/nix/download.html) and you will see. Nope no
-other dependencies and all our builds will be identical on Linux and
-OSX.
+Download [nix](https://nixos.org/nix/download.html). No other
+dependencies and all builds will be identical on Linux and OSX.
 
 ## Demoing
 
 `jupyter` environment
 
 ```
-nix-shell -A jupyter-shell
+nix-shell dev.nix -A jupyter-shell
 ```
 
 `ipython` environment
 
 ```
-nix-shell -A ipython-shell
+nix-shell dev.nix -A ipython-shell
 ```
 
 ## Testing
 
 ```
-nix-build -A python-moa
+nix-build dev.nix -A python-moa
 ```
 
 ## Documentation
 
 ```
-nix-build -A docs
+nix-build dev.nix -A docs
 firefox result/index.html
 ```
 
 ## Docker
 
 ```
-nix-build -A docker
+nix-build moa.nix -A docker
 docker load < result
 ```
 
@@ -152,11 +161,12 @@ docker load < result
 This is a proof of concept which should be guided by assumptions and
 goals.
 
-1. Assumes that dimension is each operation is known. 
-   - early on it will be required that the shapes are known as well
+1. Assumes that dimension is each operation is known. This condition
+   with not much work can be relaxed to knowing an upper bound.
 
 2. The MOA compiler is designed to be modular with clear separations:
-   parsing, shape calculation, reduction, and code generation.
+   parsing, shape calculation, dnf reduction, onf reduction, and code
+   generation.
 
 3. All code is written with the idea that the logic can ported to any
    low level language (C for example). This means no object oriented
