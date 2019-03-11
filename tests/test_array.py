@@ -10,6 +10,12 @@ def test_array_invalid_shape():
         Array(shape=(1, 2, 3), value=(1, 2), fmt='row')
 
 
+def test_array_dimension():
+    a = Array(shape=(1, 2, 3), value=(1, 2, 3, 4, 5, 6), fmt='row')
+
+    assert a.dimension == 3
+
+
 def test_array_get_index():
     a = Array(shape=(1, 2, 3), value=(1, 2, 3, 4, 5, 6), fmt='row')
     assert a[0, 0, 0] == 1

@@ -1,6 +1,6 @@
 from .core import MOAException
 from .ast import (
-    MOANodeTypes, ArrayNode, BinaryNode, ConditionNode, FunctionNode, LoopNode, ErrorNode, InitializeNode, IfNode,
+    MOANodeTypes, ArrayNode, UnaryNode, BinaryNode, ConditionNode, FunctionNode, LoopNode, ErrorNode, InitializeNode, IfNode,
     generate_unique_array_name, add_symbol
 )
 from .shape import (
@@ -26,12 +26,71 @@ def naive_reduction(symbol_table, node):
     function_body = ()
 
     # assert condition of array inputs
-    # time to check array arguments
+    dimension_conditions = []
+    shape_conditions = []
+    assignments = []
+    for array in array_arguments:
+        # dim A == value
+        value_name = generate_unique_array_name(symbol_table)
+        symbol_table = add_symbol(symbol_table, value_name, MOANodeTypes.ARRAY, (), (len(array.shape),))
+
+        dimension_conditions.append(BinaryNode(MOANodeTypes.EQUAL, (),
+                                               UnaryNode(MOANodeTypes.DIM, (),
+                                                         ArrayNode(MOANodeTypes.ARRAY, (), array.symbol_node)),
+                                               ArrayNode(MOANodeTypes.ARRAY, (), value_name)))
+
+        for i, element in enumerate(array.shape):
+            array_name = generate_unique_array_name(symbol_table)
+            symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (1,), (i,))
+
+            if is_symbolic_element(element):
+                # <i> psi shape A
+                assignments.append(BinaryNode(MOANodeTypes.ASSIGN, (),
+                                              ArrayNode(MOANodeTypes.ARRAY, (), element.symbol_node),
+                                              BinaryNode(MOANodeTypes.PSI, (),
+                                                         ArrayNode(MOANodeTypes.ARRAY, (1,), array_name),
+                                                         UnaryNode(MOANodeTypes.SHAPE, (len(array.shape),),
+                                                                   ArrayNode(MOANodeTypes.ARRAY, array.shape, array.symbol_node)))))
+            else:
+                # <i> psi shape A == value
+                value_name = generate_unique_array_name(symbol_table)
+                symbol_table = add_symbol(symbol_table, value_name, MOANodeTypes.ARRAY, (), (element,))
+
+                shape_conditions.append(BinaryNode(MOANodeTypes.EQUAL, (),
+                                                   ArrayNode(MOANodeTypes.ARRAY, (), value_name),
+                                                   BinaryNode(MOANodeTypes.PSI, (),
+                                                              ArrayNode(MOANodeTypes.ARRAY, (1,), array_name),
+                                                              UnaryNode(MOANodeTypes.SHAPE, (len(array.shape),),
+                                                                        ArrayNode(MOANodeTypes.ARRAY, array.shape, array.symbol_node)))))
+
+    if dimension_conditions:
+        condition_node = dimension_conditions[0]
+        for dimension_condition in dimension_conditions[1:]:
+            condition_node = BinaryNode(MOANodeTypes.AND, (), dimension_condition, condition_node)
+        function_body = function_body + (IfNode(MOANodeTypes.IF, (),
+                                                UnaryNode(MOANodeTypes.NOT, (), condition_node),
+                                                (ErrorNode(MOANodeTypes.ERROR, (), 'arguments have invalid dimension'),)),)
+
+    function_body = function_body + tuple(assignments)
 
     # grab condition node
+    condition_node = None
+    if shape_conditions:
+        condition_node = shape_conditions[0]
+        for shape_condition in shape_conditions[1:]:
+            condition_node = BinaryNode(MOANodeTypes.AND, (), shape_condition, condition_node)
+
     if node.node_type == MOANodeTypes.CONDITION:
-        function_body = (IfNode(MOANodeTypes.IF, (), node.condition_node, (ErrorNode(MOANodeTypes.ERROR, (), 'arguments have invalid shape'),)),)
+        if condition_node is not None:
+            condition_node = BinaryNode(MOANodeTypes.AND, (), condition_node, node.condition_node)
+        else:
+            condition_node = node.condition_node
         node = node.right_node
+
+    if condition_node:
+        function_body = function_body + (IfNode(MOANodeTypes.IF, (),
+                                                UnaryNode(MOANodeTypes.NOT, (), condition_node),
+                                                (ErrorNode(MOANodeTypes.ERROR, (), 'arguments have invalid shape'),)),)
 
     indicies = tuple(determine_indicies(symbol_table))
 
@@ -93,7 +152,7 @@ def determine_function_arguments(symbol_table):
                 for element in symbol_node.value:
                     if is_symbolic_element(element):
                         dependent_arguments.add(element.symbol_node)
-    return tuple(ArrayNode(MOANodeTypes.ARRAY, symbol_table[array_name], array_name) for array_name in sorted(array_arguments - dependent_arguments))
+    return tuple(ArrayNode(MOANodeTypes.ARRAY, symbol_table[array_name].shape, array_name) for array_name in sorted(array_arguments - dependent_arguments))
 
 
 def determine_indicies(symbol_table):

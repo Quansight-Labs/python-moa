@@ -16,6 +16,6 @@ def compiler(source, frontend='moa', backend='python'):
     onf_symbol_table, onf_tree = reduce_to_onf(dnf_symbol_table, dnf_tree)
 
     if backend == 'python':
-        return generate_python_source(onf_symbol_table, onf_tree)
+        return generate_python_source(onf_symbol_table, onf_tree, materialize_scalars=True)
     else:
         raise ValueError(f'unknown backend {backend}')

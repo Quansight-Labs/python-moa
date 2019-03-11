@@ -40,6 +40,8 @@ def _ast_replacement(symbol_table, node):
         MOANodeTypes.ASSIGN: _ast_assignment,
         MOANodeTypes.INITIALIZE: _ast_initialize,
         MOANodeTypes.LOOP: _ast_loop,
+        MOANodeTypes.SHAPE: _ast_shape,
+        MOANodeTypes.DIM: _ast_dimension,
         MOANodeTypes.PSI: _ast_psi,
         MOANodeTypes.PLUS: _ast_plus_minus_times_divide,
         MOANodeTypes.MINUS: _ast_plus_minus_times_divide,
@@ -51,8 +53,9 @@ def _ast_replacement(symbol_table, node):
         MOANodeTypes.LESSTHANEQUAL: _ast_comparison_operations,
         MOANodeTypes.GREATERTHAN: _ast_comparison_operations,
         MOANodeTypes.GREATERTHANEQUAL: _ast_comparison_operations,
-        MOANodeTypes.AND: _ast_boolean_operations,
-        MOANodeTypes.OR: _ast_boolean_operations,
+        MOANodeTypes.AND: _ast_boolean_binary_operations,
+        MOANodeTypes.OR: _ast_boolean_binary_operations,
+        MOANodeTypes.NOT: _ast_boolean_unary_operations,
     }
     return _NODE_AST_MAP[node.node_type](symbol_table, node)
 
@@ -113,6 +116,14 @@ def _ast_initialize(symbol_table, node):
     return symbol_table, ast.Assign(targets=[ast.Name(id=node.symbol_node)], value=ast.Call(func=ast.Name(id='Array'), args=[_ast_tuple(symbol_table, node.shape)], keywords=[]))
 
 
+def _ast_shape(symbol_table, node):
+    return symbol_table, ast.Attribute(value=node.right_node, attr='shape', ctx=ast.Load())
+
+
+def _ast_dimension(symbol_table, node):
+    return symbol_table, ast.Attribute(value=node.right_node, attr='dimension', ctx=ast.Load())
+
+
 def _ast_plus_minus_times_divide(symbol_table, node):
     binop_map = {
         MOANodeTypes.PLUS: ast.Add,
@@ -124,8 +135,7 @@ def _ast_plus_minus_times_divide(symbol_table, node):
 
 
 def _ast_if(symbol_table, node):
-    return symbol_table, ast.Pass() # for now don't render if statements
-    # return symbol_table, ast.If(test=node.condition_node, body=[ast.Expr(value=child_node) for child_node in node.body], orelse=[])
+    return symbol_table, ast.If(test=node.condition_node, body=[ast.Expr(value=child_node) for child_node in node.body], orelse=[])
 
 
 def _ast_condition(symbol_table, node):
@@ -146,9 +156,16 @@ def _ast_comparison_operations(symbol_table, node):
                                      comparators=[node.right_node])
 
 
-def _ast_boolean_operations(symbol_table, node):
+def _ast_boolean_binary_operations(symbol_table, node):
     boolean_map = {
         MOANodeTypes.AND: ast.And,
         MOANodeTypes.OR: ast.Or
     }
     return symbol_table, ast.BoolOp(op=boolean_map[node.node_type](), values=[node.left_node, node.right_node])
+
+
+def _ast_boolean_unary_operations(symbol_table, node):
+    boolean_map = {
+        MOANodeTypes.NOT: ast.Not
+    }
+    return symbol_table, ast.UnaryOp(op=boolean_map[node.node_type](), operand=node.right_node)

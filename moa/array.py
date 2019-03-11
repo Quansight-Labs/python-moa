@@ -23,6 +23,10 @@ class Array:
         self.shape = shape
         self.fmt = fmt
 
+    @property
+    def dimension(self):
+        return len(self.shape)
+
     def _offset(self, index):
         if len(index) != len(self.shape):
             raise IndexError('index is not a full index')

@@ -6,6 +6,7 @@ from moa.compiler import compiler
 from moa.array import Array
 
 
+@pytest.mark.xfail
 def test_lenore_example_1():
     python_source = compiler('<0> psi (tran(A ^ <2 3> + B ^ <2 3>))')
     print(python_source)

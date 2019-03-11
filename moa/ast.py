@@ -35,6 +35,9 @@ class MOANodeTypes(enum.Enum):
     RAV       = 109
     TRANSPOSE = 110
 
+    # unary boolean
+    NOT       = 150
+
     # binary
     PLUS       = 201
     MINUS      = 202
@@ -46,7 +49,7 @@ class MOANodeTypes(enum.Enum):
     CAT        = 208
     TRANSPOSEV = 209
 
-    # comparison
+    # binary boolean (comparison)
     EQUAL            = 250
     NOTEQUAL         = 251
     LESSTHAN         = 252
