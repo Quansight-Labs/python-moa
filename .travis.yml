@@ -1,4 +1,14 @@
 language: nix
 # docs in turn build package which runs the tests so this tests
 # everything
-script: nix-build -A docs
+script: nix-build dev.nix -A docs
+
+# deploy documentation
+deploy:
+  provider: pages
+  skip-cleanup: true
+  local-dir: result
+  github-token: $GITHUB_TOKEN
+  keep-history: true
+  on:
+    branch: master
