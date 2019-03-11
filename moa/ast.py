@@ -97,6 +97,9 @@ def is_binary_operation(node):
 
 # symbol table methods
 def add_symbol(symbol_table, name, node_type, shape, value):
+    if name in symbol_table and symbol_table[name] != (node_type, shape, value):
+        raise MOAException(f'attempted to add to symbol table different symbol with same name {symbol_table[name]} != {SymbolNode(node_type, shape, value)}')
+
     # idempotency makes debugging way easier dict(str: tuple)
     # deep copy not necessary
     symbol_table_copy = copy.copy(symbol_table)

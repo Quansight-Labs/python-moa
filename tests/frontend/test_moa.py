@@ -1,6 +1,7 @@
 import pytest
 
 from moa.frontend import MOALexer, MOAParser
+from moa.core import MOAException
 from moa.ast import MOANodeTypes
 
 
@@ -97,3 +98,10 @@ def test_lexer_single_token(expression, result):
 def test_parser_simple_expressions(expression, symbol_table, tree):
     parser = MOAParser()
     assert (symbol_table, tree) == parser.parse(expression)
+
+
+def test_parser_shape_mismatch_declaration():
+    parser = MOAParser()
+    expression = 'A ^ <2 3> + A ^ <2 3 4>'
+    with pytest.raises(MOAException):
+        parser.parse(expression)

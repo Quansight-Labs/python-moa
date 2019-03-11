@@ -123,7 +123,7 @@ def test_python_backend_materialize_scalar():
     ({'A': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None),
       'B': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None),
       '_i3': SymbolNode(MOANodeTypes.INDEX, (), (0, 3)),
-      '_a4': SymbolNode(MOANodeTypes.ARRAY, shape=(2,), value=('_i3', 0))},
+      '_a4': SymbolNode(MOANodeTypes.ARRAY, shape=(2,), value=(ArrayNode(MOANodeTypes.ARRAY, (), '_i3'), 0))},
      BinaryNode(MOANodeTypes.PLUS, (3,),
                 BinaryNode(MOANodeTypes.PSI, (3,),
                            ArrayNode(MOANodeTypes.ARRAY, (2,), '_a4'),

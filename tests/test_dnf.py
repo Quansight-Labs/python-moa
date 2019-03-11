@@ -4,7 +4,7 @@ import pytest
 
 from moa.ast import (
     MOANodeTypes,
-    BinaryNode, UnaryNode, ArrayNode, SymbolNode
+    BinaryNode, UnaryNode, ArrayNode, SymbolNode,
 )
 from moa.dnf import (
     reduce_to_dnf,
@@ -26,7 +26,7 @@ def test_add_indexing_node():
         'A': SymbolNode(MOANodeTypes.ARRAY, (2, 3), (1, 2, 3, 4, 5, 6)),
         '_i1': SymbolNode(MOANodeTypes.INDEX, (), (0, 2)),
         '_i2': SymbolNode(MOANodeTypes.INDEX, (), (0, 3)),
-        '_a3': SymbolNode(MOANodeTypes.ARRAY, (2,), ('_i1', '_i2')),
+        '_a3': SymbolNode(MOANodeTypes.ARRAY, (2,), (ArrayNode(MOANodeTypes.ARRAY, (), '_i1'), ArrayNode(MOANodeTypes.ARRAY, (), '_i2'))),
     }
     assert new_tree == BinaryNode(MOANodeTypes.PSI, (2, 3),
                                   ArrayNode(MOANodeTypes.ARRAY, (2,), '_a3'),

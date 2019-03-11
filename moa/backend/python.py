@@ -2,7 +2,7 @@ import ast
 import astunparse
 
 from ..ast import MOANodeTypes, ArrayNode, postorder_replacement
-from ..shape import has_symbolic_elements
+from ..shape import has_symbolic_elements, is_symbolic_element
 
 
 def python_backend(symbol_table, tree):
@@ -32,6 +32,7 @@ def generate_python_source(symbol_table, tree, materialize_scalars=False):
 def _ast_replacement(symbol_table, node):
     _NODE_AST_MAP = {
         MOANodeTypes.ARRAY: _ast_array,
+        MOANodeTypes.INDEX: _ast_array,
         MOANodeTypes.FUNCTION: _ast_function,
         MOANodeTypes.CONDITION: _ast_condition,
         MOANodeTypes.IF: _ast_if,
@@ -57,22 +58,23 @@ def _ast_replacement(symbol_table, node):
 
 
 # helper
-def _ast_tuple(value):
-    elements = []
-    for element in value:
-        if isinstance(element, str):
-            elements.append(ast.Name(id=element))
-        elif isinstance(element, ArrayNode):
-            elements.append(ast.Name(id=element.symbol_node))
-        else:
-            elements.append(ast.Num(n=element))
-    return ast.Tuple(elts=elements)
+def _ast_element(symbol_table, element):
+    if is_symbolic_element(element):
+        _, symbolic_expression = _ast_replacement(symbol_table, element)
+        return symbolic_expression
+    else:
+        return ast.Num(n=element)
 
 
+def _ast_tuple(symbol_table, value):
+    return ast.Tuple(elts=[_ast_element(symbol_table, element) for element in value])
+
+
+# python elements
 def _ast_psi(symbol_table, node):
     left_symbol_node = node.left_node.id
     return symbol_table, ast.Subscript(value=node.right_node,
-                                       slice=ast.Index(value=_ast_tuple(symbol_table[left_symbol_node].value)),
+                                       slice=ast.Index(value=_ast_tuple(symbol_table, symbol_table[left_symbol_node].value)),
                                        ctx=ast.Load())
 
 
@@ -98,9 +100,9 @@ def _ast_loop(symbol_table, node):
     return symbol_table, ast.For(target=ast.Name(id=node.symbol_node),
                                  iter=ast.Call(func=ast.Name(id='range'),
                                                args=[
-                                                   ast.Num(n=symbol_node.value[0]),
-                                                   ast.Num(n=symbol_node.value[1])],
-                                               keywords=[]), body=[ast.Expr(value=child_node) for child_node in node.body], orelse=[])
+                                                   _ast_element(symbol_table, symbol_node.value[0]),
+                                                   _ast_element(symbol_table, symbol_node.value[1])
+                                               ], keywords=[]), body=[ast.Expr(value=child_node) for child_node in node.body], orelse=[])
 
 
 def _ast_error(symbol_table, node):
@@ -108,7 +110,7 @@ def _ast_error(symbol_table, node):
 
 
 def _ast_initialize(symbol_table, node):
-    return symbol_table, ast.Assign(targets=[ast.Name(id=node.symbol_node)], value=ast.Call(func=ast.Name(id='Array'), args=[_ast_tuple(node.shape)], keywords=[]))
+    return symbol_table, ast.Assign(targets=[ast.Name(id=node.symbol_node)], value=ast.Call(func=ast.Name(id='Array'), args=[_ast_tuple(symbol_table, node.shape)], keywords=[]))
 
 
 def _ast_plus_minus_times_divide(symbol_table, node):

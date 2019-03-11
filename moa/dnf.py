@@ -30,7 +30,7 @@ def add_indexing_node(symbol_table, node):
     for bound in node.shape:
         index_name = generate_unique_index_name(symbol_table)
         symbol_table = add_symbol(symbol_table, index_name, MOANodeTypes.INDEX, (), (0, bound))
-        index_symbols = index_symbols + (index_name,)
+        index_symbols = index_symbols + (ArrayNode(MOANodeTypes.ARRAY, (), index_name),)
 
     array_name = generate_unique_array_name(symbol_table)
     symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (len(index_symbols),), index_symbols)
