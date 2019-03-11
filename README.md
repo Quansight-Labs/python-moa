@@ -1,11 +1,11 @@
-[![Build Status](https://travis-ci.org/costrouc/python-moa.svg?branch=master)](https://travis-ci.org/costrouc/python-moa)
+[![Build Status](https://travis-ci.org/Quansight-Labs/python-moa.svg?branch=master)](https://travis-ci.org/Quansight-Labs/python-moa)
 [![Documentation Status](https://readthedocs.org/projects/python-moa/badge/?version=latest)](https://python-moa.readthedocs.io/en/latest/?badge=latest)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/costrouc/python-moa/master)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Quansight-Labs/python-moa/master)
 
 
 # Mathematics of Arrays (MOA)
 
-Important questions that should guide development most likely in this order:
+Important questions that guide development:
 
  - [X] Is a simple implementation of moa possible with only knowing the dimension?
  - [ ] Can we represent complex operations and einsum math: requires `+red, transpose`?
@@ -14,9 +14,14 @@ Important questions that should guide development most likely in this order:
  
 # Documentation
 
-
+Documentation is available on
+[python-moa.readthedocs.org](https://python-moa.readthedocs.io/en/latest/?badge=latest).
 
 # Example
+
+A few well maintained jupyter notebooks are available for
+experimentation with
+[binder](https://mybinder.org/v2/gh/Quansight-Labs/python-moa/master)
 
 ## Python Frontend AST Generation
 
