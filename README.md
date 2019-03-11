@@ -5,7 +5,32 @@
 
 # Mathematics of Arrays (MOA)
 
-Important questions that guide development:
+MOA is a mathematically rigorous approach to dealing with arrays that
+was developed by [Lenore
+Mullins](https://www.albany.edu/ceas/lenore-mullin.php). MOA is guided
+by the following principles.
+
+1. Everything is an array and has a shape. Scalars. Vectors. NDArray.
+
+2. What is the shape of the computation at each step of the calculation?
+
+Answering this guarentees no out of bounds indexing and a valid
+running program.
+
+3. What are the indicies and operations required to produce a given
+   index in the result?
+
+Once we have solved this step we have a minimal representation of the
+computation that has the [Church
+Rosser](https://en.wikipedia.org/wiki/Church%E2%80%93Rosser_theorem)
+property. Allowing us to truely compare algorithms, analyze
+algorithms, and finally map to algorithm to a low level
+implementation. For further questions see the
+[documentation](https://python-moa.readthedocs.io/en/latest/?badge=latest). The
+documentation provides the theory, implementation details, and a
+guide.
+
+Important questions that will guide development:
 
  - [X] Is a simple implementation of moa possible with only knowing the dimension?
  - [ ] Can we represent complex operations and einsum math: requires `+red, transpose`?
@@ -15,7 +40,9 @@ Important questions that guide development:
 # Documentation
 
 Documentation is available on
-[python-moa.readthedocs.org](https://python-moa.readthedocs.io/en/latest/?badge=latest).
+[python-moa.readthedocs.org](https://python-moa.readthedocs.io/en/latest/?badge=latest). The
+documentation provides the theory, implementation details, and a
+guide for development and usage of `python-moa`.
 
 # Example
 
@@ -161,7 +188,7 @@ nix-build moa.nix -A docker
 docker load < result
 ```
 
-# Philosophy
+# Development Philosophy
 
 This is a proof of concept which should be guided by assumptions and
 goals.
@@ -185,3 +212,14 @@ goals.
 
 5. Runtime dependencies should be avoided. Testing (pytest, hypothesis)
    and Visualization (graphviz) are examples of suitable exceptions.
+
+# Contributing
+
+Contributions are welcome! For bug reports or requests please submit an issue.
+
+# Authors
+
+The original author is [Christopher
+Ostrouchov](https://github.com/costrouc). The funding that made this
+project possible came from [Quansight
+LLC](https://www.quansight.com/).
