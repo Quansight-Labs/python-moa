@@ -23,8 +23,18 @@ def generate_python_source(symbol_table, tree, materialize_scalars=False):
                 return ast.Num(symbol_node.value[0])
             return node
 
+    # TODO: this will no longer be necissary with psi reduction
+    class ReplaceShapeIndex(ast.NodeTransformer):
+        def visit_Subscript(self, node):
+            if isinstance(node.value, ast.Attribute) and node.value.attr == 'shape':
+                return ast.Subscript(value=node.value,
+                                     slice=ast.Index(value=node.slice.value.elts[0]),
+                                     ctx=ast.Load())
+            return node
+
     if materialize_scalars:
         python_ast = ReplaceScalars().visit(python_ast)
+        python_ast = ReplaceShapeIndex().visit(python_ast)
 
     return astunparse.unparse(python_ast)[:-1] # remove newline
 
