@@ -112,18 +112,20 @@ print_ast(dnf_symbol_table, dnf_tree)
 ```
 from moa.onf import reduce_to_onf
 
-onf_symbol_table, onf_tree = reduce_to_onf(dnf_symbol_table, dnf_tree)
+# exclude conditional code generation
+# to shorten code output
+onf_symbol_table, onf_tree = reduce_to_onf(dnf_symbol_table, dnf_tree, include_conditions=False)
 print_ast(onf_symbol_table, onf_tree)
 ```
 
 ```
-function: <2> (B A) -> _a7
-├── initialize: <2> _a7
+function: <2> (A B) -> _a17
+├── initialize: <2> _a17
 └── loop: <2> _i3
     └── assign: <2>
         ├── psi(Ψ): <2>
-        │   ├── Array _a8: <1> (_i3)
-        │   └── Array _a7: <2>
+        │   ├── Array _a18: <1> (_i3)
+        │   └── Array _a17: <2>
         └── +: <2>
             ├── psi(Ψ): <2>
             │   ├── Array _a6: <2> (_i3 0)
@@ -142,11 +144,14 @@ print(generate_python_source(onf_symbol_table, onf_tree))
 ```
 
 ```python
-def f(B, A):
-    _a7 = Array((2,))
+def f(A, B):
+    
+    _a17 = Array((2,))
+    
     for _i3 in range(0, 2):
-        _a7[(_i3,)] = (A[(_i3, 0)] + B[(_i3, 0)])
-    return _a7
+        
+        _a17[(_i3,)] = (A[(_i3, 0)] + B[(_i3, 0)])
+    return _a17
 ```
 
 # Development
