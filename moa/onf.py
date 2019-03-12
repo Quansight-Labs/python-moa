@@ -12,11 +12,11 @@ class MOAONFReductionError(MOAException):
     pass
 
 
-def reduce_to_onf(symbol_table, node):
-    return naive_reduction(symbol_table, node)
+def reduce_to_onf(symbol_table, node, include_conditions=True):
+    return naive_reduction(symbol_table, node, include_conditions=include_conditions)
 
 
-def naive_reduction(symbol_table, node):
+def naive_reduction(symbol_table, node, include_conditions=True):
     """Simple backend does not simplify loops and directly converts moa reduced statement to ONF
 
     ONF AST is a language independent representation
@@ -63,7 +63,7 @@ def naive_reduction(symbol_table, node):
                                                               UnaryNode(MOANodeTypes.SHAPE, (len(array.shape),),
                                                                         ArrayNode(MOANodeTypes.ARRAY, array.shape, array.symbol_node)))))
 
-    if dimension_conditions:
+    if dimension_conditions and include_conditions:
         condition_node = dimension_conditions[0]
         for dimension_condition in dimension_conditions[1:]:
             condition_node = BinaryNode(MOANodeTypes.AND, (), dimension_condition, condition_node)
@@ -87,7 +87,7 @@ def naive_reduction(symbol_table, node):
             condition_node = node.condition_node
         node = node.right_node
 
-    if condition_node:
+    if condition_node and include_conditions:
         function_body = function_body + (IfNode(MOANodeTypes.IF, (),
                                                 UnaryNode(MOANodeTypes.NOT, (), condition_node),
                                                 (ErrorNode(MOANodeTypes.ERROR, (), 'arguments have invalid shape'),)),)
