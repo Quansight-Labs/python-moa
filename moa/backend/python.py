@@ -131,7 +131,8 @@ def _ast_shape(symbol_table, node):
 
 
 def _ast_dimension(symbol_table, node):
-    return symbol_table, ast.Attribute(value=node.right_node, attr='dimension', ctx=ast.Load())
+    symbol_table, shape_ast = _ast_shape(symbol_table, node)
+    return symbol_table, ast.Call(func=ast.Name(id='len', ctx=ast.Load()), args=[shape_ast], keywords=[])
 
 
 def _ast_plus_minus_times_divide(symbol_table, node):
