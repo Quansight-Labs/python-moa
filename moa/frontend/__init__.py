@@ -1,4 +1,5 @@
 from .moa import MOAParser, MOALexer
+from .array import LazyArray
 
 
 def parse(source, frontend='moa'):
