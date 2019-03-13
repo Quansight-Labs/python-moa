@@ -17,7 +17,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 pygments_style = 'sphinx'
 html_theme = 'alabaster'
 
-tikz_proc_suite = 'pdf2svg'
+tikz_proc_suite = 'GhostScript'
 tikz_transparent = True
 
 doctest_global_setup = '''

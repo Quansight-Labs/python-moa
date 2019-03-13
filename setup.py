@@ -29,7 +29,7 @@ setup(
     extras_require={
         'viz': ['graphviz'],
         'test': ['pytest', 'pytest-cov'],
-        'docs': ['sphinx', 'sphincontrib-tikz'],
+        'docs': ['sphinx', 'sphinxcontrib-tikz'],
     },
     project_urls={
         'Bug Reports': 'https://github.com/Quansight-Labs/python-moa/issues',

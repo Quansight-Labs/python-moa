@@ -35,6 +35,12 @@ rec {
       (path: _: !builtins.elem  (builtins.baseNameOf path) [".git" "result"])
       ./.;
 
+     postPatch = ''
+      # readthedocs makes the default GhostScript
+      substituteInPlace docs/conf.py \
+        --replace "'GhostScript'" "'pdf2svg'"
+    '';
+
      buildInputs = with pythonPackages; [ python-moa sphinx sphinxcontrib-tikz ];
 
      buildPhase = ''
