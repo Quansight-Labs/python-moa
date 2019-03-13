@@ -1,1 +1,40 @@
-\draw[very thick,double, fill=blue!40!] (1,2) -- (0,0) -- (1,0) [rounded corners=4mm] -- (0,2) -- cycle;
+\begin{tikzpicture}[
+basic box/.style = {
+    shape = rectangle,
+    align = center,
+    draw  = #1!60,
+    fill  = #1!5,
+    rounded corners},
+squarednode/.style={rectangle, draw=blue!40, fill=blue!5, very thick, minimum size=5mm},
+]
+%Nodes
+  \node[squarednode]  (shape-analysis)                            {(1) Shape Analysis};
+  \node[squarednode]  (dnf-reduction)   [below=of shape-analysis] {(2) DNF Reduction};
+  \node[squarednode]  (onf-reduction)   [below=of dnf-reduction]  {(3) ONF Reduction};
+
+  \begin{scope}[on background layer]
+    \node[fit = (shape-analysis)(dnf-reduction)(onf-reduction), basic box = black] (moa-compiler) {MOA Compiler};
+  \end{scope}
+
+  \node[squarednode] (frontend) [above=of moa-compiler] {Frontend (Internal AST)};
+  \node[squarednode] (frontend-numpy) [above left=of frontend] {Numpy};
+  \node[squarednode] (frontend-moa) [above=of frontend] {MOA};
+  \node[squarednode] (frontend-tensorflow) [above right=of frontend] {Tensorflow};
+
+  \node[squarednode] (backend) [below=of moa-compiler] {Backend (Internal Reduced AST)};
+  \node[squarednode] (backend-c) [below left=of backend] {C};
+  \node[squarednode] (backend-numpy) [below=of backend] {numpy};
+
+  %Lines
+  \draw[->] (shape-analysis.south) -- (dnf-reduction.north);
+  \draw[->] (dnf-reduction.south) -- (onf-reduction.north);
+
+  \draw[->] (moa-compiler.south) -- (backend.north);
+  \draw[->] (backend) -- (backend-c);
+  \draw[->] (backend) -- (backend-numpy);
+
+  \draw[->] (frontend.south) -- (moa-compiler.north);
+  \draw[->] (frontend-numpy) -- (frontend);
+  \draw[->] (frontend-moa) -- (frontend);
+  \draw[->] (frontend-tensorflow) -- (frontend);
+\end{tikzpicture}

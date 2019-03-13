@@ -1,22 +1,10 @@
 Implementation
 ==============
 
-.. tikz:: A picture of the documentation
+.. tikz:: MOA Compiler Steps
+   :libs: positioning, shapes, fit, backgrounds
    :include: figures/moa-implementation.tikz
    :stringsubst:
-
-.. tikz:: [>=latex',dotted,thick] \draw[->] (0,0) -- (1,1) -- (1,0)
-   -- (2,0);
-   :libs: arrows
-
-.. tikz:: An Example Directive with Caption
-
-   \draw[thick,rounded corners=8pt]
-   (0,0)--(0,2)--(1,3.25)--(2,2)--(2,0)--(0,2)--(2,2)--(0,0)--(2,0);
-
-An example role :tikz:`[thick] \node[blue,draw] (a) {A};
-\node[draw,dotted,right of=a] {B} edge[<-] (a);`
-
 
 Every effort has been made to restrict the data structures and
 algorithms used in the implementation. For this work only
