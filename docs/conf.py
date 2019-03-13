@@ -7,6 +7,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.doctest',
     'sphinx.ext.mathjax',
+    'sphinxcontrib.tikz',
 ]
 templates_path = ['_templates']
 source_suffix = '.rst'
@@ -15,6 +16,9 @@ language = None
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 pygments_style = 'sphinx'
 html_theme = 'alabaster'
+
+tikz_proc_suite = 'pdf2svg'
+tikz_transparent = True
 
 doctest_global_setup = '''
 from moa.ast import MOANodeTypes, ArrayNode, UnaryNode, BinaryNode, SymbolNode

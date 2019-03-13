@@ -1,6 +1,23 @@
 Implementation
 ==============
 
+.. tikz:: A picture of the documentation
+   :include: figures/moa-implementation.tikz
+   :stringsubst:
+
+.. tikz:: [>=latex',dotted,thick] \draw[->] (0,0) -- (1,1) -- (1,0)
+   -- (2,0);
+   :libs: arrows
+
+.. tikz:: An Example Directive with Caption
+
+   \draw[thick,rounded corners=8pt]
+   (0,0)--(0,2)--(1,3.25)--(2,2)--(2,0)--(0,2)--(2,2)--(0,0)--(2,0);
+
+An example role :tikz:`[thick] \node[blue,draw] (a) {A};
+\node[draw,dotted,right of=a] {B} edge[<-] (a);`
+
+
 Every effort has been made to restrict the data structures and
 algorithms used in the implementation. For this work only
 tuples(namedtuples), dictionaries, and enums have been used. All of
@@ -10,14 +27,25 @@ appear ``pythonic``.
 
 ``python-moa`` is both a numeric and symbolic compiler. It is numeric
 whenever possible and resorts to symbolic expressions only when the
-value is not known. Examples of when ``python-moa`` must be symbolic
-is when the shape of an array is not known :math:`\shape A = \vcc2n`.
+value is not known at compile time. Examples of when ``python-moa``
+must be symbolic is when the shape of an array is not known
+:math:`\shape A = \vcc2n`. All unknown symbols are represented as
+scalar arrays for example the array ``A`` above would be represented
+in the symbol table as follows. This means that once a value becomes
+symbolic it is inside a nested tuple structure. Allowing it to become
+compatible with the internal representation.
+
+.. code-block:: python
+
+   symbol_table = {
+      'A': SymbolNode(MOANodeTypes.ARRAY, (2, ArrayNode(MOANodeTypes.ARRAY, (), 'n'))), None)),
+      'n': SymbolNode(MOANodeTypes.ARRAY, (), None)
+   }
 
 
-
-1. Everything in MOA has a shape. Everything. Scalars, vectors,
-n-dimensional arrays, operations on arrays, and even functions.
-
+Everything in MOA has a shape. Everything. Scalars, vectors,
+n-dimensional arrays, operations on arrays, and even functions. Thus
+shape is included with each node in the abstract syntax tree.
 
 Symbol Table
 ------------
@@ -32,6 +60,9 @@ syntax tree.
       '_i1': SymbolNode(MOANodeTypes.INDEX, (), (0, 5),
       '_a2': SymbolNode(MOANodeTypes.ARRAY, (2,), (1, ArrayNode(MOANodeTypes.ARRAY, (), '_i1')))
    }
+
+At this present moment not much work is done to garbage collect the
+tree as reductions take place.
 
 
 

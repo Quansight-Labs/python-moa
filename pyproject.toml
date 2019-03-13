@@ -23,7 +23,7 @@ classifiers=[
 
 [tool.flit.metadata.requires-extra]
 test = ["pytest", "pytest-cov"]
-doc = ["sphinx"]
+doc = ["sphinx", "sphinxcontrib-tikz"]
 viz = ["graphviz"]
 
 [tool.flit.metadata.urls]

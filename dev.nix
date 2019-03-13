@@ -1,8 +1,8 @@
 let
   # pin version
   pkgs = import (builtins.fetchTarball {
-    url = "https://github.com/NixOS/nixpkgs/archive/2a81eceeba6d9b0499c0a9dc569921765321cdd0.tar.gz";
-    sha256 = "0zhg87ialczrz4yb4zy104l8wsw45bivpq33qg8czvnsisq77735";
+    url = "https://github.com/costrouc/nixpkgs/archive/14775a074cfacc59482d1adf0446801d38c08216.tar.gz";
+    sha256 = "152dflinv7a0nk267nc1i3ldvrx5fwxm7cf3igxc0qnd92n82phf";
   }) { };
 
   pythonPackages = pkgs.python3Packages;
@@ -36,7 +36,7 @@ rec {
       (path: _: !builtins.elem  (builtins.baseNameOf path) [".git" "result"])
       ./.;
 
-     buildInputs = with pythonPackages; [ python-moa sphinx ];
+     buildInputs = with pythonPackages; [ python-moa sphinx sphinxcontrib-tikz ];
 
      buildPhase = ''
        cd docs;
