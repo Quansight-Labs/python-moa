@@ -10,7 +10,6 @@ in
 rec {
   python-moa = pythonPackages.buildPythonPackage {
     name = "python-moa";
-    format = "flit";
 
     src = builtins.filterSource
       (path: _: !builtins.elem  (builtins.baseNameOf path) [".git" "result" "docs"])
