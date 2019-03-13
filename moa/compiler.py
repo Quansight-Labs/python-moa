@@ -8,6 +8,8 @@ from moa.backend import generate_python_source
 def compiler(source, frontend='moa', backend='python'):
     if frontend == 'moa':
         symbol_table, tree = MOAParser().parse(source)
+    elif frontend == 'array':
+        symbol_table, tree = source.symbol_table, source.tree
     else:
         raise ValueError(f'unknown frontend: {frontend}')
 

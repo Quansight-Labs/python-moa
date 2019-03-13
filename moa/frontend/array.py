@@ -35,3 +35,15 @@ class LazyArray:
     def transpose(self):
         self.tree = UnaryNode(MOANodeTypes.TRANSPOSE, None, self.tree)
         return self
+
+    def compile(self, backend='python'):
+        from ..compiler import compiler
+        return compiler(self, frontend='array', backend=backend)
+
+    def _repr_svg_(self):
+        try:
+            from ..visualize import visualize_ast
+            dot = visualize_ast(self.symbol_table, self.tree)
+            return dot.pipe(format='svg').decode(dot._encoding)
+        except ImportError as e:
+            return None
