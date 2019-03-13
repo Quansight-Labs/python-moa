@@ -4,10 +4,34 @@ Implementation
 Every effort has been made to restrict the data structures and
 algorithms used in the implementation. For this work only
 tuples(namedtuples), dictionaries, and enums have been used. All of
-which map to low level data structures.
+which map to low level data structures. Parts of MOA that are not
+involved directly with compilation may use more complex structures to
+appear ``pythonic``.
+
+``python-moa`` is both a numeric and symbolic compiler. It is numeric
+whenever possible and resorts to symbolic expressions only when the
+value is not known. Examples of when ``python-moa`` must be symbolic
+is when the shape of an array is not known :math:`\shape A = \vcc2n`.
+
+
+
+1. Everything in MOA has a shape. Everything. Scalars, vectors,
+n-dimensional arrays, operations on arrays, and even functions.
+
 
 Symbol Table
 ------------
+
+A symbol table is used to keep track of all arrays in the abstract
+syntax tree.
+
+.. code-block:: python
+
+   symbol_table = {
+      'A': SymbolNode(MOANodeTypes.ARRAY, (2, 3), (1, 2, 3, 4, 5, 6)),
+      '_i1': SymbolNode(MOANodeTypes.INDEX, (), (0, 5),
+      '_a2': SymbolNode(MOANodeTypes.ARRAY, (2,), (1, ArrayNode(MOANodeTypes.ARRAY, (), '_i1')))
+   }
 
 
 
