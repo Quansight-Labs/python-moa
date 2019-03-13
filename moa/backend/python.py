@@ -1,8 +1,10 @@
 import ast
 import astunparse
 
-from ..ast import MOANodeTypes, ArrayNode, postorder_replacement
-from ..shape import has_symbolic_elements, is_symbolic_element
+from ..ast import (
+    MOANodeTypes, ArrayNode, postorder_replacement,
+    has_symbolic_elements, is_symbolic_element
+)
 
 
 def python_backend(symbol_table, tree):

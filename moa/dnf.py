@@ -7,9 +7,10 @@ from .ast import (
     add_symbol,
     generate_unique_index_name, generate_unique_array_name,
     is_binary_operation, is_unary_operation, is_array,
+    has_symbolic_elements, is_symbolic_element,
     preorder_replacement
 )
-from .shape import is_vector, is_scalar, has_symbolic_elements, is_symbolic_element
+from .shape import is_vector, is_scalar
 
 
 class MOAReductionError(MOAException):

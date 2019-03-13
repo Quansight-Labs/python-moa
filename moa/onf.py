@@ -1,9 +1,7 @@
 from .core import MOAException
 from .ast import (
     MOANodeTypes, ArrayNode, UnaryNode, BinaryNode, ConditionNode, FunctionNode, LoopNode, ErrorNode, InitializeNode, IfNode,
-    generate_unique_array_name, add_symbol
-)
-from .shape import (
+    generate_unique_array_name, add_symbol,
     has_symbolic_elements, is_symbolic_element
 )
 

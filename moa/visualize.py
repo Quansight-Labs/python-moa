@@ -8,9 +8,10 @@ except ImportError as e:
 
 from .ast import (
     MOANodeTypes,
-    is_array, is_unary_operation, is_binary_operation
+    is_array, is_unary_operation, is_binary_operation,
+    is_symbolic_element
 )
-from .shape import is_vector, is_symbolic_element
+from .shape import is_vector
 from .backend import generate_python_source
 
 

@@ -2,7 +2,8 @@ from .ast import (
     MOANodeTypes, postorder_replacement,
     ArrayNode, BinaryNode, UnaryNode, ConditionNode,
     is_array, is_unary_operation, is_binary_operation,
-    generate_unique_array_name, add_symbol
+    generate_unique_array_name, add_symbol,
+    is_symbolic_element, has_symbolic_elements
 )
 from .core import MOAException
 
@@ -26,15 +27,6 @@ def is_scalar(symbol_table, node):
 
 def is_vector(symbol_table, node):
     return node.node_type == MOANodeTypes.ARRAY and dimension(symbol_table, node) == 1
-
-
-# symbolic
-def has_symbolic_elements(elements):
-    return any(is_symbolic_element(element) for element in elements)
-
-
-def is_symbolic_element(element):
-    return isinstance(element, tuple)
 
 
 # shape calculation

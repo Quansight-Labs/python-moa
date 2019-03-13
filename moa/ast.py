@@ -118,6 +118,15 @@ def generate_unique_index_name(symbol_table):
     return f'_i{len(symbol_table)}'
 
 
+# symbolic
+def has_symbolic_elements(elements):
+    return any(is_symbolic_element(element) for element in elements)
+
+
+def is_symbolic_element(element):
+    return isinstance(element, tuple)
+
+
 ## replacement methods
 def postorder_replacement(symbol_table, node, replacement_function):
     """Postorder (Left, Right, Root) traversal of AST
