@@ -16,8 +16,10 @@ from moa.ast import (
 
 @pytest.mark.parametrize('node, result', [
     (ArrayNode(MOANodeTypes.ARRAY, None, None), (True, False, False)),
-    (UnaryNode(MOANodeTypes.PLUSRED, None, None), (False, True, False)),
+    (UnaryNode(MOANodeTypes.TRANSPOSE, None, None), (False, True, False)),
+    (UnaryNode((MOANodeTypes.REDUCE, MOANodeTypes.PLUS), None, None), (False, True, False)),
     (BinaryNode(MOANodeTypes.CAT, None, None, None), (False, False, True)),
+    (BinaryNode((MOANodeTypes.DOT, MOANodeTypes.TIMES), None, None, None), (False, False, True)),
 ])
 def test_ast_nodes(node, result):
     assert result == (

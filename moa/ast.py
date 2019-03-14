@@ -24,6 +24,13 @@ class MOANodeTypes(enum.Enum):
     CONDITION  = 55
     IF         = 56
 
+    # compound operators
+    # examples
+    #  - reduce
+    #  - outer and inner product
+    REDUCE = 75
+    DOT = 76
+
     # unary
     PLUSRED   = 101
     MINUSRED  = 102
@@ -92,11 +99,16 @@ def is_array(node):
 
 
 def is_unary_operation(node):
+    if isinstance(node.node_type, tuple):
+        return node.node_type[0] == MOANodeTypes.REDUCE
     return 100 < node.node_type.value < 200
 
 
 def is_binary_operation(node):
-    return 200 < node.node_type.value < 300
+    if isinstance(node.node_type, tuple):
+        return node.node_type[0] == MOANodeTypes.DOT
+    else:
+        return 200 < node.node_type.value < 300
 
 
 # symbol table methods
