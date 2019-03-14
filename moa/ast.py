@@ -130,10 +130,18 @@ def is_symbolic_element(element):
 
 # joining symbolic tables
 def join_symbol_tables(left_symbol_table, left_tree, right_symbol_table, right_tree):
+    """Join two symbol tables together which requires rewriting both trees
+
+    TODO: This function is ugly and could be simplified/broken into parts. It is needed by the array frontend.
+
+    """
     visited_symbols = set()
     counter = itertools.count()
 
     def _visit_node(symbol_table, node):
+        if node.shape:
+            raise ValueError('joining symbol tables currently naively assumes it is performed before shape analysis')
+
         if node.node_type == MOANodeTypes.ARRAY:
             visited_symbols.add(node.symbol_node)
 
@@ -160,16 +168,58 @@ def join_symbol_tables(left_symbol_table, left_tree, right_symbol_table, right_t
                 symbol_mapping[symbol] = symbol
         return symbol_mapping
 
+    # discover used symbols and create symbol mapping
     postorder_replacement(left_symbol_table, left_tree, _visit_node)
     left_symbol_mapping = _symbol_mapping(visited_symbols)
     visited_symbols.clear()
     postorder_replacement(right_symbol_table, right_tree, _visit_node)
     right_symbol_mapping = _symbol_mapping(visited_symbols)
 
-    # rename symbols in each tree
-    # check symbols that exist in both tables that they match
-    # join symbol tables
-    # return tree
+    # check that user defined symbols match in both tables
+    for symbol in (left_symbol_mapping.keys() & right_symbol_mapping.keys()):
+        if not symbol.startswith('_') and left_symbol_table[symbol] != right_symbol_table[symbol]:
+            raise ValueError(f'user defined symbols must match "{symbol}" {left_symbol_table[symbol]} != {right_symbol_table[symbol]}')
+
+    # rename symbols in tree
+    symbol_mapping = {**left_symbol_mapping, **right_symbol_mapping}
+
+    def _rename_symbols(symbol_table, node):
+        if node.node_type == MOANodeTypes.ARRAY:
+            node = ArrayNode(MOANodeTypes.ARRAY, None, symbol_mapping[node.symbol_node])
+        return symbol_table, node
+
+    new_left_symbol_table, new_left_tree = postorder_replacement(left_symbol_table, left_tree, _rename_symbols)
+    new_right_symbol_table, new_right_tree = postorder_replacement(right_symbol_table, right_tree, _rename_symbols)
+
+    # select subset of symbols from both symbol tables and rename
+    new_symbol_table = {}
+    for old_name, new_name in left_symbol_mapping.items():
+        new_symbol_table[new_name] = new_left_symbol_table[old_name]
+    for old_name, new_name in right_symbol_mapping.items():
+        new_symbol_table[new_name] = new_right_symbol_table[old_name]
+
+    # rename symbols within SymbolNode
+    for name, symbol_node in new_symbol_table.items():
+        shape = None
+        if symbol_node.shape is not None:
+            shape = ()
+            for element in symbol_node.shape:
+                if is_symbolic_element(element):
+                    shape = shape + (ArrayNode(element.node_type, element.shape, symbol_mapping[element.symbol_node]),)
+                else:
+                    shape = shape + (element,)
+
+        value = None
+        if symbol_node.value is not None:
+            value = ()
+            for element in symbol_node.value:
+                if is_symbolic_element(element):
+                    value = value + (ArrayNode(element.node_type, element.shape, symbol_mapping[element.symbol_node]),)
+                else:
+                    value = value + (element,)
+        new_symbol_table[name] = SymbolNode(MOANodeTypes.ARRAY, shape, value)
+
+    return new_symbol_table, new_left_tree, new_right_tree
 
 
 ## replacement methods
