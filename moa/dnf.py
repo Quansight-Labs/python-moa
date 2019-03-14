@@ -3,7 +3,7 @@ import itertools
 from .core import MOAException
 from .ast import (
     MOANodeTypes,
-    ArrayNode, BinaryNode, SymbolNode, ConditionNode, FunctionNode,
+    ArrayNode, BinaryNode, SymbolNode, ConditionNode, FunctionNode, ReduceNode,
     add_symbol,
     generate_unique_index_name, generate_unique_array_name,
     is_binary_operation, is_unary_operation, is_array,
@@ -144,7 +144,21 @@ def _reduce_psi_transposev(symbol_table, node):
 
 
 def _reduce_psi_reduce_plus_minus_times_divide(symbol_table, node):
-    raise NotImplementedError('REDUCE')
+    index_name = generate_unique_index_name(symbol_table)
+    symbol_table = add_symbol(symbol_table, index_name, MOANodeTypes.INDEX, (), (0, node.right_node.right_node.shape[0]))
+
+    index_vector = (ArrayNode(MOANodeTypes.ARRAY, (), index_name),) + symbol_table[node.left_node.symbol_node].value
+    array_name = generate_unique_array_name(symbol_table)
+    symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (len(index_vector),), index_vector)
+
+    return symbol_table, ReduceNode(node.right_node.node_type, node.shape, index_name,
+                                    BinaryNode(MOANodeTypes.PSI, node.shape,
+                                               ArrayNode(MOANodeTypes.ARRAY, (len(index_vector),), array_name),
+                                               node.right_node.right_node))
+
+
+
+
 
 
 def _reduce_psi_outer_plus_minus_times_divide(symbol_table, node):
