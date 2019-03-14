@@ -15,22 +15,36 @@ def test_array_single_array():
     }
 
 
-@pytest.mark.xfail
-def test_array_single_array_addition_cast():
-    expression = LazyArray(name='A', shape=(2, 3)) + 1
-    assert expression.tree == BinaryNode(MOANodeTypes.ADD, None,
-                                         ArrayNode(MOANodeTypes.ARRAY, None, 'A'),
-                                         ArrayNode(MOANodeTypes.ARRAY, None, 'B'))
+@pytest.mark.parametrize("function, side, operation", [
+    (lambda: LazyArray(name='A', shape=(2, 3)) + 1, 'right', MOANodeTypes.PLUS),
+    (lambda: 1 + LazyArray(name='A', shape=(2, 3)), 'left', MOANodeTypes.PLUS),
+    (lambda: LazyArray(name='A', shape=(2, 3)) - 1, 'right', MOANodeTypes.MINUS),
+    (lambda: 1 - LazyArray(name='A', shape=(2, 3)), 'left', MOANodeTypes.MINUS),
+    (lambda: LazyArray(name='A', shape=(2, 3)) * 1, 'right', MOANodeTypes.TIMES),
+    (lambda: 1 * LazyArray(name='A', shape=(2, 3)), 'left', MOANodeTypes.TIMES),
+    (lambda: LazyArray(name='A', shape=(2, 3)) / 1, 'right', MOANodeTypes.DIVIDE),
+    (lambda: 1 / LazyArray(name='A', shape=(2, 3)), 'left', MOANodeTypes.DIVIDE),
+])
+def test_array_single_array_binary_operation_cast(function, side, operation):
+    expression = function()
+    if side == 'right':
+        assert expression.tree == BinaryNode(operation, None,
+                                             ArrayNode(MOANodeTypes.ARRAY, None, 'A'),
+                                             ArrayNode(MOANodeTypes.ARRAY, None, '_a1'))
+    else:
+        assert expression.tree == BinaryNode(operation, None,
+                                             ArrayNode(MOANodeTypes.ARRAY, None, '_a1'),
+                                             ArrayNode(MOANodeTypes.ARRAY, None, 'A'))
+
     assert expression.symbol_table == {
         'A': SymbolNode(MOANodeTypes.ARRAY, (2, 3), None),
-        '_a1': SymbolNode(MOANodeTypes.ARRAY, (), None)
+        '_a1': SymbolNode(MOANodeTypes.ARRAY, (), (1,))
     }
-
 
 @pytest.mark.xfail
 def test_array_addition():
     expression = LazyArray(name='A', shape=(2, 3)) + LazyArray(name='B', shape=(2, 3))
-    assert expression.tree == BinaryNode(MOANodeTypes.ADD, None,
+    assert expression.tree == BinaryNode(MOANodeTypes.PLUS, None,
                                          ArrayNode(MOANodeTypes.ARRAY, None, 'A'),
                                          ArrayNode(MOANodeTypes.ARRAY, None, 'B'))
     assert expression.symbol_table == {

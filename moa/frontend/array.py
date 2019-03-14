@@ -2,6 +2,7 @@ from ..ast import (
     MOANodeTypes,
     ArrayNode, BinaryNode, UnaryNode,
     add_symbol, generate_unique_array_name,
+    join_symbol_tables
 )
 
 
@@ -35,6 +36,50 @@ class LazyArray:
     def transpose(self):
         self.tree = UnaryNode(MOANodeTypes.TRANSPOSE, None, self.tree)
         return self
+
+    def _rbinary_opperation(self, operation, left):
+        if isinstance(left, self.__class__):
+            self.symbol_table, left_tree, right_tree = join_symbol_tables(left.symbol_table, left.tree, self.symbol_table, self.tree)
+            self.tree = BinaryNode(operation, None, left_tree, right_tree)
+        elif isinstance(left, (int, float)):
+            array_name = generate_unique_array_name(self.symbol_table)
+            self.symbol_table = add_symbol(self.symbol_table, array_name, MOANodeTypes.ARRAY, (), (left,))
+            self.tree = BinaryNode(operation, None, ArrayNode(MOANodeTypes.ARRAY, None, array_name), self.tree)
+        return self
+
+    def _binary_opperation(self, operation, right):
+        if isinstance(right, self.__class__):
+            self.symbol_table, left_tree, right_tree = join_symbol_tables(self.symbol_table, self.tree, right.symbol_table, right.tree)
+            self.tree = BinaryNode(operation, None, left_tree, right_tree)
+        elif isinstance(right, (int, float)):
+            array_name = generate_unique_array_name(self.symbol_table)
+            self.symbol_table = add_symbol(self.symbol_table, array_name, MOANodeTypes.ARRAY, (), (right,))
+            self.tree = BinaryNode(operation, None, self.tree, ArrayNode(MOANodeTypes.ARRAY, None, array_name))
+        return self
+
+    def __add__(self, other):
+        return self._binary_opperation(MOANodeTypes.PLUS, other)
+
+    def __radd__(self, other):
+        return self._rbinary_opperation(MOANodeTypes.PLUS, other)
+
+    def __sub__(self, other):
+        return self._binary_opperation(MOANodeTypes.MINUS, other)
+
+    def __rsub__(self, other):
+        return self._rbinary_opperation(MOANodeTypes.MINUS, other)
+
+    def __mul__(self, other):
+        return self._binary_opperation(MOANodeTypes.TIMES, other)
+
+    def __rmul__(self, other):
+        return self._rbinary_opperation(MOANodeTypes.TIMES, other)
+
+    def __truediv__(self, other):
+        return self._binary_opperation(MOANodeTypes.DIVIDE, other)
+
+    def __rtruediv__(self, other):
+        return self._rbinary_opperation(MOANodeTypes.DIVIDE, other)
 
     def compile(self, backend='python'):
         from ..compiler import compiler

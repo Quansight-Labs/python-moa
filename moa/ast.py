@@ -127,6 +127,11 @@ def is_symbolic_element(element):
     return isinstance(element, tuple)
 
 
+# joining symbolic tables
+def join_symbol_tables(left_symbol_table, left_tree, right_symbol_table, right_tree):
+    raise NotImplementedError('join symbol table not implemented yet')
+
+
 ## replacement methods
 def postorder_replacement(symbol_table, node, replacement_function):
     """Postorder (Left, Right, Root) traversal of AST
