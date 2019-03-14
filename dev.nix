@@ -16,7 +16,7 @@ rec {
       ./.;
 
     propagatedBuildInputs = with pythonPackages; [ sly astunparse ];
-    checkInputs = with pythonPackages; [ pytest pytestcov graphviz ];
+    checkInputs = with pythonPackages; [ pytest pytestcov pytest-benchmark graphviz ];
 
     postConfigure = ''
       # flit requires a home directory...
@@ -76,7 +76,7 @@ rec {
   };
 
   jupyter-shell = pkgs.mkShell {
-    buildInputs = with pythonPackages; [ python-moa jupyterlab graphviz pkgs.graphviz ];
+    buildInputs = with pythonPackages; [ python-moa jupyterlab graphviz pkgs.graphviz numpy numba];
 
     shellHook = ''
       cd notebooks; jupyter lab
@@ -84,6 +84,6 @@ rec {
   };
 
   binder = pkgs.mkShell {
-    buildInputs = with pythonPackages; [ python-moa jupyterlab graphviz pkgs.graphviz ];
+    buildInputs = with pythonPackages; [ python-moa jupyterlab graphviz pkgs.graphviz numpy numba];
   };
 }
