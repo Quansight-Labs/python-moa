@@ -70,7 +70,13 @@ class LazyArray:
         if transpose_vector is None:
             self.tree = UnaryNode(MOANodeTypes.TRANSPOSE, None, self.tree)
         else:
-            raise NotImplementedError('arbitrary transpose not implemented yet')
+            symbolic_vector = self._create_array_from_list_tuple(transpose_vector)
+
+            array_name = generate_unique_array_name(self.symbol_table)
+            self.symbol_table = add_symbol(self.symbol_table, array_name, MOANodeTypes.ARRAY, (len(symbolic_vector),), tuple(symbolic_vector))
+            self.tree = BinaryNode(MOANodeTypes.TRANSPOSEV, None,
+                                   ArrayNode(MOANodeTypes.ARRAY, None, array_name),
+                                   self.tree)
         return self
 
     def outer(self, operation, array):

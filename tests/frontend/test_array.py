@@ -71,10 +71,9 @@ def test_array_transpose_default():
     }
 
 
-@pytest.mark.xfail
 def test_array_transpose_with_vector():
     expression = LazyArray(name='A', shape=(2, 3)).transpose([1, 0])
-    assert expression.tree == UnaryNode(MOANodeTypes.TRANSPOSEV, None,
+    assert expression.tree == BinaryNode(MOANodeTypes.TRANSPOSEV, None,
                                         ArrayNode(MOANodeTypes.ARRAY, None, '_a1'),
                                         ArrayNode(MOANodeTypes.ARRAY, None, 'A'))
     assert expression.symbol_table == {
