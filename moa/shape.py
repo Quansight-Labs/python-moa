@@ -50,6 +50,10 @@ def _shape_replacement(symbol_table, node):
         MOANodeTypes.MINUS: _shape_plus_minus_divide_times,
         MOANodeTypes.TIMES: _shape_plus_minus_divide_times,
         MOANodeTypes.DIVIDE: _shape_plus_minus_divide_times,
+        (MOANodeTypes.DOT, MOANodeTypes.PLUS): _shape_outer_plus_minus_divide_times,
+        (MOANodeTypes.DOT, MOANodeTypes.MINUS): _shape_outer_plus_minus_divide_times,
+        (MOANodeTypes.DOT, MOANodeTypes.TIMES): _shape_outer_plus_minus_divide_times,
+        (MOANodeTypes.DOT, MOANodeTypes.DIVIDE): _shape_outer_plus_minus_divide_times,
     }
 
     condition_node = None
@@ -194,6 +198,11 @@ def _shape_psi(symbol_table, node):
             condition_node = BinaryNode(MOANodeTypes.AND, (), condition, condition_node)
         node = ConditionNode(MOANodeTypes.CONDITION, node.shape, condition_node, node)
     return symbol_table, node
+
+
+def _shape_outer_plus_minus_divide_times(symbol_table, node):
+    node_shape = node.left_node.shape + node.right_node.shape
+    return symbol_table, BinaryNode(node.node_type, node_shape, node.left_node, node.right_node)
 
 
 def _shape_plus_minus_divide_times(symbol_table, node):

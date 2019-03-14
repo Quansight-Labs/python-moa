@@ -109,6 +109,27 @@ def test_shape_unit(symbol_table, tree, shape_symbol_table, shape_tree):
     MOANodeTypes.PLUS, MOANodeTypes.MINUS,
     MOANodeTypes.DIVIDE, MOANodeTypes.TIMES,
 ])
+def test_shape_unit_outer_plus_minus_multiply_divide_no_symbol(operation):
+    symbol_table = {
+        'A': SymbolNode(MOANodeTypes.ARRAY, (1, 2, 3), None),
+        'B': SymbolNode(MOANodeTypes.ARRAY, (4, 5, 6), None)
+    }
+    symbol_table_copy = copy.deepcopy(symbol_table)
+    tree = BinaryNode((MOANodeTypes.DOT, operation), None,
+                          ArrayNode(MOANodeTypes.ARRAY, None, 'A'),
+                          ArrayNode(MOANodeTypes.ARRAY, None, 'B'))
+    new_symbol_tree, new_tree = calculate_shapes(symbol_table, tree)
+    assert symbol_table == symbol_table_copy
+    assert new_tree == BinaryNode((MOANodeTypes.DOT, operation), (1, 2, 3, 4, 5, 6),
+                                  ArrayNode(MOANodeTypes.ARRAY, (1, 2, 3), 'A'),
+                                  ArrayNode(MOANodeTypes.ARRAY, (4, 5, 6), 'B'))
+    assert new_symbol_tree == symbol_table
+
+
+@pytest.mark.parametrize("operation", [
+    MOANodeTypes.PLUS, MOANodeTypes.MINUS,
+    MOANodeTypes.DIVIDE, MOANodeTypes.TIMES,
+])
 def test_shape_unit_plus_minus_multiply_divide_no_symbol(operation):
     symbol_table = {
         'A': SymbolNode(MOANodeTypes.ARRAY, (3, 4, 5), None),

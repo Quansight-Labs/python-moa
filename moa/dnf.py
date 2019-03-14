@@ -10,7 +10,7 @@ from .ast import (
     has_symbolic_elements, is_symbolic_element,
     preorder_replacement
 )
-from .shape import is_vector, is_scalar
+from .shape import dimension, is_vector, is_scalar
 
 
 class MOAReductionError(MOAException):
@@ -64,6 +64,11 @@ def _reduce_replacement(symbol_table, node):
         (MOANodeTypes.PSI, None, MOANodeTypes.TRANSPOSEV): _reduce_psi_transposev,
         (MOANodeTypes.PSI, None, MOANodeTypes.PLUSRED): _reduce_psi_plus_red,
         (MOANodeTypes.PSI, None, (MOANodeTypes.PLUS, MOANodeTypes.MINUS, MOANodeTypes.TIMES, MOANodeTypes.DIVIDE)): _reduce_psi_plus_minus_times_divide,
+        (MOANodeTypes.PSI, None, (
+            (MOANodeTypes.DOT, MOANodeTypes.PLUS),
+            (MOANodeTypes.DOT, MOANodeTypes.MINUS),
+            (MOANodeTypes.DOT, MOANodeTypes.TIMES),
+            (MOANodeTypes.DOT, MOANodeTypes.DIVIDE))): _reduce_psi_outer_plus_minus_times_divide,
     }
 
     def _matches(compare_node, node_rule):
@@ -136,6 +141,24 @@ def _reduce_psi_transposev(symbol_table, node):
 
 def _reduce_psi_plus_red(node):
     raise NotImplemenetedError('PSI +RED')
+
+
+def _reduce_psi_outer_plus_minus_times_divide(symbol_table, node):
+    left_array_name = generate_unique_array_name(symbol_table)
+    left_dimension = dimension(symbol_table, node.right_node.left_node)
+    symbol_table = add_symbol(symbol_table, left_array_name, MOANodeTypes.ARRAY, (left_dimension,), symbol_table[node.left_node.symbol_node].value[:left_dimension])
+
+    right_array_name = generate_unique_array_name(symbol_table)
+    right_dimension = dimension(symbol_table, node.right_node.right_node)
+    symbol_table = add_symbol(symbol_table, right_array_name, MOANodeTypes.ARRAY, (right_dimension,), symbol_table[node.left_node.symbol_node].value[-right_dimension:])
+
+    return symbol_table, BinaryNode(node.right_node.node_type[1], node.shape,
+                                    BinaryNode(MOANodeTypes.PSI, node.shape,
+                                               ArrayNode(MOANodeTypes.ARRAY, (left_dimension,), left_array_name),
+                                               node.right_node.left_node),
+                                    BinaryNode(MOANodeTypes.PSI, node.shape,
+                                               ArrayNode(MOANodeTypes.ARRAY, (right_dimension,), right_array_name),
+                                               node.right_node.right_node))
 
 
 def _reduce_psi_plus_minus_times_divide(symbol_table, node):

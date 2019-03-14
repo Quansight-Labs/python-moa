@@ -49,6 +49,10 @@ _NODE_LABEL_MAP = {
     MOANodeTypes.TAKE: "take(▵)",
     MOANodeTypes.DROP: "drop(▿)",
     MOANodeTypes.CAT: "cat(++)",
+    (MOANodeTypes.DOT, MOANodeTypes.PLUS): 'outer (+)',
+    (MOANodeTypes.DOT, MOANodeTypes.MINUS): 'outer (-)',
+    (MOANodeTypes.DOT, MOANodeTypes.TIMES): 'outer (*)',
+    (MOANodeTypes.DOT, MOANodeTypes.DIVIDE): 'outer (/)',
 }
 
 

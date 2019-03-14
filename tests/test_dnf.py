@@ -12,6 +12,7 @@ from moa.dnf import (
     _reduce_psi_psi,
     _reduce_psi_transpose, _reduce_psi_transposev,
     _reduce_psi_assign,
+    _reduce_psi_outer_plus_minus_times_divide,
     _reduce_psi_plus_minus_times_divide,
 )
 
@@ -136,6 +137,50 @@ def test_reduce_psi_transposev():
     assert new_tree == BinaryNode(MOANodeTypes.PSI, (),
                                   ArrayNode(MOANodeTypes.ARRAY, (4,), '_a3'),
                                   ArrayNode(MOANodeTypes.ARRAY, (2, 3, 5, 7), '_a2'))
+
+
+@pytest.mark.parametrize("operation", [
+    MOANodeTypes.PLUS, MOANodeTypes.MINUS,
+    MOANodeTypes.DIVIDE, MOANodeTypes.TIMES,
+])
+def test_reduce_psi_outer_plus_minus_times_divide_equal_shape(operation):
+    symbol_table = {
+        '_i0': SymbolNode(MOANodeTypes.INDEX, (), (0, 3)),
+        '_i1': SymbolNode(MOANodeTypes.INDEX, (), (0, 4)),
+        '_i2': SymbolNode(MOANodeTypes.INDEX, (), (0, 5)),
+        '_a2': SymbolNode(MOANodeTypes.ARRAY, (4,), ('_i0', '_i1', '_i2')),
+        '_a3': SymbolNode(MOANodeTypes.ARRAY, (3,), None),
+        '_a4': SymbolNode(MOANodeTypes.ARRAY, (4, 5), None),
+    }
+    symbol_table_copy = copy.deepcopy(symbol_table)
+
+    tree = BinaryNode(MOANodeTypes.PSI, (0,),
+                      ArrayNode(MOANodeTypes.ARRAY, (4,), '_a2'),
+                      BinaryNode((MOANodeTypes.DOT, operation), (3, 4, 5),
+                                 ArrayNode(MOANodeTypes.ARRAY, (3,), '_a3'),
+                                 ArrayNode(MOANodeTypes.ARRAY, (4, 5), '_a4')))
+
+    expected_tree = BinaryNode(operation, (0,),
+                               BinaryNode(MOANodeTypes.PSI, (0,),
+                                          ArrayNode(MOANodeTypes.ARRAY, (1,), '_a6'),
+                                          ArrayNode(MOANodeTypes.ARRAY, (3,), '_a3')),
+                               BinaryNode(MOANodeTypes.PSI, (0,),
+                                          ArrayNode(MOANodeTypes.ARRAY, (2,), '_a7'),
+                                          ArrayNode(MOANodeTypes.ARRAY, (4, 5), '_a4')))
+
+    new_symbol_table, new_tree = _reduce_psi_outer_plus_minus_times_divide(symbol_table, tree)
+    assert symbol_table_copy == symbol_table
+    assert new_tree == expected_tree
+    assert new_symbol_table == {
+        '_i0': SymbolNode(MOANodeTypes.INDEX, (), (0, 3)),
+        '_i1': SymbolNode(MOANodeTypes.INDEX, (), (0, 4)),
+        '_i2': SymbolNode(MOANodeTypes.INDEX, (), (0, 5)),
+        '_a2': SymbolNode(MOANodeTypes.ARRAY, (4,), ('_i0', '_i1', '_i2')),
+        '_a3': SymbolNode(MOANodeTypes.ARRAY, (3,), None),
+        '_a4': SymbolNode(MOANodeTypes.ARRAY, (4, 5), None),
+        '_a6': SymbolNode(MOANodeTypes.ARRAY, (1,), ('_i0',)),
+        '_a7': SymbolNode(MOANodeTypes.ARRAY, (2,), ('_i1', '_i2')),
+    }
 
 
 @pytest.mark.parametrize("operation", [
