@@ -81,6 +81,8 @@ ErrorNode = collections.namedtuple(
     'ErrorNode', ['node_type', 'shape', 'message'])
 ConditionNode = collections.namedtuple(
     'ConditionNode', ['node_type', 'shape', 'condition_node', 'right_node'])
+ReduceNode = collections.namedtuple(
+    'ReduceNode', ['node_type', 'shape', 'symbol_node', 'right_node'])
 ArrayNode = collections.namedtuple(
     'ArrayNode', ['node_type', 'shape', 'symbol_node'])
 UnaryNode = collections.namedtuple(
@@ -274,6 +276,10 @@ def postorder_replacement(symbol_table, node, replacement_function):
             replacement_nodes = replacement_nodes + (replacement_node,)
         node = LoopNode(node.node_type, node.shape, node.symbol_node, replacement_nodes)
 
+    elif isinstance(node.node_type, tuple) and node.node_type[0] == MOANodeTypes.REDUCE:
+        symbol_table, right_node = postorder_replacement(symbol_table, node.right_node, replacement_function)
+        node = ReduceNode(node.node_type, node.shape, node.symbol_node, right_node)
+
     return replacement_function(symbol_table, node)
 
 
@@ -320,5 +326,9 @@ def preorder_replacement(symbol_table, node, replacement_function, max_iteration
             symbol_table, replacement_node = preorder_replacement(symbol_table, child_node, replacement_function)
             replacement_nodes = replacement_nodes + (replacement_node,)
         node = FunctionNode(node.node_type, node.shape, node.arguments, replacement_nodes)
+
+    elif isinstance(node.node_type, tuple) and node.node_type[0] == MOANodeTypes.REDUCE:
+        symbol_table, right_node = preorder_replacement(symbol_table, node.right_node, replacement_function)
+        node = ReduceNode(node.node_type, node.shape, node.symbol_node, right_node)
 
     return symbol_table, node

@@ -38,6 +38,10 @@ _NODE_LABEL_MAP = {
     MOANodeTypes.RAV: "rav",
     MOANodeTypes.TRANSPOSE: "transpose(Ø)",
     MOANodeTypes.TRANSPOSEV: "transpose(Ø)",
+    (MOANodeTypes.REDUCE, MOANodeTypes.PLUS): 'reduce (+)',
+    (MOANodeTypes.REDUCE, MOANodeTypes.MINUS): 'reduce (-)',
+    (MOANodeTypes.REDUCE, MOANodeTypes.TIMES): 'reduce (*)',
+    (MOANodeTypes.REDUCE, MOANodeTypes.DIVIDE): 'reduce (/)',
     # Binary
     MOANodeTypes.PLUS: "+",
     MOANodeTypes.MINUS: "-",
@@ -109,6 +113,12 @@ def _node_label(symbol_table, node):
         if node.shape:
             node_label['shape'] = shape_string(symbol_table, node.shape)
         node_label['value'] = value_string(symbol_table, node.arguments) + ' -> ' + node.result
+
+    elif isinstance(node.node_type, tuple) and node.node_type[0] == MOANodeTypes.REDUCE:
+        if node.shape:
+            node_label['shape'] = shape_string(symbol_table, node.shape)
+        if node.symbol_node:
+            node_label['value'] = node.symbol_node
 
     else:
         if node.shape:

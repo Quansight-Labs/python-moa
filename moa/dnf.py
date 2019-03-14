@@ -62,13 +62,17 @@ def _reduce_replacement(symbol_table, node):
         (MOANodeTypes.PSI, None, MOANodeTypes.PSI): _reduce_psi_psi,
         (MOANodeTypes.PSI, None, MOANodeTypes.TRANSPOSE): _reduce_psi_transpose,
         (MOANodeTypes.PSI, None, MOANodeTypes.TRANSPOSEV): _reduce_psi_transposev,
-        (MOANodeTypes.PSI, None, MOANodeTypes.PLUSRED): _reduce_psi_plus_red,
         (MOANodeTypes.PSI, None, (MOANodeTypes.PLUS, MOANodeTypes.MINUS, MOANodeTypes.TIMES, MOANodeTypes.DIVIDE)): _reduce_psi_plus_minus_times_divide,
         (MOANodeTypes.PSI, None, (
             (MOANodeTypes.DOT, MOANodeTypes.PLUS),
             (MOANodeTypes.DOT, MOANodeTypes.MINUS),
             (MOANodeTypes.DOT, MOANodeTypes.TIMES),
             (MOANodeTypes.DOT, MOANodeTypes.DIVIDE))): _reduce_psi_outer_plus_minus_times_divide,
+        (MOANodeTypes.PSI, None, (
+            (MOANodeTypes.REDUCE, MOANodeTypes.PLUS),
+            (MOANodeTypes.REDUCE, MOANodeTypes.MINUS),
+            (MOANodeTypes.REDUCE, MOANodeTypes.TIMES),
+            (MOANodeTypes.REDUCE, MOANodeTypes.DIVIDE))): _reduce_psi_reduce_plus_minus_times_divide,
     }
 
     def _matches(compare_node, node_rule):
@@ -139,8 +143,8 @@ def _reduce_psi_transposev(symbol_table, node):
                                     node.right_node.right_node)
 
 
-def _reduce_psi_plus_red(node):
-    raise NotImplemenetedError('PSI +RED')
+def _reduce_psi_reduce_plus_minus_times_divide(symbol_table, node):
+    raise NotImplementedError('REDUCE')
 
 
 def _reduce_psi_outer_plus_minus_times_divide(symbol_table, node):

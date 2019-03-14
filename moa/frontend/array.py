@@ -1,6 +1,6 @@
 from ..ast import (
     MOANodeTypes,
-    ArrayNode, BinaryNode, UnaryNode,
+    ArrayNode, BinaryNode, UnaryNode, ReduceNode,
     add_symbol, generate_unique_array_name,
     join_symbol_tables
 )
@@ -98,6 +98,19 @@ class LazyArray:
                                    self._create_array_from_int_float_string(array))
         else:
             raise TypeError(f'not known how to handle outer product with type {type(array)}')
+        return self
+
+    def reduce(self, operation):
+        operation_map = {
+            '+': (MOANodeTypes.REDUCE, MOANodeTypes.PLUS),
+            '-': (MOANodeTypes.REDUCE, MOANodeTypes.MINUS),
+            '*': (MOANodeTypes.REDUCE, MOANodeTypes.TIMES),
+            '/': (MOANodeTypes.REDUCE, MOANodeTypes.DIVIDE),
+        }
+        if operation not in operation:
+            raise ValueError(f'operation {operation} not in allowed operations (+-*/)')
+
+        self.tree = ReduceNode(operation_map[operation], None, None, self.tree)
         return self
 
     def _rbinary_opperation(self, operation, left):

@@ -2,7 +2,10 @@ import copy
 
 import pytest
 
-from moa.ast import MOANodeTypes, ArrayNode, UnaryNode, BinaryNode, SymbolNode
+from moa.ast import (
+    MOANodeTypes,
+    ArrayNode, UnaryNode, BinaryNode, SymbolNode, ReduceNode
+)
 from moa.shape import (
     calculate_shapes,
     is_vector, is_scalar
@@ -78,13 +81,6 @@ def test_is_not_vector_2d(): # 2D array
      {'_a1': SymbolNode(MOANodeTypes.ARRAY, (3, 2, 1), None)},
      UnaryNode(MOANodeTypes.SHAPE, (3,),
                ArrayNode(MOANodeTypes.ARRAY, (3, 2, 1), '_a1'))),
-    # PLUSRED
-    ({'A': SymbolNode(MOANodeTypes.ARRAY, (3, 4, 5), None)},
-     UnaryNode(MOANodeTypes.PLUSRED, None,
-                ArrayNode(MOANodeTypes.ARRAY, None, 'A')),
-     {'A': SymbolNode(MOANodeTypes.ARRAY, (3, 4, 5), None)},
-     UnaryNode(MOANodeTypes.PLUSRED, (4, 5),
-                ArrayNode(MOANodeTypes.ARRAY, (3, 4, 5), 'A'))),
     # PSI
     ({'_a1': SymbolNode(MOANodeTypes.ARRAY, (2,), (3, 4)),
       'A': SymbolNode(MOANodeTypes.ARRAY, (4, 5, 6), None)},
@@ -123,6 +119,25 @@ def test_shape_unit_outer_plus_minus_multiply_divide_no_symbol(operation):
     assert new_tree == BinaryNode((MOANodeTypes.DOT, operation), (1, 2, 3, 4, 5, 6),
                                   ArrayNode(MOANodeTypes.ARRAY, (1, 2, 3), 'A'),
                                   ArrayNode(MOANodeTypes.ARRAY, (4, 5, 6), 'B'))
+    assert new_symbol_tree == symbol_table
+
+
+@pytest.mark.parametrize("operation", [
+    MOANodeTypes.PLUS, MOANodeTypes.MINUS,
+    MOANodeTypes.DIVIDE, MOANodeTypes.TIMES,
+])
+def test_shape_unit_reduce_plus_minus_multiply_divide_no_symbol(operation):
+    symbol_table = {
+        'A': SymbolNode(MOANodeTypes.ARRAY, (1, 2, 3), None),
+    }
+    symbol_table_copy = copy.deepcopy(symbol_table)
+    tree = ReduceNode((MOANodeTypes.REDUCE, operation), None, None,
+                          ArrayNode(MOANodeTypes.ARRAY, None, 'A'))
+    new_symbol_tree, new_tree = calculate_shapes(symbol_table, tree)
+    assert symbol_table == symbol_table_copy
+    assert new_tree == ReduceNode((MOANodeTypes.REDUCE, operation), (2, 3), None,
+                                  ArrayNode(MOANodeTypes.ARRAY, (1, 2, 3), 'A'))
+
     assert new_symbol_tree == symbol_table
 
 

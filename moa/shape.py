@@ -1,6 +1,6 @@
 from .ast import (
     MOANodeTypes, postorder_replacement,
-    ArrayNode, BinaryNode, UnaryNode, ConditionNode,
+    ArrayNode, BinaryNode, UnaryNode, ConditionNode, ReduceNode,
     is_array, is_unary_operation, is_binary_operation,
     generate_unique_array_name, add_symbol,
     is_symbolic_element, has_symbolic_elements
@@ -44,7 +44,6 @@ def _shape_replacement(symbol_table, node):
         MOANodeTypes.TRANSPOSEV: _shape_transpose_vector,
         MOANodeTypes.ASSIGN: _shape_assign,
         MOANodeTypes.SHAPE: _shape_shape,
-        MOANodeTypes.PLUSRED: _shape_plus_red,
         MOANodeTypes.PSI: _shape_psi,
         MOANodeTypes.PLUS: _shape_plus_minus_divide_times,
         MOANodeTypes.MINUS: _shape_plus_minus_divide_times,
@@ -54,6 +53,10 @@ def _shape_replacement(symbol_table, node):
         (MOANodeTypes.DOT, MOANodeTypes.MINUS): _shape_outer_plus_minus_divide_times,
         (MOANodeTypes.DOT, MOANodeTypes.TIMES): _shape_outer_plus_minus_divide_times,
         (MOANodeTypes.DOT, MOANodeTypes.DIVIDE): _shape_outer_plus_minus_divide_times,
+        (MOANodeTypes.REDUCE, MOANodeTypes.PLUS): _shape_reduce_plus_minus_divide_times,
+        (MOANodeTypes.REDUCE, MOANodeTypes.MINUS): _shape_reduce_plus_minus_divide_times,
+        (MOANodeTypes.REDUCE, MOANodeTypes.TIMES): _shape_reduce_plus_minus_divide_times,
+        (MOANodeTypes.REDUCE, MOANodeTypes.DIVIDE): _shape_reduce_plus_minus_divide_times,
     }
 
     condition_node = None
@@ -154,14 +157,6 @@ def _shape_shape(symbol_table, node):
     return symbol_table, UnaryNode(node.node_type, (dimension(symbol_table, node.right_node),), node.right_node)
 
 
-def _shape_plus_red(symbol_table, node):
-    # TODO: should reduction be done in the shape analysis?
-    if dimension(symbol_table, node.right_node) == 0:
-        return symbol_table, node.right_node
-
-    return symbol_table, UnaryNode(node.node_type, node.right_node.shape[1:], node.right_node)
-
-
 # Binary Operations
 def _shape_psi(symbol_table, node):
     if not is_vector(symbol_table, node.left_node):
@@ -198,6 +193,12 @@ def _shape_psi(symbol_table, node):
             condition_node = BinaryNode(MOANodeTypes.AND, (), condition, condition_node)
         node = ConditionNode(MOANodeTypes.CONDITION, node.shape, condition_node, node)
     return symbol_table, node
+
+
+def _shape_reduce_plus_minus_divide_times(symbol_table, node):
+    if dimension(symbol_table, node.right_node) == 0:
+        return symbol_table, node.right_node
+    return symbol_table, ReduceNode(node.node_type, node.right_node.shape[1:], None, node.right_node)
 
 
 def _shape_outer_plus_minus_divide_times(symbol_table, node):
