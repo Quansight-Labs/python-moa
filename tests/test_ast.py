@@ -5,10 +5,11 @@ import pytest
 
 from moa.ast import (
     MOANodeTypes,
-    ArrayNode, UnaryNode, BinaryNode,
+    ArrayNode, UnaryNode, BinaryNode, SymbolNode,
     is_array, is_unary_operation, is_binary_operation,
     add_symbol,
     generate_unique_array_name, generate_unique_index_name,
+    join_symbol_tables,
     postorder_replacement,
     preorder_replacement
 )
@@ -51,6 +52,43 @@ def test_symbol_table_unique_array():
     symbol_index_name_2 = generate_unique_index_name(new_symbol_table_1)
     assert symbol_table == symbol_table_copy
     assert symbol_index_name_1 != symbol_index_name_2
+
+@pytest.mark.xfail
+def test_join_symbol_tables_simple():
+    left_tree = BinaryNode(MOANodeTypes.PLUS, None,
+                           ArrayNode(MOANodeTypes.ARRAY, None, 'A'),
+                           ArrayNode(MOANodeTypes.ARRAY, None, 'B'))
+    left_symbol_table = {
+        'A': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None),
+        '_a1': SymbolNode(MOANodeTypes.ARRAY, (1, ArrayNode(MOANodeTypes.ARRAY, (), 'm')), None),
+        'B': SymbolNode(MOANodeTypes.ARRAY, (2, 4), None)
+    }
+
+    right_tree = BinaryNode(MOANodeTypes.MINUS, None,
+                            ArrayNode(MOANodeTypes.ARRAY, None, 'A'),
+                            ArrayNode(MOANodeTypes.ARRAY, None, '_a3'))
+    right_symbol_table = {
+        'A': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None),
+        '_a3': SymbolNode(MOANodeTypes.ARRAY, (1, ArrayNode(MOANodeTypes.ARRAY, (), 'm')), None),
+        'm': SymbolNode(MOANodeTypes.ARRAY, (), None),
+        'B': SymbolNode(MOANodeTypes.ARRAY, (2, 4), None),
+        'n': SymbolNode(MOANodeTypes.ARRAY, (), None),
+    }
+
+    symbol_table, new_left_tree, new_right_tree = join_symbol_tables(left_symbol_table, left_tree, right_symbol_table, right_tree)
+
+    assert symbol_table == {
+        'A': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None),
+        'B': SymbolNode(MOANodeTypes.ARRAY, (2, 4), None),
+        'm': SymbolNode(MOANodeTypes.ARRAY, (), None),
+        '_a0': SymbolNode(MOANodeTypes.ARRAY, (1, ArrayNode(MOANodeTypes.ARRAY, (), 'm')), None),
+    }
+    assert new_left_tree == BinaryNode(MOANodeTypes.PLUS, None,
+                                       ArrayNode(MOANodeTypes.ARRAY, None, 'A'),
+                                       ArrayNode(MOANodeTypes.ARRAY, None, 'B'))
+    assert new_right_tree == BinaryNode(MOANodeTypes.MINUS, None,
+                                        ArrayNode(MOANodeTypes.ARRAY, None, 'A'),
+                                        ArrayNode(MOANodeTypes.ARRAY, None, '_a0'))
 
 
 def test_postorder_replacement():

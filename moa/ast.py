@@ -1,6 +1,7 @@
 import enum
 import collections
 import copy
+import itertools
 
 from .core import MOAException
 
@@ -129,7 +130,46 @@ def is_symbolic_element(element):
 
 # joining symbolic tables
 def join_symbol_tables(left_symbol_table, left_tree, right_symbol_table, right_tree):
-    raise NotImplementedError('join symbol table not implemented yet')
+    visited_symbols = set()
+    counter = itertools.count()
+
+    def _visit_node(symbol_table, node):
+        if node.node_type == MOANodeTypes.ARRAY:
+            visited_symbols.add(node.symbol_node)
+
+            symbol_node = symbol_table[node.symbol_node]
+            if symbol_node.shape:
+                for element in symbol_node.shape:
+                    if is_symbolic_element(element):
+                        visited_symbols.add(element.symbol_node)
+
+            if symbol_node.value:
+                for element in symbol_node.value:
+                    if is_symbolic_element(element):
+                        visited_symbols.add(element.symbol_node)
+        return symbol_table, node
+
+    def _symbol_mapping(symbols):
+        symbol_mapping = {}
+        for symbol in symbols:
+            if symbol.startswith('_i'):
+                symbol_mapping[symbol] = f'_i{next(counter)}'
+            elif symbol.startswith('_a'):
+                symbol_mapping[symbol] = f'_a{next(counter)}'
+            else:
+                symbol_mapping[symbol] = symbol
+        return symbol_mapping
+
+    postorder_replacement(left_symbol_table, left_tree, _visit_node)
+    left_symbol_mapping = _symbol_mapping(visited_symbols)
+    visited_symbols.clear()
+    postorder_replacement(right_symbol_table, right_tree, _visit_node)
+    right_symbol_mapping = _symbol_mapping(visited_symbols)
+
+    # rename symbols in each tree
+    # check symbols that exist in both tables that they match
+    # join symbol tables
+    # return tree
 
 
 ## replacement methods
