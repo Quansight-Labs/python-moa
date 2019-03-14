@@ -184,7 +184,6 @@ def test_reduce_psi_outer_plus_minus_times_divide_equal_shape(operation):
     }
 
 
-@pytest.mark.xfail
 @pytest.mark.parametrize("operation", [
     MOANodeTypes.PLUS, MOANodeTypes.MINUS,
     MOANodeTypes.DIVIDE, MOANodeTypes.TIMES,
@@ -193,20 +192,20 @@ def test_reduce_psi_reduce_plus_minus_times_divide_equal_shape(operation):
     symbol_table = {
         '_i0': SymbolNode(MOANodeTypes.INDEX, (), (0, 4)),
         '_i1': SymbolNode(MOANodeTypes.INDEX, (), (0, 5)),
-        '_a2': SymbolNode(MOANodeTypes.ARRAY, (4,), ('_i0', '_i1')),
+        '_a2': SymbolNode(MOANodeTypes.ARRAY, (2,), (ArrayNode(MOANodeTypes.ARRAY, (), '_i0'), ArrayNode(MOANodeTypes.ARRAY, (), '_i1'))),
         '_a3': SymbolNode(MOANodeTypes.ARRAY, (3, 4, 5), None),
     }
     symbol_table_copy = copy.deepcopy(symbol_table)
 
     tree = BinaryNode(MOANodeTypes.PSI, (0,),
-                      ArrayNode(MOANodeTypes.ARRAY, (4,), '_a2'),
+                      ArrayNode(MOANodeTypes.ARRAY, (2,), '_a2'),
                       ReduceNode((MOANodeTypes.REDUCE, operation), (4, 5), None,
                                  ArrayNode(MOANodeTypes.ARRAY, (3, 4, 5), '_a3')))
 
     expected_tree = ReduceNode((MOANodeTypes.REDUCE, operation), (0,), '_i4',
                                BinaryNode(MOANodeTypes.PSI, (0,),
-                                          ArrayNode(MOANodeTypes.ARRAY, (1,), '_a5'),
-                                          ArrayNode(MOANodeTypes.ARRAY, (3,), '_a3')))
+                                          ArrayNode(MOANodeTypes.ARRAY, (3,), '_a5'),
+                                          ArrayNode(MOANodeTypes.ARRAY, (3, 4, 5), '_a3')))
 
     new_symbol_table, new_tree = _reduce_psi_reduce_plus_minus_times_divide(symbol_table, tree)
     assert symbol_table_copy == symbol_table
@@ -214,10 +213,10 @@ def test_reduce_psi_reduce_plus_minus_times_divide_equal_shape(operation):
     assert new_symbol_table == {
         '_i0': SymbolNode(MOANodeTypes.INDEX, (), (0, 4)),
         '_i1': SymbolNode(MOANodeTypes.INDEX, (), (0, 5)),
-        '_a2': SymbolNode(MOANodeTypes.ARRAY, (4,), ('_i0', '_i1')),
+        '_a2': SymbolNode(MOANodeTypes.ARRAY, (2,), (ArrayNode(MOANodeTypes.ARRAY, (), '_i0'), ArrayNode(MOANodeTypes.ARRAY, (), '_i1'))),
         '_a3': SymbolNode(MOANodeTypes.ARRAY, (3, 4, 5), None),
         '_i4': SymbolNode(MOANodeTypes.INDEX, (), (0, 3)),
-        '_a5': SymbolNode(MOANodeTypes.INDEX, (), ('_i4', '_i0', '_i1')),
+        '_a5': SymbolNode(MOANodeTypes.ARRAY, (3,), (ArrayNode(MOANodeTypes.ARRAY, (), '_i4'), ArrayNode(MOANodeTypes.ARRAY, (), '_i0'), ArrayNode(MOANodeTypes.ARRAY, (), '_i1'))),
     }
 
 
