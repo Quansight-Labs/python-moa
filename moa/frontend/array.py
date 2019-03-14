@@ -33,15 +33,41 @@ class LazyArray:
                                self.tree)
         return self
 
+    def _create_array_from_int_float(self, value):
+        array_name = generate_unique_array_name(self.symbol_table)
+        self.symbol_table = add_symbol(self.symbol_table, array_name, MOANodeTypes.ARRAY, (), (value,))
+        return ArrayNode(MOANodeTypes.ARRAY, None, array_name)
+
     @property
     def T(self):
         return self.transpose()
 
-    def transpose(self, vector=None):
-        if vector is None:
+    def transpose(self, transpose_vector=None):
+        if transpose_vector is None:
             self.tree = UnaryNode(MOANodeTypes.TRANSPOSE, None, self.tree)
         else:
             raise NotImplementedError('arbitrary transpose not implemented yet')
+        return self
+
+    def outer(self, operation, array):
+        operation_map = {
+            '+': (MOANodeTypes.DOT, MOANodeTypes.PLUS),
+            '-': (MOANodeTypes.DOT, MOANodeTypes.MINUS),
+            '*': (MOANodeTypes.DOT, MOANodeTypes.TIMES),
+            '/': (MOANodeTypes.DOT, MOANodeTypes.DIVIDE),
+        }
+        if operation not in operation:
+            raise ValueError(f'operation {operation} not in allowed operations (+-*/)')
+
+        if isinstance(array, self.__class__):
+            self.symbol_table, left_tree, right_tree = join_symbol_tables(self.symbol_table, self.tree, array.symbol_table, array.tree)
+            self.tree = BinaryNode(operation_map[operation], None, left_tree, right_tree)
+        elif isinstance(left, (int, float)):
+            self.tree = BinaryNode(operation_map[operation], None,
+                                   self.tree,
+                                   self._create_array_from_int_float(array))
+        else:
+            raise TypeError(f'not known how to handle outer product with type {type(array)}')
         return self
 
     def _rbinary_opperation(self, operation, left):
@@ -49,9 +75,9 @@ class LazyArray:
             self.symbol_table, left_tree, right_tree = join_symbol_tables(left.symbol_table, left.tree, self.symbol_table, self.tree)
             self.tree = BinaryNode(operation, None, left_tree, right_tree)
         elif isinstance(left, (int, float)):
-            array_name = generate_unique_array_name(self.symbol_table)
-            self.symbol_table = add_symbol(self.symbol_table, array_name, MOANodeTypes.ARRAY, (), (left,))
-            self.tree = BinaryNode(operation, None, ArrayNode(MOANodeTypes.ARRAY, None, array_name), self.tree)
+            self.tree = BinaryNode(operation, None, self._create_array_from_int_float(left), self.tree)
+        else:
+            raise TypeError(f'not known how to handle binary operation with type {type(left)}')
         return self
 
     def _binary_opperation(self, operation, right):
@@ -59,9 +85,9 @@ class LazyArray:
             self.symbol_table, left_tree, right_tree = join_symbol_tables(self.symbol_table, self.tree, right.symbol_table, right.tree)
             self.tree = BinaryNode(operation, None, left_tree, right_tree)
         elif isinstance(right, (int, float)):
-            array_name = generate_unique_array_name(self.symbol_table)
-            self.symbol_table = add_symbol(self.symbol_table, array_name, MOANodeTypes.ARRAY, (), (right,))
-            self.tree = BinaryNode(operation, None, self.tree, ArrayNode(MOANodeTypes.ARRAY, None, array_name))
+            self.tree = BinaryNode(operation, None, self.tree, self._create_array_from_int_float(right))
+        else:
+            raise TypeError(f'not known how to handle binary operation with type {type(right)}')
         return self
 
     def __add__(self, other):

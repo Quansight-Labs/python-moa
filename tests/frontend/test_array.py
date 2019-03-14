@@ -71,6 +71,35 @@ def test_array_transpose_default():
     }
 
 
+@pytest.mark.xfail
+def test_array_transpose_with_vector():
+    expression = LazyArray(name='A', shape=(2, 3)).transpose([1, 0])
+    assert expression.tree == UnaryNode(MOANodeTypes.TRANSPOSEV, None,
+                                        ArrayNode(MOANodeTypes.ARRAY, None, '_a1'),
+                                        ArrayNode(MOANodeTypes.ARRAY, None, 'A'))
+    assert expression.symbol_table == {
+        'A': SymbolNode(MOANodeTypes.ARRAY, (2, 3), None),
+        '_a1': SymbolNode(MOANodeTypes.ARRAY, (2,), (1, 0)),
+    }
+
+
+@pytest.mark.parametrize("symbol, operation", [
+    ('+', MOANodeTypes.PLUS),
+    ('-', MOANodeTypes.MINUS),
+    ('*', MOANodeTypes.TIMES),
+    ('/', MOANodeTypes.DIVIDE),
+])
+def test_array_outer_product(symbol, operation):
+    expression = LazyArray(name='A', shape=(2, 3)).outer(symbol, LazyArray(name='B', shape=(1, 2)))
+    assert expression.tree == BinaryNode((MOANodeTypes.DOT, operation), None,
+                                         ArrayNode(MOANodeTypes.ARRAY, None, 'A'),
+                                         ArrayNode(MOANodeTypes.ARRAY, None, 'B'))
+    assert expression.symbol_table == {
+        'A': SymbolNode(MOANodeTypes.ARRAY, (2, 3), None),
+        'B': SymbolNode(MOANodeTypes.ARRAY, (1, 2), None),
+    }
+
+
 def test_array_index_int():
     expression = LazyArray(name='A', shape=(2, 3))[0]
     assert expression.tree == BinaryNode(MOANodeTypes.PSI, None,
