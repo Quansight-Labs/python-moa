@@ -33,8 +33,15 @@ class LazyArray:
                                self.tree)
         return self
 
-    def transpose(self):
-        self.tree = UnaryNode(MOANodeTypes.TRANSPOSE, None, self.tree)
+    @property
+    def T(self):
+        return self.transpose()
+
+    def transpose(self, vector=None):
+        if vector is None:
+            self.tree = UnaryNode(MOANodeTypes.TRANSPOSE, None, self.tree)
+        else:
+            raise NotImplementedError('arbitrary transpose not implemented yet')
         return self
 
     def _rbinary_opperation(self, operation, left):

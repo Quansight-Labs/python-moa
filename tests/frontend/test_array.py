@@ -41,7 +41,7 @@ def test_array_single_array_binary_operation_cast(function, side, operation):
         '_a1': SymbolNode(MOANodeTypes.ARRAY, (), (1,))
     }
 
-@pytest.mark.xfail
+
 def test_array_addition():
     expression = LazyArray(name='A', shape=(2, 3)) + LazyArray(name='B', shape=(2, 3))
     assert expression.tree == BinaryNode(MOANodeTypes.PLUS, None,
@@ -53,7 +53,16 @@ def test_array_addition():
     }
 
 
-def test_array_transpose():
+def test_array_transpose_T():
+    expression = LazyArray(name='A', shape=(2, 3)).T
+    assert expression.tree == UnaryNode(MOANodeTypes.TRANSPOSE, None,
+                                        ArrayNode(MOANodeTypes.ARRAY, None, 'A'))
+    assert expression.symbol_table == {
+        'A': SymbolNode(MOANodeTypes.ARRAY, (2, 3), None)
+    }
+
+
+def test_array_transpose_default():
     expression = LazyArray(name='A', shape=(2, 3)).transpose()
     assert expression.tree == UnaryNode(MOANodeTypes.TRANSPOSE, None,
                                         ArrayNode(MOANodeTypes.ARRAY, None, 'A'))
