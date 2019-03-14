@@ -11,6 +11,13 @@ class LazyArray:
         self.symbol_table = {}
         self.tree = None
 
+        if name is None and value is None:
+            raise ValueError('either name or value must be supplied for LazyArray')
+
+        if value is not None:
+            raise NotImplemenetedError('not able to pass in value at compile time at this moment')
+
+        shape = self._create_array_from_list_tuple(shape)
         name = name or generate_unique_array_name(self.symbol_table)
         self.symbol_table = add_symbol(self.symbol_table, name, MOANodeTypes.ARRAY, shape, value)
         self.tree = ArrayNode(MOANodeTypes.ARRAY, None, name)
@@ -33,10 +40,27 @@ class LazyArray:
                                self.tree)
         return self
 
-    def _create_array_from_int_float(self, value):
-        array_name = generate_unique_array_name(self.symbol_table)
-        self.symbol_table = add_symbol(self.symbol_table, array_name, MOANodeTypes.ARRAY, (), (value,))
+    def _create_array_from_int_float_string(self, value):
+        if isinstance(value, str):
+            array_name = value
+            self.symbol_table = add_symbol(self.symbol_table, array_name, MOANodeTypes.ARRAY, (), None)
+        else:
+            array_name = generate_unique_array_name(self.symbol_table)
+            self.symbol_table = add_symbol(self.symbol_table, array_name, MOANodeTypes.ARRAY, (), (value,))
         return ArrayNode(MOANodeTypes.ARRAY, None, array_name)
+
+    def _create_array_from_list_tuple(self, value):
+        if not any(isinstance(_, str) for _ in value):
+            return value
+
+        elements = ()
+        for element in value:
+            if isinstance(element, str):
+                self.symbol_table = add_symbol(self.symbol_table, element, MOANodeTypes.ARRAY, (), None)
+                elements = elements + (ArrayNode(MOANodeTypes.ARRAY, None, element),)
+            else:
+                elements = elements + (element,)
+        return elements
 
     @property
     def T(self):
@@ -62,10 +86,10 @@ class LazyArray:
         if isinstance(array, self.__class__):
             self.symbol_table, left_tree, right_tree = join_symbol_tables(self.symbol_table, self.tree, array.symbol_table, array.tree)
             self.tree = BinaryNode(operation_map[operation], None, left_tree, right_tree)
-        elif isinstance(left, (int, float)):
+        elif isinstance(left, (int, float, str)):
             self.tree = BinaryNode(operation_map[operation], None,
                                    self.tree,
-                                   self._create_array_from_int_float(array))
+                                   self._create_array_from_int_float_string(array))
         else:
             raise TypeError(f'not known how to handle outer product with type {type(array)}')
         return self
@@ -74,8 +98,8 @@ class LazyArray:
         if isinstance(left, self.__class__):
             self.symbol_table, left_tree, right_tree = join_symbol_tables(left.symbol_table, left.tree, self.symbol_table, self.tree)
             self.tree = BinaryNode(operation, None, left_tree, right_tree)
-        elif isinstance(left, (int, float)):
-            self.tree = BinaryNode(operation, None, self._create_array_from_int_float(left), self.tree)
+        elif isinstance(left, (int, float, str)):
+            self.tree = BinaryNode(operation, None, self._create_array_from_int_float_string(left), self.tree)
         else:
             raise TypeError(f'not known how to handle binary operation with type {type(left)}')
         return self
@@ -84,8 +108,8 @@ class LazyArray:
         if isinstance(right, self.__class__):
             self.symbol_table, left_tree, right_tree = join_symbol_tables(self.symbol_table, self.tree, right.symbol_table, right.tree)
             self.tree = BinaryNode(operation, None, left_tree, right_tree)
-        elif isinstance(right, (int, float)):
-            self.tree = BinaryNode(operation, None, self.tree, self._create_array_from_int_float(right))
+        elif isinstance(right, (int, float, str)):
+            self.tree = BinaryNode(operation, None, self.tree, self._create_array_from_int_float_string(right))
         else:
             raise TypeError(f'not known how to handle binary operation with type {type(right)}')
         return self
