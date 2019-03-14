@@ -24,7 +24,7 @@ rec {
     '';
 
     checkPhase = ''
-      pytest --cov=moa
+      pytest --cov=moa -k "not benchmark"
     '';
   };
 
