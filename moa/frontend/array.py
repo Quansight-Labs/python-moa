@@ -9,7 +9,7 @@ from ..shape import calculate_shapes
 from ..dnf import reduce_to_dnf
 from ..onf import reduce_to_onf
 from ..analysis import metric_flops
-from ..visualize import visualize_ast
+from ..visualize import visualize_ast, print_ast
 
 class LazyArray:
     def __init__(self, shape, value=None, name=None):
@@ -174,18 +174,6 @@ class LazyArray:
     def _onf(self):
         return reduce_to_onf(*self._dnf())
 
-    @property
-    def shape(self):
-        return visualize_ast(*self._shape())
-
-    @property
-    def dnf(self):
-        return visualize_ast(*self._dnf())
-
-    @property
-    def onf(self):
-        return visualize_ast(*self._onf())
-
     def analysis(self):
         shape_symbol_table, shape_tree = calculate_shapes(self.symbol_table, self.tree)
         dnf_symbol_table, dnf_tree = reduce_to_dnf(shape_symbol_table, shape_tree)
@@ -194,6 +182,17 @@ class LazyArray:
             'unoptimized_flops': metric_flops(shape_symbol_table, shape_tree),
             'optimized_flops': metric_flops(dnf_symbol_table, dnf_tree)
         }
+
+    def visualize(self, stage='shape', as_text=False):
+        if stage not in {'shape', 'dnf', 'onf'}:
+            raise ValueError('stage must be "shape", "dnf", or "onf"')
+
+        context = getattr(self, f'_{stage}')()
+        if as_text:
+            print_ast(*context)
+        else:
+            return visualize_ast(*context)
+
 
     def _repr_svg_(self):
         try:
