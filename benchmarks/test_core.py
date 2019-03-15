@@ -2,6 +2,7 @@ import pytest
 import numpy
 import numba
 import torch
+import tensorflow
 
 from moa.frontend import LazyArray
 
@@ -50,6 +51,25 @@ def test_pytorch_addition(benchmark):
     benchmark(_test)
 
 
+@pytest.mark.benchmark(group="addition")
+def test_tensorflow_addition(benchmark):
+    n = 1000
+    m = 1000
+
+    A = tensorflow.reshape(tensorflow.range(n*m), (n, m))
+    B = tensorflow.reshape(tensorflow.range(n*m), (n, m))
+
+    session = tensorflow.Session()
+    session.run(tensorflow.initialize_all_variables())
+
+    result = tensorflow.math.add(A, B)
+
+    def _test():
+        session.run(result)
+
+    benchmark(_test)
+
+
 @pytest.mark.benchmark(group="addition_index", warmup=True)
 def test_moa_numba_addition_index(benchmark):
     n = 1000
@@ -90,6 +110,26 @@ def test_pytorch_addition_index(benchmark):
 
     def _test():
         torch.add(A[0], B[0])
+
+    benchmark(_test)
+
+
+@pytest.mark.benchmark(group="addition_index")
+def test_tensorflow_addition_index(benchmark):
+    n = 1000
+    m = 1000
+
+    A = tensorflow.reshape(tensorflow.range(n*m), (n, m))
+    B = tensorflow.reshape(tensorflow.range(n*m), (n, m))
+    index = tensorflow.constant(0)
+
+    session = tensorflow.Session()
+    session.run(tensorflow.initialize_all_variables())
+
+    result = tensorflow.gather(tensorflow.math.add(A, B), index)
+
+    def _test():
+        session.run(result)
 
     benchmark(_test)
 

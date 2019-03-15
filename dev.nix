@@ -12,7 +12,7 @@ let
   buildInputs = with pythonPackages; [ sly astunparse ];
   docsInputs = with pythonPackages; [ sphinx sphinxcontrib-tikz ];
   testInputs = with pythonPackages; [ pytest pytestcov graphviz ];
-  benchmarkInputs = with pythonPackages; [ pytest-benchmark numpy numba pytorch ];
+  benchmarkInputs = with pythonPackages; [ pytest-benchmark numpy numba pytorch tensorflow ];
 in
 rec {
   python-moa = pythonPackages.buildPythonPackage {
@@ -26,7 +26,7 @@ rec {
     checkInputs = if benchmark then testInputs ++ benchmarkInputs else testInputs;
 
     checkPhase = ''
-      pytest --cov=moa ${if !benchmark then "--ignore tests/benchmark" else ""}
+      pytest tests ${if benchmark then "benchmarks" else ""} --cov=moa
     '';
   };
 
