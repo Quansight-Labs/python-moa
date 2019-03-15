@@ -180,7 +180,7 @@ nix-shell dev.nix -A ipython-shell
 nix-build dev.nix -A python-moa
 ```
 
-To include benchmarks (numba, numpy, pytorch)
+To include benchmarks (numba, numpy, pytorch, tensorflow)
 
 ```
 nix-build dev.nix -A python-moa --arg benchmark true

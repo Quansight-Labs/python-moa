@@ -166,6 +166,41 @@ def test_numpy_double_addition(benchmark):
     benchmark(_test)
 
 
+@pytest.mark.benchmark(group="double_addition")
+def test_pytorch_double_addition(benchmark):
+    n = 1000
+    m = 1000
+
+    A = torch.arange(n*m).reshape(n, m)
+    B = torch.arange(n*m).reshape(n, m)
+    C = torch.arange(n*m).reshape(n, m)
+
+    def _test():
+        torch.add(torch.add(A, B), C)
+
+    benchmark(_test)
+
+
+@pytest.mark.benchmark(group="double_addition")
+def test_tensorflow_double_addition(benchmark):
+    n = 1000
+    m = 1000
+
+    A = tensorflow.reshape(tensorflow.range(n*m), (n, m))
+    B = tensorflow.reshape(tensorflow.range(n*m), (n, m))
+    C = tensorflow.reshape(tensorflow.range(n*m), (n, m))
+
+    session = tensorflow.Session()
+    session.run(tensorflow.initialize_all_variables())
+
+    result = tensorflow.math.add(tensorflow.math.add(A, B), C)
+
+    def _test():
+        session.run(result)
+
+    benchmark(_test)
+
+
 @pytest.mark.benchmark(group="outer", warmup=True)
 def test_moa_numba_outer(benchmark):
     n = 100
