@@ -4,7 +4,12 @@ from ..ast import (
     add_symbol, generate_unique_array_name,
     join_symbol_tables
 )
-
+from .. import compiler
+from ..shape import calculate_shapes
+from ..dnf import reduce_to_dnf
+from ..onf import reduce_to_onf
+from ..analysis import metric_flops
+from ..visualize import visualize_ast
 
 class LazyArray:
     def __init__(self, shape, value=None, name=None):
@@ -158,8 +163,37 @@ class LazyArray:
         return self._rbinary_opperation(MOANodeTypes.DIVIDE, other)
 
     def compile(self, backend='python', **kwargs):
-        from ..compiler import compiler
-        return compiler(self, frontend='array', backend=backend, **kwargs)
+        return compiler.compiler(self, frontend='array', backend=backend, **kwargs)
+
+    def _shape(self):
+        return calculate_shapes(self.symbol_table, self.tree)
+
+    def _dnf(self):
+        return reduce_to_dnf(*self._shape())
+
+    def _onf(self):
+        return reduce_to_onf(*self._dnf())
+
+    @property
+    def shape(self):
+        return visualize_ast(*self._shape())
+
+    @property
+    def dnf(self):
+        return visualize_ast(*self._dnf())
+
+    @property
+    def onf(self):
+        return visualize_ast(*self._onf())
+
+    def analysis(self):
+        shape_symbol_table, shape_tree = calculate_shapes(self.symbol_table, self.tree)
+        dnf_symbol_table, dnf_tree = reduce_to_dnf(shape_symbol_table, shape_tree)
+
+        return {
+            'unoptimized_flops': metric_flops(shape_symbol_table, shape_tree),
+            'optimized_flops': metric_flops(dnf_symbol_table, dnf_tree)
+        }
 
     def _repr_svg_(self):
         try:
