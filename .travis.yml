@@ -1,4 +1,4 @@
 language: nix
 # docs in turn build package which runs the tests so this tests
 # everything
-script: nix-build dev.nix -A docs
+script: nix-build dev.nix -A docs --arg benchmark true

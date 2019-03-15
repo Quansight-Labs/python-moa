@@ -15,7 +15,7 @@ def python_backend(symbol_table, tree):
     return python_ast
 
 
-def generate_python_source(symbol_table, tree, materialize_scalars=False):
+def generate_python_source(symbol_table, tree, materialize_scalars=False, use_numba=False):
     python_ast = python_backend(symbol_table, tree)
 
     class ReplaceScalars(ast.NodeTransformer):
@@ -34,9 +34,22 @@ def generate_python_source(symbol_table, tree, materialize_scalars=False):
                                      ctx=ast.Load())
             return node
 
+    class ReplaceWithNumba(ast.NodeTransformer):
+        def visit_FunctionDef(self, node):
+            node.decorator_list = [ast.Name(id='numba.jit', ctx=ast.Load())]
+            self.generic_visit(node)
+            return node
+
+        def visit_Name(self, node):
+            if node.id == 'Array':
+                node.id = 'numpy.zeros'
+            return node
+
     if materialize_scalars:
         python_ast = ReplaceScalars().visit(python_ast)
         python_ast = ReplaceShapeIndex().visit(python_ast)
+        if use_numba:
+            python_ast = ReplaceWithNumba().visit(python_ast)
 
     return astunparse.unparse(python_ast)[:-1] # remove newline
 

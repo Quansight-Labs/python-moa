@@ -30,6 +30,7 @@ setup(
         'viz': ['graphviz'],
         'test': ['pytest', 'pytest-cov'],
         'docs': ['sphinx', 'sphinxcontrib-tikz'],
+        'benchmark': ['numpy', 'numba']
     },
     project_urls={
         'Bug Reports': 'https://github.com/Quansight-Labs/python-moa/issues',

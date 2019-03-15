@@ -157,9 +157,9 @@ class LazyArray:
     def __rtruediv__(self, other):
         return self._rbinary_opperation(MOANodeTypes.DIVIDE, other)
 
-    def compile(self, backend='python', include_conditions=True):
+    def compile(self, backend='python', **kwargs):
         from ..compiler import compiler
-        return compiler(self, frontend='array', backend=backend, include_conditions=include_conditions)
+        return compiler(self, frontend='array', backend=backend, **kwargs)
 
     def _repr_svg_(self):
         try:

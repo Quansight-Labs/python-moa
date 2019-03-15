@@ -1,3 +1,5 @@
+{ benchmark ? false }:
+
 let
   # pin version
   pkgs = import (builtins.fetchTarball {
@@ -6,6 +8,11 @@ let
   }) { };
 
   pythonPackages = pkgs.python3Packages;
+
+  buildInputs = with pythonPackages; [ sly astunparse ];
+  docsInputs = with pythonPackages; [ sphinx sphinxcontrib-tikz ];
+  testInputs = with pythonPackages; [ pytest pytestcov graphviz ];
+  benchmarkInputs = with pythonPackages; [ pytest-benchmark numpy numba ];
 in
 rec {
   python-moa = pythonPackages.buildPythonPackage {
@@ -15,16 +22,11 @@ rec {
       (path: _: !builtins.elem  (builtins.baseNameOf path) [".git" "result" "docs"])
       ./.;
 
-    propagatedBuildInputs = with pythonPackages; [ sly astunparse ];
-    checkInputs = with pythonPackages; [ pytest pytestcov pytest-benchmark graphviz ];
-
-    postConfigure = ''
-      # flit requires a home directory...
-      export HOME=$(mktemp -d)
-    '';
+    propagatedBuildInputs = buildInputs;
+    checkInputs = if benchmark then testInputs ++ benchmarkInputs else testInputs;
 
     checkPhase = ''
-      pytest --cov=moa -k "not benchmark"
+      pytest --cov=moa ${if !benchmark then "--ignore tests/benchmark" else ""}
     '';
   };
 
@@ -41,7 +43,7 @@ rec {
         --replace "'GhostScript'" "'pdf2svg'"
     '';
 
-     buildInputs = with pythonPackages; [ python-moa sphinx sphinxcontrib-tikz ];
+     buildInputs = [ python-moa ] ++ docsInputs;
 
      buildPhase = ''
        cd docs;
@@ -76,7 +78,7 @@ rec {
   };
 
   jupyter-shell = pkgs.mkShell {
-    buildInputs = with pythonPackages; [ python-moa jupyterlab graphviz pkgs.graphviz numpy numba];
+    buildInputs = with pythonPackages; [ python-moa jupyterlab graphviz numpy numba];
 
     shellHook = ''
       cd notebooks; jupyter lab
@@ -84,6 +86,6 @@ rec {
   };
 
   binder = pkgs.mkShell {
-    buildInputs = with pythonPackages; [ python-moa jupyterlab graphviz pkgs.graphviz numpy numba];
+    buildInputs = with pythonPackages; [ python-moa jupyterlab graphviz numpy numba];
   };
 }

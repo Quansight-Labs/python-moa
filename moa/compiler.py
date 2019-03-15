@@ -5,7 +5,7 @@ from moa.onf import reduce_to_onf
 from moa.backend import generate_python_source
 
 
-def compiler(source, frontend='moa', backend='python', include_conditions=True):
+def compiler(source, frontend='moa', backend='python', include_conditions=True, use_numba=False):
     if frontend == 'moa':
         symbol_table, tree = MOAParser().parse(source)
     elif frontend == 'array':
@@ -18,6 +18,6 @@ def compiler(source, frontend='moa', backend='python', include_conditions=True):
     onf_symbol_table, onf_tree = reduce_to_onf(dnf_symbol_table, dnf_tree, include_conditions=include_conditions)
 
     if backend == 'python':
-        return generate_python_source(onf_symbol_table, onf_tree, materialize_scalars=True)
+        return generate_python_source(onf_symbol_table, onf_tree, materialize_scalars=True, use_numba=use_numba)
     else:
         raise ValueError(f'unknown backend {backend}')
