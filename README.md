@@ -53,17 +53,18 @@ experimentation with
 ## Python Frontend AST Generation
 
 ```python
-from moa.frontend import MOAParser
-from moa.visualize import print_ast
+from moa.frontend import LazyArray
 
-parser = MOAParser()
-symbol_table, tree = parser.parse('<0> psi (tran(A ^ <2 3> + B ^ <2 3>))')
-print_ast(symbol_table, tree)
+A = LazyArray(name='A', shape=(2, 3))
+B = LazyArray(name='B', shape=(2, 3))
+
+expression = ((A + B).T)[0]
+expression.visualize(as_text=True)
 ```
 
 ```
 psi(Ψ)
-├── Array _a0: <1> (0)
+├── Array _a2: <1> (0)
 └── transpose(Ø)
     └── +
         ├── Array A: <2 3>
@@ -72,16 +73,13 @@ psi(Ψ)
 
 ## Shape Calculation
 
-```
-from moa.shape import calculate_shapes
-
-shape_symbol_table, shape_tree = calculate_shapes(symbol_table, tree)
-print_ast(shape_symbol_table, shape_tree)
+```python
+expression.visualize(stage='shape', as_text=True)
 ```
 
 ```
 psi(Ψ): <2>
-├── Array _a0: <1> (0)
+├── Array _a2: <1> (0)
 └── transpose(Ø): <3 2>
     └── +: <2 3>
         ├── Array A: <2 3>
@@ -90,11 +88,8 @@ psi(Ψ): <2>
 
 ## Reduction to DNF
 
-```
-from moa.dnf import reduce_to_dnf
-
-dnf_symbol_table, dnf_tree = reduce_to_dnf(shape_symbol_table, shape_tree)
-print_ast(dnf_symbol_table, dnf_tree)
+```python
+expression.visualize(stage='dnf', as_text=True)
 ```
 
 ```
@@ -109,17 +104,16 @@ print_ast(dnf_symbol_table, dnf_tree)
 
 ## Reduction to ONF
 
-```
-from moa.onf import reduce_to_onf
-
-# exclude conditional code generation
-# to shorten code output
-onf_symbol_table, onf_tree = reduce_to_onf(dnf_symbol_table, dnf_tree, include_conditions=False)
-print_ast(onf_symbol_table, onf_tree)
+```python
+expression.visualize(stage='onf', as_text=True)
 ```
 
 ```
 function: <2> (A B) -> _a17
+├── if (not ((len(B.shape) == 2) and (len(A.shape) == 2)))
+│   └── error arguments have invalid dimension
+├── if (not ((3 == B.shape[1]) and ((2 == B.shape[0]) and ((3 == A.shape[1]) and (2 == A.shape[0])))))
+│   └── error arguments have invalid shape
 ├── initialize: <2> _a17
 └── loop: <2> _i3
     └── assign: <2>
@@ -137,16 +131,23 @@ function: <2> (A B) -> _a17
 
 ## Generate Python Source
 
-```
-from moa.backend import generate_python_source
-
-print(generate_python_source(onf_symbol_table, onf_tree))
+```python
+print(expression.compile(backend='python', use_numba=True))
 ```
 
 ```python
+@numba.jit
 def f(A, B):
     
-    _a17 = Array((2,))
+    if (not ((len(B.shape) == 2) and (len(A.shape) == 2))):
+        
+        raise Exception('arguments have invalid dimension')
+    
+    if (not ((3 == B.shape[1]) and ((2 == B.shape[0]) and ((3 == A.shape[1]) and (2 == A.shape[0]))))):
+        
+        raise Exception('arguments have invalid shape')
+    
+    _a17 = numpy.zeros((2,))
     
     for _i3 in range(0, 2):
         
@@ -179,7 +180,7 @@ nix-shell dev.nix -A ipython-shell
 nix-build dev.nix -A python-moa
 ```
 
-To include benchmarks
+To include benchmarks (numba, numpy, pytorch)
 
 ```
 nix-build dev.nix -A python-moa --arg benchmark true

@@ -183,11 +183,15 @@ class LazyArray:
             'optimized_flops': metric_flops(dnf_symbol_table, dnf_tree)
         }
 
-    def visualize(self, stage='shape', as_text=False):
-        if stage not in {'shape', 'dnf', 'onf'}:
+    def visualize(self, stage=None, as_text=False):
+        if stage not in {None, 'shape', 'dnf', 'onf'}:
             raise ValueError('stage must be "shape", "dnf", or "onf"')
 
-        context = getattr(self, f'_{stage}')()
+        if stage is None:
+            context = self.symbol_table, self.tree
+        else:
+            context = getattr(self, f'_{stage}')()
+
         if as_text:
             print_ast(*context)
         else:
