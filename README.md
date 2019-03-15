@@ -179,6 +179,12 @@ nix-shell dev.nix -A ipython-shell
 nix-build dev.nix -A python-moa
 ```
 
+To include benchmarks
+
+```
+nix-build dev.nix -A python-moa --arg benchmark true
+```
+
 ## Documentation
 
 ```
