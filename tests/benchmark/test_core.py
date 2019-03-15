@@ -1,6 +1,7 @@
 import pytest
 import numpy
 import numba
+import torch
 
 from moa.frontend import LazyArray
 
@@ -35,6 +36,20 @@ def test_numpy_addition(benchmark):
     benchmark(_test)
 
 
+@pytest.mark.benchmark(group="addition")
+def test_pytorch_addition(benchmark):
+    n = 1000
+    m = 1000
+
+    A = torch.arange(n*m).reshape(n, m)
+    B = torch.arange(n*m).reshape(n, m)
+
+    def _test():
+        torch.add(A, B)
+
+    benchmark(_test)
+
+
 @pytest.mark.benchmark(group="addition_index", warmup=True)
 def test_moa_numba_addition_index(benchmark):
     n = 1000
@@ -61,6 +76,20 @@ def test_numpy_addition_index(benchmark):
 
     def _test():
         A[0] + B[0]
+
+    benchmark(_test)
+
+
+@pytest.mark.benchmark(group="addition_index")
+def test_pytorch_addition_index(benchmark):
+    n = 1000
+    m = 1000
+
+    A = torch.arange(n*m).reshape(n, m)
+    B = torch.arange(n*m).reshape(n, m)
+
+    def _test():
+        torch.add(A[0], B[0])
 
     benchmark(_test)
 

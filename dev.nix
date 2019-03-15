@@ -12,7 +12,7 @@ let
   buildInputs = with pythonPackages; [ sly astunparse ];
   docsInputs = with pythonPackages; [ sphinx sphinxcontrib-tikz ];
   testInputs = with pythonPackages; [ pytest pytestcov graphviz ];
-  benchmarkInputs = with pythonPackages; [ pytest-benchmark numpy numba ];
+  benchmarkInputs = with pythonPackages; [ pytest-benchmark numpy numba pytorch ];
 in
 rec {
   python-moa = pythonPackages.buildPythonPackage {
