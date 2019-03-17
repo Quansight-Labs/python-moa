@@ -7,7 +7,7 @@ from sly.lex import LexError
 from sly.yacc import YaccError
 
 from ..ast import (
-    MOANodeTypes, ArrayNode, UnaryNode, BinaryNode,
+    MOANodeTypes, Node,
     add_symbol, generate_unique_array_name
 )
 
@@ -90,7 +90,7 @@ class MOAParser(sly.Parser):
 
     @_('unary_operation expr %prec UNARYOP')
     def expr(self, p):
-        return UnaryNode(p.unary_operation, None, p.expr)
+        return Node(p.unary_operation, None, p.expr)
 
     @_('IOTA',
        'DIM',
@@ -119,7 +119,7 @@ class MOAParser(sly.Parser):
 
     @_('expr binary_operation expr %prec BINARYOP')
     def expr(self, p):
-        return BinaryNode(p.binary_operation, None, p.expr0, p.expr1)
+        return Node(p.binary_operation, None, p.expr0, p.expr1)
 
     @_('PLUS',
        'MINUS',
@@ -151,18 +151,18 @@ class MOAParser(sly.Parser):
     @_('IDENTIFIER CARROT LANGLEBRACKET vector_list RANGLEBRACKET')
     def array(self, p):
         self.symbol_table = add_symbol(self.symbol_table, p.IDENTIFIER, MOANodeTypes.ARRAY, tuple(p.vector_list), None)
-        return ArrayNode(MOANodeTypes.ARRAY, None, p.IDENTIFIER)
+        return Node(MOANodeTypes.ARRAY, None, p.IDENTIFIER)
 
     @_('IDENTIFIER')
     def array(self, p):
         self.symbol_table = add_symbol(self.symbol_table, p.IDENTIFIER, MOANodeTypes.ARRAY, None, None)
-        return ArrayNode(MOANodeTypes.ARRAY, None, p.IDENTIFIER)
+        return Node(MOANodeTypes.ARRAY, None, p.IDENTIFIER)
 
     @_('LANGLEBRACKET vector_list RANGLEBRACKET')
     def array(self, p):
         unique_array_name = generate_unique_array_name(self.symbol_table)
         self.symbol_table = add_symbol(self.symbol_table, unique_array_name, MOANodeTypes.ARRAY, (len(p.vector_list),), tuple(p.vector_list))
-        return ArrayNode(MOANodeTypes.ARRAY, None, unique_array_name)
+        return Node(MOANodeTypes.ARRAY, None, unique_array_name)
 
     @_('INTEGER vector_list')
     def vector_list(self, p):
@@ -171,7 +171,7 @@ class MOAParser(sly.Parser):
     @_('IDENTIFIER vector_list')
     def vector_list(self, p):
         self.symbol_table = add_symbol(self.symbol_table, p.IDENTIFIER, MOANodeTypes.ARRAY, (), None)
-        return (ArrayNode(MOANodeTypes.ARRAY, (), p.IDENTIFIER),) + p.vector_list
+        return (Node(MOANodeTypes.ARRAY, (), p.IDENTIFIER),) + p.vector_list
 
     @_('empty')
     def vector_list(self, p):

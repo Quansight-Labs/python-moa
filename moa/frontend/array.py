@@ -1,6 +1,6 @@
 from ..ast import (
     MOANodeTypes,
-    ArrayNode, BinaryNode, UnaryNode, ReduceNode,
+    Node,
     add_symbol, generate_unique_array_name,
     join_symbol_tables
 )
@@ -25,7 +25,7 @@ class LazyArray:
         shape = self._create_array_from_list_tuple(shape)
         name = name or generate_unique_array_name(self.symbol_table)
         self.symbol_table = add_symbol(self.symbol_table, name, MOANodeTypes.ARRAY, shape, value)
-        self.tree = ArrayNode(MOANodeTypes.ARRAY, None, name)
+        self.tree = Node(MOANodeTypes.ARRAY, None, name)
 
     def __getitem__(self, index):
         array_name = generate_unique_array_name(self.symbol_table)
@@ -40,8 +40,8 @@ class LazyArray:
                     indicies = indicies + (i,)
 
         self.symbol_table = add_symbol(self.symbol_table, array_name, MOANodeTypes.ARRAY, (len(indicies),), indicies)
-        self.tree = BinaryNode(MOANodeTypes.PSI, None,
-                               ArrayNode(MOANodeTypes.ARRAY, None, array_name),
+        self.tree = Node(MOANodeTypes.PSI, None,
+                               Node(MOANodeTypes.ARRAY, None, array_name),
                                self.tree)
         return self
 
@@ -52,7 +52,7 @@ class LazyArray:
         else:
             array_name = generate_unique_array_name(self.symbol_table)
             self.symbol_table = add_symbol(self.symbol_table, array_name, MOANodeTypes.ARRAY, (), (value,))
-        return ArrayNode(MOANodeTypes.ARRAY, None, array_name)
+        return Node(MOANodeTypes.ARRAY, None, array_name)
 
     def _create_array_from_list_tuple(self, value):
         if not any(isinstance(_, str) for _ in value):
@@ -62,7 +62,7 @@ class LazyArray:
         for element in value:
             if isinstance(element, str):
                 self.symbol_table = add_symbol(self.symbol_table, element, MOANodeTypes.ARRAY, (), None)
-                elements = elements + (ArrayNode(MOANodeTypes.ARRAY, None, element),)
+                elements = elements + (Node(MOANodeTypes.ARRAY, None, element),)
             else:
                 elements = elements + (element,)
         return elements
@@ -73,14 +73,14 @@ class LazyArray:
 
     def transpose(self, transpose_vector=None):
         if transpose_vector is None:
-            self.tree = UnaryNode(MOANodeTypes.TRANSPOSE, None, self.tree)
+            self.tree = Node(MOANodeTypes.TRANSPOSE, None, self.tree)
         else:
             symbolic_vector = self._create_array_from_list_tuple(transpose_vector)
 
             array_name = generate_unique_array_name(self.symbol_table)
             self.symbol_table = add_symbol(self.symbol_table, array_name, MOANodeTypes.ARRAY, (len(symbolic_vector),), tuple(symbolic_vector))
-            self.tree = BinaryNode(MOANodeTypes.TRANSPOSEV, None,
-                                   ArrayNode(MOANodeTypes.ARRAY, None, array_name),
+            self.tree = Node(MOANodeTypes.TRANSPOSEV, None,
+                                   Node(MOANodeTypes.ARRAY, None, array_name),
                                    self.tree)
         return self
 
@@ -96,9 +96,9 @@ class LazyArray:
 
         if isinstance(array, self.__class__):
             self.symbol_table, left_tree, right_tree = join_symbol_tables(self.symbol_table, self.tree, array.symbol_table, array.tree)
-            self.tree = BinaryNode(operation_map[operation], None, left_tree, right_tree)
+            self.tree = Node(operation_map[operation], None, left_tree, right_tree)
         elif isinstance(left, (int, float, str)):
-            self.tree = BinaryNode(operation_map[operation], None,
+            self.tree = Node(operation_map[operation], None,
                                    self.tree,
                                    self._create_array_from_int_float_string(array))
         else:
@@ -115,15 +115,15 @@ class LazyArray:
         if operation not in operation:
             raise ValueError(f'operation {operation} not in allowed operations (+-*/)')
 
-        self.tree = ReduceNode(operation_map[operation], None, None, self.tree)
+        self.tree = Node(operation_map[operation], None, None, self.tree)
         return self
 
     def _rbinary_opperation(self, operation, left):
         if isinstance(left, self.__class__):
             self.symbol_table, left_tree, right_tree = join_symbol_tables(left.symbol_table, left.tree, self.symbol_table, self.tree)
-            self.tree = BinaryNode(operation, None, left_tree, right_tree)
+            self.tree = Node(operation, None, left_tree, right_tree)
         elif isinstance(left, (int, float, str)):
-            self.tree = BinaryNode(operation, None, self._create_array_from_int_float_string(left), self.tree)
+            self.tree = Node(operation, None, self._create_array_from_int_float_string(left), self.tree)
         else:
             raise TypeError(f'not known how to handle binary operation with type {type(left)}')
         return self
@@ -131,9 +131,9 @@ class LazyArray:
     def _binary_opperation(self, operation, right):
         if isinstance(right, self.__class__):
             self.symbol_table, left_tree, right_tree = join_symbol_tables(self.symbol_table, self.tree, right.symbol_table, right.tree)
-            self.tree = BinaryNode(operation, None, left_tree, right_tree)
+            self.tree = Node(operation, None, left_tree, right_tree)
         elif isinstance(right, (int, float, str)):
-            self.tree = BinaryNode(operation, None, self.tree, self._create_array_from_int_float_string(right))
+            self.tree = Node(operation, None, self.tree, self._create_array_from_int_float_string(right))
         else:
             raise TypeError(f'not known how to handle binary operation with type {type(right)}')
         return self

@@ -2,7 +2,7 @@ import ast
 import astunparse
 
 from ..ast import (
-    MOANodeTypes, ArrayNode, postorder_replacement,
+    MOANodeTypes, postorder_replacement,
     has_symbolic_elements, is_symbolic_element
 )
 

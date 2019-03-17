@@ -102,7 +102,7 @@ def is_array(node):
 
 def is_unary_operation(node):
     if isinstance(node.node_type, tuple):
-        return node.node_type[0] == MOANodeTypes.REDUCE
+        return False
     return 100 < node.node_type.value < 200
 
 
@@ -111,6 +111,48 @@ def is_binary_operation(node):
         return node.node_type[0] == MOANodeTypes.DOT
     else:
         return 200 < node.node_type.value < 300
+
+
+def Node(node_type, *args):
+    """node constructor
+
+    """
+    if isinstance(node_type, tuple) and node_type[0] == MOANodeTypes.DOT:
+        shape, left_node, right_node = args
+        return BinaryNode(node_type, shape, left_node, right_node)
+    elif isinstance(node_type, tuple) and node_type[0] == MOANodeTypes.REDUCE:
+        shape, symbol_node, right_node = args
+        return ReduceNode(node_type, shape, symbol_node, right_node)
+    elif node_type in {MOANodeTypes.ARRAY, MOANodeTypes.INDEX}:
+        shape, symbol_node = args
+        return ArrayNode(node_type, shape, symbol_node)
+    elif node_type == MOANodeTypes.INITIALIZE:
+        shape, symbol_node = args
+        return InitializeNode(node_type, shape, symbol_node)
+    elif node_type == MOANodeTypes.FUNCTION:
+        shape, arguments, result, body = args
+        return FunctionNode(node_type, shape, arguments, result, body)
+    elif node_type == MOANodeTypes.LOOP:
+        shape, symbol_node, body = args
+        return LoopNode(node_type, shape, symbol_node, body)
+    elif node_type == MOANodeTypes.ASSIGN:
+        shape, left_node, right_node = args
+        return BinaryNode(node_type, shape, left_node, right_node)
+    elif node_type == MOANodeTypes.ERROR:
+        shape, message = args
+        return ErrorNode(node_type, shape, message)
+    elif node_type == MOANodeTypes.CONDITION:
+        shape, condition_node, right_node = args
+        return ConditionNode(node_type, shape, condition_node, right_node)
+    elif node_type == MOANodeTypes.IF:
+        shape, condition_node, body = args
+        return IfNode(node_type, shape, condition_node, body)
+    elif 100 < node_type.value < 200:
+        shape, right_node = args
+        return UnaryNode(node_type, shape, right_node)
+    elif 200 < node_type.value < 300:
+        shape, left_node, right_node = args
+        return BinaryNode(node_type, shape, left_node, right_node)
 
 
 # symbol table methods

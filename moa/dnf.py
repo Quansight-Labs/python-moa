@@ -3,7 +3,7 @@ import itertools
 from .core import MOAException
 from .ast import (
     MOANodeTypes,
-    ArrayNode, BinaryNode, SymbolNode, ConditionNode, FunctionNode, ReduceNode,
+    Node,
     add_symbol,
     generate_unique_index_name, generate_unique_array_name,
     is_binary_operation, is_unary_operation, is_array,
@@ -31,15 +31,15 @@ def add_indexing_node(symbol_table, node):
     for bound in node.shape:
         index_name = generate_unique_index_name(symbol_table)
         symbol_table = add_symbol(symbol_table, index_name, MOANodeTypes.INDEX, (), (0, bound))
-        index_symbols = index_symbols + (ArrayNode(MOANodeTypes.ARRAY, (), index_name),)
+        index_symbols = index_symbols + (Node(MOANodeTypes.ARRAY, (), index_name),)
 
     array_name = generate_unique_array_name(symbol_table)
     symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (len(index_symbols),), index_symbols)
-    vector_node = ArrayNode(MOANodeTypes.ARRAY, (len(index_symbols),), array_name)
-    node = BinaryNode(MOANodeTypes.PSI, node.shape, vector_node, node)
+    vector_node = Node(MOANodeTypes.ARRAY, (len(index_symbols),), array_name)
+    node = Node(MOANodeTypes.PSI, node.shape, vector_node, node)
 
     if condition_node:
-        node = ConditionNode(MOANodeTypes.CONDITION, node.shape, condition_node, node)
+        node = Node(MOANodeTypes.CONDITION, node.shape, condition_node, node)
     return symbol_table, node
 
 
@@ -102,9 +102,9 @@ def _reduce_replacement(symbol_table, node):
 
 def _reduce_psi_assign(symbol_table, node):
     """<i j> psi ... assign ... => <i j> psi ... assign <i j> psi ..."""
-    return symbol_table, BinaryNode(MOANodeTypes.ASSIGN, node.shape,
-                                    BinaryNode(MOANodeTypes.PSI, node.shape, node.left_node, node.right_node.left_node),
-                                    BinaryNode(MOANodeTypes.PSI, node.shape, node.left_node, node.right_node.right_node))
+    return symbol_table, Node(MOANodeTypes.ASSIGN, node.shape,
+                                    Node(MOANodeTypes.PSI, node.shape, node.left_node, node.right_node.left_node),
+                                    Node(MOANodeTypes.PSI, node.shape, node.left_node, node.right_node.right_node))
 
 
 
@@ -117,8 +117,8 @@ def _reduce_psi_psi(symbol_table, node):
     array_values = symbol_table[node.right_node.left_node.symbol_node].value + symbol_table[node.left_node.symbol_node].value
     symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (len(array_values),), array_values)
 
-    return symbol_table, BinaryNode(node.node_type, node.shape,
-                                    ArrayNode(MOANodeTypes.ARRAY, (len(array_values),), array_name),
+    return symbol_table, Node(node.node_type, node.shape,
+                                    Node(MOANodeTypes.ARRAY, (len(array_values),), array_name),
                                     node.right_node.right_node)
 
 
@@ -128,8 +128,8 @@ def _reduce_psi_transpose(symbol_table, node):
     array_values = symbol_table[node.left_node.symbol_node].value[::-1]
     symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (len(array_values),), array_values)
 
-    return symbol_table, BinaryNode(MOANodeTypes.PSI, node.shape,
-                                    ArrayNode(MOANodeTypes.ARRAY, (len(array_values),), array_name),
+    return symbol_table, Node(MOANodeTypes.PSI, node.shape,
+                                    Node(MOANodeTypes.ARRAY, (len(array_values),), array_name),
                                     node.right_node.right_node)
 
 
@@ -138,8 +138,8 @@ def _reduce_psi_transposev(symbol_table, node):
     array_name = generate_unique_array_name(symbol_table)
     array_values = tuple(s for _, s in sorted(zip(symbol_table[node.right_node.left_node.symbol_node].value, symbol_table[node.left_node.symbol_node].value), key=lambda pair: pair[0]))
     symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (len(array_values),), array_values)
-    return symbol_table, BinaryNode(MOANodeTypes.PSI, node.shape,
-                                    ArrayNode(MOANodeTypes.ARRAY, (len(array_values),), array_name),
+    return symbol_table, Node(MOANodeTypes.PSI, node.shape,
+                                    Node(MOANodeTypes.ARRAY, (len(array_values),), array_name),
                                     node.right_node.right_node)
 
 
@@ -147,13 +147,13 @@ def _reduce_psi_reduce_plus_minus_times_divide(symbol_table, node):
     index_name = generate_unique_index_name(symbol_table)
     symbol_table = add_symbol(symbol_table, index_name, MOANodeTypes.INDEX, (), (0, node.right_node.right_node.shape[0]))
 
-    index_vector = (ArrayNode(MOANodeTypes.ARRAY, (), index_name),) + symbol_table[node.left_node.symbol_node].value
+    index_vector = (Node(MOANodeTypes.ARRAY, (), index_name),) + symbol_table[node.left_node.symbol_node].value
     array_name = generate_unique_array_name(symbol_table)
     symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (len(index_vector),), index_vector)
 
-    return symbol_table, ReduceNode(node.right_node.node_type, node.shape, index_name,
-                                    BinaryNode(MOANodeTypes.PSI, node.shape,
-                                               ArrayNode(MOANodeTypes.ARRAY, (len(index_vector),), array_name),
+    return symbol_table, Node(node.right_node.node_type, node.shape, index_name,
+                                    Node(MOANodeTypes.PSI, node.shape,
+                                               Node(MOANodeTypes.ARRAY, (len(index_vector),), array_name),
                                                node.right_node.right_node))
 
 
@@ -170,12 +170,12 @@ def _reduce_psi_outer_plus_minus_times_divide(symbol_table, node):
     right_dimension = dimension(symbol_table, node.right_node.right_node)
     symbol_table = add_symbol(symbol_table, right_array_name, MOANodeTypes.ARRAY, (right_dimension,), symbol_table[node.left_node.symbol_node].value[-right_dimension:])
 
-    return symbol_table, BinaryNode(node.right_node.node_type[1], node.shape,
-                                    BinaryNode(MOANodeTypes.PSI, node.shape,
-                                               ArrayNode(MOANodeTypes.ARRAY, (left_dimension,), left_array_name),
+    return symbol_table, Node(node.right_node.node_type[1], node.shape,
+                                    Node(MOANodeTypes.PSI, node.shape,
+                                               Node(MOANodeTypes.ARRAY, (left_dimension,), left_array_name),
                                                node.right_node.left_node),
-                                    BinaryNode(MOANodeTypes.PSI, node.shape,
-                                               ArrayNode(MOANodeTypes.ARRAY, (right_dimension,), right_array_name),
+                                    Node(MOANodeTypes.PSI, node.shape,
+                                               Node(MOANodeTypes.ARRAY, (right_dimension,), right_array_name),
                                                node.right_node.right_node))
 
 
@@ -188,15 +188,15 @@ def _reduce_psi_plus_minus_times_divide(symbol_table, node):
     if is_scalar(symbol_table, node.right_node.left_node):
         left_node = node.right_node.left_node
     else:
-        left_node = BinaryNode(MOANodeTypes.PSI, node.shape,
+        left_node = Node(MOANodeTypes.PSI, node.shape,
                                node.left_node,
                                node.right_node.left_node)
 
     if is_scalar(symbol_table, node.right_node.right_node):
         right_node = node.right_node.right_node
     else:
-        right_node = BinaryNode(MOANodeTypes.PSI, node.shape,
+        right_node = Node(MOANodeTypes.PSI, node.shape,
                                 node.left_node,
                                 node.right_node.right_node)
 
-    return symbol_table, BinaryNode(node.right_node.node_type, node.shape, left_node, right_node)
+    return symbol_table, Node(node.right_node.node_type, node.shape, left_node, right_node)

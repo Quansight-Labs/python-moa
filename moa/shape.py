@@ -1,6 +1,6 @@
 from .ast import (
     MOANodeTypes, postorder_replacement,
-    ArrayNode, BinaryNode, UnaryNode, ConditionNode, ReduceNode,
+    Node,
     is_array, is_unary_operation, is_binary_operation,
     generate_unique_array_name, add_symbol,
     is_symbolic_element, has_symbolic_elements
@@ -63,42 +63,40 @@ def _shape_replacement(symbol_table, node):
     # condition propagation
     if is_binary_operation(node):
         if node.left_node.node_type == MOANodeTypes.CONDITION and node.right_node.node_type == MOANodeTypes.CONDITION:
-            condition_node = BinaryNode(MOANodeTypes.AND, None, node.left_node.condition_node, node.right_node.condition_node)
-            node = BinaryNode(node.node_type, None, node.left_node.right_node, node.right_node.right_node)
+            condition_node = Node(MOANodeTypes.AND, None, node.left_node.condition_node, node.right_node.condition_node)
+            node = Node(node.node_type, None, node.left_node.right_node, node.right_node.right_node)
         if node.left_node.node_type == MOANodeTypes.CONDITION:
             condition_node = node.left_node.condition_node
-            node = BinaryNode(node.node_type, None, node.left_node.right_node, node.right_node)
+            node = Node(node.node_type, None, node.left_node.right_node, node.right_node)
         elif node.right_node.node_type == MOANodeTypes.CONDITION:
             condition_node = node.right_node.condition_node
-            node = BinaryNode(node.node_type, None, node.left_node, node.right_node.right_node)
+            node = Node(node.node_type, None, node.left_node, node.right_node.right_node)
     elif is_unary_operation(node):
         if node.right_node.node_type == MOANodeTypes.CONDITION:
             condition_node = node.right_node.condition_node
-            node = UnaryNode(node.node_type, None, node.right_node.right_node)
+            node = Node(node.node_type, None, node.right_node.right_node)
 
     symbol_table, node = shape_map[node.node_type](symbol_table, node)
 
     # combine possible two conditions and set shape
     if node.node_type == MOANodeTypes.CONDITION and condition_node:
-       node = ConditionNode(MOANodeTypes.CONDITION, node.shape,
-                            BinaryNode(MOANodeTypes.AND, (), condition_node, node.condition_node),
-                            node.right_node)
+       node = Node(MOANodeTypes.CONDITION, node.shape,
+                   Node(MOANodeTypes.AND, (), condition_node, node.condition_node),
+                   node.right_node)
     elif condition_node:
-        node = ConditionNode(MOANodeTypes.CONDITION, node.shape,
-                             condition_node,
-                             node)
+        node = Node(MOANodeTypes.CONDITION, node.shape, condition_node, node)
 
     return symbol_table, node
 
 
 # Array Operations
 def _shape_array(symbol_table, node):
-    return symbol_table, ArrayNode(node.node_type, symbol_table[node.symbol_node].shape, node.symbol_node)
+    return symbol_table, Node(node.node_type, symbol_table[node.symbol_node].shape, node.symbol_node)
 
 
 # Unary Operations
 def _shape_transpose(symbol_table, node):
-    return symbol_table, UnaryNode(node.node_type, node.right_node.shape[::-1], node.right_node)
+    return symbol_table, Node(node.node_type, node.right_node.shape[::-1], node.right_node)
 
 
 def _shape_transpose_vector(symbol_table, node):
@@ -117,7 +115,7 @@ def _shape_transpose_vector(symbol_table, node):
 
     # sort two lists according to one list
     shape = tuple(s for _, s in sorted(zip(left_symbol_node.value, node.right_node.shape), key=lambda pair: pair[0]))
-    return symbol_table, BinaryNode(node.node_type, shape, node.left_node, node.right_node)
+    return symbol_table, Node(node.node_type, shape, node.left_node, node.right_node)
 
 
 def _shape_assign(symbol_table, node):
@@ -127,34 +125,34 @@ def _shape_assign(symbol_table, node):
     shape = ()
     for i, (left_element, right_element) in enumerate(zip(node.left_node.shape, node.right_node.shape)):
         if is_symbolic_element(left_element) and is_symbolic_element(right_element): # both are symbolic
-            conditions.append(BinaryNode(MOANodeTypes.EQUAL, (), left_element, right_element))
+            conditions.append(Node(MOANodeTypes.EQUAL, (), left_element, right_element))
             shape = shape + (left_element,)
         elif is_symbolic_element(left_element): # only left is symbolic
             array_name = generate_unique_array_name(symbol_table)
             symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (), (right_element,))
-            conditions.append(BinaryNode(MOANodeTypes.EQUAL, (), left_element, ArrayNode(MOANodeTypes.ARRAY, (), array_name)))
+            conditions.append(Node(MOANodeTypes.EQUAL, (), left_element, Node(MOANodeTypes.ARRAY, (), array_name)))
             shape = shape + (right_element,)
         elif is_symbolic_element(right_element): # only right is symbolic
             array_name = generate_unique_array_name(symbol_table)
             symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (), (left_element,))
-            conditions.append(BinaryNode(MOANodeTypes.EQUAL, (), ArrayNode(MOANodeTypes.ARRAY, (), array_name), right_element))
+            conditions.append(Node(MOANodeTypes.EQUAL, (), Node(MOANodeTypes.ARRAY, (), array_name), right_element))
             shape = shape + (left_element,)
         else: # neither symbolic
             if left_element != right_element:
                 raise MOAShapeException(f'ASSIGN requires shapes to match elements #{i} left {left_element} != right {right_element}')
             shape = shape + (left_element,)
 
-    node = BinaryNode(node.node_type, shape, node.left_node, node.right_node)
+    node = Node(node.node_type, shape, node.left_node, node.right_node)
     if conditions:
         condition_node = conditions[0]
         for condition in conditions[1:]:
-            condition_node = BinaryNode(MOANodeTypes.AND, (), condition, condition_node)
-        node = ConditionNode(MOANodeTypes.CONDITION, node.shape, condition_node, node)
+            condition_node = Node(MOANodeTypes.AND, (), condition, condition_node)
+        node = Node(MOANodeTypes.CONDITION, node.shape, condition_node, node)
     return symbol_table, node
 
 
 def _shape_shape(symbol_table, node):
-    return symbol_table, UnaryNode(node.node_type, (dimension(symbol_table, node.right_node),), node.right_node)
+    return symbol_table, Node(node.node_type, (dimension(symbol_table, node.right_node),), node.right_node)
 
 
 # Binary Operations
@@ -173,37 +171,37 @@ def _shape_psi(symbol_table, node):
     conditions = []
     for i, (left_element, right_element) in enumerate(zip(left_symbol_node.value, node.right_node.shape)):
         if is_symbolic_element(left_element) and is_symbolic_element(right_element): # both are symbolic
-            conditions.append(BinaryNode(MOANodeTypes.LESSTHAN, (), left_element, right_element))
+            conditions.append(Node(MOANodeTypes.LESSTHAN, (), left_element, right_element))
         elif is_symbolic_element(left_element): # only left is symbolic
             array_name = generate_unique_array_name(symbol_table)
             symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (), (right_element,))
-            conditions.append(BinaryNode(MOANodeTypes.LESSTHAN, (), left_element, ArrayNode(MOANodeTypes.ARRAY, (), array_name)))
+            conditions.append(Node(MOANodeTypes.LESSTHAN, (), left_element, Node(MOANodeTypes.ARRAY, (), array_name)))
         elif is_symbolic_element(right_element): # only right is symbolic
             array_name = generate_unique_array_name(symbol_table)
             symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (), (left_element,))
-            conditions.append(BinaryNode(MOANodeTypes.LESSTHAN, (), ArrayNode(MOANodeTypes.ARRAY, (), array_name), right_element))
+            conditions.append(Node(MOANodeTypes.LESSTHAN, (), Node(MOANodeTypes.ARRAY, (), array_name), right_element))
         else: # neither symbolic
             if left_element >= right_element:
                 raise MOAShapeException(f'PSI requires elements #{i} left {left_element} < right {right_element}')
 
-    node = BinaryNode(node.node_type, node.right_node.shape[drop_dimensions:], node.left_node, node.right_node)
+    node = Node(node.node_type, node.right_node.shape[drop_dimensions:], node.left_node, node.right_node)
     if conditions:
         condition_node = conditions[0]
         for condition in conditions[1:]:
-            condition_node = BinaryNode(MOANodeTypes.AND, (), condition, condition_node)
-        node = ConditionNode(MOANodeTypes.CONDITION, node.shape, condition_node, node)
+            condition_node = Node(MOANodeTypes.AND, (), condition, condition_node)
+        node = Node(MOANodeTypes.CONDITION, node.shape, condition_node, node)
     return symbol_table, node
 
 
 def _shape_reduce_plus_minus_divide_times(symbol_table, node):
     if dimension(symbol_table, node.right_node) == 0:
         return symbol_table, node.right_node
-    return symbol_table, ReduceNode(node.node_type, node.right_node.shape[1:], None, node.right_node)
+    return symbol_table, Node(node.node_type, node.right_node.shape[1:], None, node.right_node)
 
 
 def _shape_outer_plus_minus_divide_times(symbol_table, node):
     node_shape = node.left_node.shape + node.right_node.shape
-    return symbol_table, BinaryNode(node.node_type, node_shape, node.left_node, node.right_node)
+    return symbol_table, Node(node.node_type, node_shape, node.left_node, node.right_node)
 
 
 def _shape_plus_minus_divide_times(symbol_table, node):
@@ -219,27 +217,27 @@ def _shape_plus_minus_divide_times(symbol_table, node):
         shape = ()
         for i, (left_element, right_element) in enumerate(zip(node.left_node.shape, node.right_node.shape)):
             if is_symbolic_element(left_element) and is_symbolic_element(right_element): # both are symbolic
-                conditions.append(BinaryNode(MOANodeTypes.EQUAL, (), left_element, right_element))
+                conditions.append(Node(MOANodeTypes.EQUAL, (), left_element, right_element))
                 shape = shape + (left_element,)
             elif is_symbolic_element(left_element): # only left is symbolic
                 array_name = generate_unique_array_name(symbol_table)
                 symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (), (right_element,))
-                conditions.append(BinaryNode(MOANodeTypes.EQUAL, (), left_element, ArrayNode(MOANodeTypes.ARRAY, (), array_name)))
+                conditions.append(Node(MOANodeTypes.EQUAL, (), left_element, Node(MOANodeTypes.ARRAY, (), array_name)))
                 shape = shape + (right_element,)
             elif is_symbolic_element(right_element): # only right is symbolic
                 array_name = generate_unique_array_name(symbol_table)
                 symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (), (left_element,))
-                conditions.append(BinaryNode(MOANodeTypes.EQUAL, (), ArrayNode(MOANodeTypes.ARRAY, (), array_name), right_element))
+                conditions.append(Node(MOANodeTypes.EQUAL, (), Node(MOANodeTypes.ARRAY, (), array_name), right_element))
                 shape = shape + (left_element,)
             else: # neither symbolic
                 if left_element != right_element:
                     raise MOAShapeException(f'(+,-,/,*) requires shapes to match elements #{i} left {left_element} != right {right_element}')
                 shape = shape + (left_element,)
 
-    node = BinaryNode(node.node_type, shape, node.left_node, node.right_node)
+    node = Node(node.node_type, shape, node.left_node, node.right_node)
     if conditions:
         condition_node = conditions[0]
         for condition in conditions[1:]:
-            condition_node = BinaryNode(MOANodeTypes.AND, (), condition, condition_node)
-        node = ConditionNode(MOANodeTypes.CONDITION, node.shape, condition_node, node)
+            condition_node = Node(MOANodeTypes.AND, (), condition, condition_node)
+        node = Node(MOANodeTypes.CONDITION, node.shape, condition_node, node)
     return symbol_table, node

@@ -1,19 +1,16 @@
-from moa.ast import (
-    BinaryNode, UnaryNode, ArrayNode, SymbolNode,
-    MOANodeTypes
-)
+from moa.ast import MOANodeTypes, Node, SymbolNode
 from moa.analysis import metric_flops
 from moa.shape import calculate_shapes
 from moa.dnf import reduce_to_dnf
 
 
 def test_metric_flops():
-    tree = BinaryNode(MOANodeTypes.PSI, None,
-                      ArrayNode(MOANodeTypes.ARRAY, None, '_a1'),
-                      UnaryNode(MOANodeTypes.TRANSPOSE, None,
-                                BinaryNode(MOANodeTypes.PLUS, None,
-                                           ArrayNode(MOANodeTypes.ARRAY, None, 'A'),
-                                           ArrayNode(MOANodeTypes.ARRAY, None, 'B'))))
+    tree = Node(MOANodeTypes.PSI, None,
+                Node(MOANodeTypes.ARRAY, None, '_a1'),
+                Node(MOANodeTypes.TRANSPOSE, None,
+                     Node(MOANodeTypes.PLUS, None,
+                          Node(MOANodeTypes.ARRAY, None, 'A'),
+                          Node(MOANodeTypes.ARRAY, None, 'B'))))
 
     symbol_table = {
         '_a1': SymbolNode(MOANodeTypes.ARRAY, (1,), (0,)),
