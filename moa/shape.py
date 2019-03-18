@@ -1,5 +1,5 @@
 from .ast import (
-    MOANodeTypes, postorder_replacement,
+    MOANodeTypes, node_traversal,
     Node,
     is_array, is_unary_operation, is_binary_operation,
     generate_unique_array_name, add_symbol,
@@ -34,7 +34,7 @@ def calculate_shapes(symbol_table, tree):
     """Postorder traversal to calculate node shapes
 
     """
-    return postorder_replacement(symbol_table, tree, _shape_replacement)
+    return node_traversal(symbol_table, tree, _shape_replacement, traversal='post')
 
 
 def _shape_replacement(symbol_table, node):

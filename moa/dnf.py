@@ -8,7 +8,7 @@ from .ast import (
     generate_unique_index_name, generate_unique_array_name,
     is_binary_operation, is_unary_operation, is_array,
     has_symbolic_elements, is_symbolic_element,
-    preorder_replacement
+    node_traversal,
 )
 from .shape import dimension, is_vector, is_scalar
 
@@ -43,7 +43,7 @@ def add_indexing_node(symbol_table, node):
     return symbol_table, node
 
 
-def reduce_to_dnf(symbol_table, node, max_iterations=100):
+def reduce_to_dnf(symbol_table, node):
     """Preorder traversal and replacement of ast tree
 
     In the future the symbol table will have to be constructed earlier
@@ -52,7 +52,7 @@ def reduce_to_dnf(symbol_table, node, max_iterations=100):
     TODO: change exception to warning to allow for partial replacement
     """
     symbol_table, node = add_indexing_node(symbol_table, node)
-    symbol_table, node = preorder_replacement(symbol_table, node, _reduce_replacement, range(max_iterations))
+    symbol_table, node = node_traversal(symbol_table, node, _reduce_replacement, traversal='pre')
     return symbol_table, node
 
 

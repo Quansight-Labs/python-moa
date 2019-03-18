@@ -1,8 +1,7 @@
 from functools import reduce
 
 from .ast import (
-    postorder_replacement,
-    MOANodeTypes,
+    MOANodeTypes, node_traversal,
     is_binary_operation, is_unary_operation
 )
 
@@ -27,5 +26,5 @@ def metric_flops(symbol_table, tree):
         else:
             raise TypeError('flops not counted for type {node.node_type}')
 
-    _, flops = postorder_replacement(symbol_table, tree, _count_flops)
+    _, flops = node_traversal(symbol_table, tree, _count_flops, traversal='post')
     return flops

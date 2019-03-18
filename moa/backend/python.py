@@ -2,7 +2,7 @@ import ast
 import astunparse
 
 from ..ast import (
-    MOANodeTypes, postorder_replacement,
+    MOANodeTypes, node_traversal,
     has_symbolic_elements, is_symbolic_element
 )
 
@@ -11,7 +11,7 @@ def python_backend(symbol_table, tree):
     """Convert MOA reduced AST to python source code
 
     """
-    symbol_table, python_ast = postorder_replacement(symbol_table, tree, _ast_replacement)
+    symbol_table, python_ast = node_traversal(symbol_table, tree, _ast_replacement, traversal='post')
     return python_ast
 
 

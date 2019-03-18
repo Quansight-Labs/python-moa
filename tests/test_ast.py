@@ -8,9 +8,7 @@ from moa.ast import (
     is_array, is_unary_operation, is_binary_operation,
     add_symbol,
     generate_unique_array_name, generate_unique_index_name,
-    join_symbol_tables,
-    postorder_replacement,
-    preorder_replacement
+    join_symbol_tables, node_traversal,
 )
 
 @pytest.mark.parametrize('node, result', [
@@ -123,7 +121,7 @@ def test_postorder_replacement():
                       (MOANodeTypes.RAV, (5,),
                        (MOANodeTypes.ARRAY, (4,), None))))
 
-    new_symbol_table, new_tree = postorder_replacement(symbol_table, tree, replacement_function)
+    new_symbol_table, new_tree = node_traversal(symbol_table, tree, replacement_function, traversal='post')
     assert new_symbol_table == symbol_table
     assert new_tree == expected_tree
 
@@ -162,6 +160,6 @@ def test_preorder_replacement():
                       (MOANodeTypes.RAV, (6,),
                        (MOANodeTypes.ARRAY, (7,), None))))
 
-    new_symbol_table, new_tree = preorder_replacement(symbol_table, tree, replacement_function)
+    new_symbol_table, new_tree = node_traversal(symbol_table, tree, replacement_function, traversal='pre')
     assert symbol_table == new_symbol_table
     assert new_tree == expected_tree

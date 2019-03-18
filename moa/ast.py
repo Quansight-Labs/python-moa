@@ -155,6 +155,25 @@ def Node(node_type, *args):
         return BinaryNode(node_type, shape, left_node, right_node)
 
 
+def visit_node_children(symbol_table, node, _visit_function):
+    if isinstance(node.node_type, tuple) and node.node_type[0] == MOANodeTypes.DOT:
+        _visit_function(symbol_table, node.left_node)
+        _visit_function(symbol_table, node.right_node, context={'last': True})
+    elif isinstance(node.node_type, tuple) and node.node_type[0] == MOANodeTypes.REDUCE:
+        _visit_function(symbol_table, node.right_node, context={'last': True})
+    elif node.node_type in {MOANodeTypes.FUNCTION, MOANodeTypes.LOOP, MOANodeTypes.IF}:
+        for child in node.body[:-1]:
+            _visit_function(symbol_table, child)
+        _visit_function(symbol_table, node.body[-1], context={'last': True})
+    elif 100 < node.node_type.value < 200 or node.node_type == MOANodeTypes.CONDITION:
+        _visit_function(symbol_table, node.right_node, context={'last': True})
+    elif (200 < node.node_type.value < 300) or node.node_type == MOANodeTypes.ASSIGN:
+        _visit_function(symbol_table, node.left_node)
+        _visit_function(symbol_table, node.right_node, context={'last': True})
+    elif node.node_type in {MOANodeTypes.ARRAY, MOANodeTypes.INDEX, MOANodeTypes.INITIALIZE, MOANodeTypes.ERROR}:
+        return
+
+
 # symbol table methods
 def add_symbol(symbol_table, name, node_type, shape, value):
     if name in symbol_table and symbol_table[name] != (node_type, shape, value):
@@ -225,10 +244,10 @@ def join_symbol_tables(left_symbol_table, left_tree, right_symbol_table, right_t
         return symbol_mapping
 
     # discover used symbols and create symbol mapping
-    postorder_replacement(left_symbol_table, left_tree, _visit_node)
+    node_traversal(left_symbol_table, left_tree, _visit_node, traversal='post')
     left_symbol_mapping = _symbol_mapping(visited_symbols)
     visited_symbols.clear()
-    postorder_replacement(right_symbol_table, right_tree, _visit_node)
+    node_traversal(right_symbol_table, right_tree, _visit_node, traversal='post')
     right_symbol_mapping = _symbol_mapping(visited_symbols)
 
     # check that user defined symbols match in both tables
@@ -241,11 +260,11 @@ def join_symbol_tables(left_symbol_table, left_tree, right_symbol_table, right_t
 
     def _rename_symbols(symbol_table, node):
         if node.node_type == MOANodeTypes.ARRAY:
-            node = ArrayNode(MOANodeTypes.ARRAY, None, symbol_mapping[node.symbol_node])
+            node = Node(MOANodeTypes.ARRAY, None, symbol_mapping[node.symbol_node])
         return symbol_table, node
 
-    new_left_symbol_table, new_left_tree = postorder_replacement(left_symbol_table, left_tree, _rename_symbols)
-    new_right_symbol_table, new_right_tree = postorder_replacement(right_symbol_table, right_tree, _rename_symbols)
+    new_left_symbol_table, new_left_tree = node_traversal(left_symbol_table, left_tree, _rename_symbols, traversal='post')
+    new_right_symbol_table, new_right_tree = node_traversal(right_symbol_table, right_tree, _rename_symbols, traversal='post')
 
     # select subset of symbols from both symbol tables and rename
     new_symbol_table = {}
@@ -261,7 +280,7 @@ def join_symbol_tables(left_symbol_table, left_tree, right_symbol_table, right_t
             shape = ()
             for element in symbol_node.shape:
                 if is_symbolic_element(element):
-                    shape = shape + (ArrayNode(element.node_type, element.shape, symbol_mapping[element.symbol_node]),)
+                    shape = shape + (Node(element.node_type, element.shape, symbol_mapping[element.symbol_node]),)
                 else:
                     shape = shape + (element,)
 
@@ -270,7 +289,7 @@ def join_symbol_tables(left_symbol_table, left_tree, right_symbol_table, right_t
             value = ()
             for element in symbol_node.value:
                 if is_symbolic_element(element):
-                    value = value + (ArrayNode(element.node_type, element.shape, symbol_mapping[element.symbol_node]),)
+                    value = value + (Node(element.node_type, element.shape, symbol_mapping[element.symbol_node]),)
                 else:
                     value = value + (element,)
         new_symbol_table[name] = SymbolNode(MOANodeTypes.ARRAY, shape, value)
@@ -279,98 +298,61 @@ def join_symbol_tables(left_symbol_table, left_tree, right_symbol_table, right_t
 
 
 ## replacement methods
-def postorder_replacement(symbol_table, node, replacement_function):
-    """Postorder (Left, Right, Root) traversal of AST
+def node_traversal(symbol_table, node, replacement_function, traversal, max_iterations=range(100)):
+    if traversal == 'pre':
+        for iteration in max_iterations:
+            replacement_symbol_table, replacement_node = replacement_function(symbol_table, node)
+            if replacement_symbol_table is None or replacement_node is None:
+                break
+            symbol_table = replacement_symbol_table
+            node = replacement_node
+        else:
+            raise MOAReplacementError(f'reduction failed to complete in max_iterations')
 
-    Used for calculating the shape of the ast at each node.
-
-    new_symbol_table, new_node = replacement_function(symbol_table, node)
-    """
-    if is_unary_operation(node):
-        symbol_table, right_node = postorder_replacement(symbol_table, node.right_node, replacement_function)
-        node = UnaryNode(node.node_type, node.shape, right_node)
-
-    elif is_binary_operation(node) or node.node_type in {MOANodeTypes.ASSIGN}:
-        symbol_table, left_node = postorder_replacement(symbol_table, node.left_node, replacement_function)
-        symbol_table, right_node = postorder_replacement(symbol_table, node.right_node, replacement_function)
-        node = BinaryNode(node.node_type, node.shape, left_node, right_node)
-
-    elif node.node_type == MOANodeTypes.IF:
-        symbol_table, condition_node = postorder_replacement(symbol_table, node.condition_node, replacement_function)
-
-        replacement_nodes = ()
-        for child_node in node.body:
-            symbol_table, replacement_node = postorder_replacement(symbol_table, child_node, replacement_function)
-            replacement_nodes = replacement_nodes + (replacement_node,)
-        node = IfNode(node.node_type, node.shape, condition_node, replacement_nodes)
-
+    if isinstance(node.node_type, tuple) and node.node_type[0] == MOANodeTypes.DOT:
+        symbol_table, left_node = node_traversal(symbol_table, node.left_node, replacement_function, traversal)
+        symbol_table, right_node = node_traversal(symbol_table, node.right_node, replacement_function, traversal)
+        node = Node(node.node_type, node.shape, left_node, right_node)
+    elif isinstance(node.node_type, tuple) and node.node_type[0] == MOANodeTypes.REDUCE:
+        symbol_table, right_node = node_traversal(symbol_table, node.right_node, replacement_function, traversal)
+        node = Node(node.node_type, node.shape, node.symbol_node, right_node)
     elif node.node_type == MOANodeTypes.FUNCTION:
-        replacement_nodes = ()
-        for child_node in node.body:
-            symbol_table, replacement_node = postorder_replacement(symbol_table, child_node, replacement_function)
-            replacement_nodes = replacement_nodes + (replacement_node,)
-        node = FunctionNode(node.node_type, node.shape, node.arguments, node.result, replacement_nodes)
-
+        child_nodes = ()
+        for child in node.body:
+            symbol_table, child_node = node_traversal(symbol_table, child, replacement_function, traversal)
+            child_nodes = child_nodes + (child_node,)
+        node = Node(node.node_type, node.shape, node.arguments, node.result, child_nodes)
     elif node.node_type == MOANodeTypes.LOOP:
-        replacement_nodes = ()
-        for child_node in node.body:
-            symbol_table, replacement_node = postorder_replacement(symbol_table, child_node, replacement_function)
-            replacement_nodes = replacement_nodes + (replacement_node,)
-        node = LoopNode(node.node_type, node.shape, node.symbol_node, replacement_nodes)
+        child_nodes = ()
+        for child in node.body:
+            symbol_table, child_node = node_traversal(symbol_table, child, replacement_function, traversal)
+            child_nodes = child_nodes + (child_node,)
+        node = Node(node.node_type, node.shape, node.symbol_node, child_nodes)
+    elif node.node_type == MOANodeTypes.IF:
+        symbol_table, condition_node = node_traversal(symbol_table, node.condition_node, replacement_function, traversal)
 
-    elif isinstance(node.node_type, tuple) and node.node_type[0] == MOANodeTypes.REDUCE:
-        symbol_table, right_node = postorder_replacement(symbol_table, node.right_node, replacement_function)
-        node = ReduceNode(node.node_type, node.shape, node.symbol_node, right_node)
-
-    return replacement_function(symbol_table, node)
-
-
-def preorder_replacement(symbol_table, node, replacement_function, max_iterations=range(100)):
-    """Preorder (Root, Left, Right) traversal of AST
-
-    Used for reducing the ast. Note that "replacement_function" is
-    called until it returns "None" indicating that there are no more
-    reductions to perform on the root node. This behavior is different
-    than the "postorder_replacement" function.
-
-    new_context = replacement_function(context)
-    """
-    for iteration in max_iterations:
-        replacement_symbol_table, replacement_node = replacement_function(symbol_table, node)
-        if replacement_symbol_table is None or replacement_node is None:
-            break
-        symbol_table = replacement_symbol_table
-        node = replacement_node
-    else:
-        raise MOAReplacementError(f'reduction failed to complete in max_iterations')
-
-    if is_unary_operation(node):
-        symbol_table, right_node = preorder_replacement(symbol_table, node.right_node, replacement_function, max_iterations)
-        node = UnaryNode(node.node_type, node.shape, right_node)
-
-    elif is_binary_operation(node):
-        symbol_table, left_node = preorder_replacement(symbol_table, node.left_node, replacement_function, max_iterations)
-        symbol_table, right_node = preorder_replacement(symbol_table, node.right_node, replacement_function, max_iterations)
-        node = BinaryNode(node.node_type, node.shape, left_node, right_node)
-
-    elif node.node_type == MOANodeTypes.ASSIGN:
-        symbol_table, left_node = preorder_replacement(symbol_table, node.left_node, replacement_function, max_iterations)
-        symbol_table, right_node = preorder_replacement(symbol_table, node.right_node, replacement_function, max_iterations)
-        node = BinaryNode(node.node_type, node.shape, left_node, right_node)
-
+        child_nodes = ()
+        for child in node.body:
+            symbol_table, child_node = node_traversal(symbol_table, child, replacement_function, traversal)
+            child_nodes = child_nodes + (child_node,)
+        node = Node(node.node_type, node.shape, condition_node, child_nodes)
     elif node.node_type == MOANodeTypes.CONDITION:
-        symbol_table, right_node = preorder_replacement(symbol_table, node.right_node, replacement_function, max_iterations)
-        node = ConditionNode(node.node_type, node.shape, node.condition_node, right_node)
+        symbol_table, condition_node = node_traversal(symbol_table, node.condition_node, replacement_function, traversal)
+        symbol_table, right_node = node_traversal(symbol_table, node.right_node, replacement_function, traversal)
+        node = Node(node.node_type, node.shape, condition_node, right_node)
+    elif 100 < node.node_type.value < 200:
+        symbol_table, right_node = node_traversal(symbol_table, node.right_node, replacement_function, traversal)
+        node = Node(node.node_type, node.shape, right_node)
+    elif (200 < node.node_type.value < 300) or node.node_type == MOANodeTypes.ASSIGN:
+        symbol_table, left_node = node_traversal(symbol_table, node.left_node, replacement_function, traversal)
+        symbol_table, right_node = node_traversal(symbol_table, node.right_node, replacement_function, traversal)
+        node = Node(node.node_type, node.shape, left_node, right_node)
+    elif node.node_type in {MOANodeTypes.ARRAY, MOANodeTypes.INDEX, MOANodeTypes.INITIALIZE, MOANodeTypes.ERROR}:
+        pass
+    else:
+        raise TypeError(f'{node.node_type} not handled for node traversal')
 
-    elif node.node_type == MOANodeTypes.FUNCTION:
-        replacement_nodes = ()
-        for child_node in node.body:
-            symbol_table, replacement_node = preorder_replacement(symbol_table, child_node, replacement_function)
-            replacement_nodes = replacement_nodes + (replacement_node,)
-        node = FunctionNode(node.node_type, node.shape, node.arguments, replacement_nodes)
-
-    elif isinstance(node.node_type, tuple) and node.node_type[0] == MOANodeTypes.REDUCE:
-        symbol_table, right_node = preorder_replacement(symbol_table, node.right_node, replacement_function)
-        node = ReduceNode(node.node_type, node.shape, node.symbol_node, right_node)
+    if traversal == 'post':
+        return replacement_function(symbol_table, node)
 
     return symbol_table, node

@@ -8,6 +8,7 @@ except ImportError as e:
 
 from .ast import (
     MOANodeTypes,
+    visit_node_children,
     is_array, is_unary_operation, is_binary_operation,
     is_symbolic_element
 )
@@ -137,26 +138,16 @@ def print_ast(symbol_table, node, vector_value=True):
         return label.format(**node_label)
 
     def _print_node(symbol_table, node, prefix=""):
-        if is_unary_operation(node):
-            print(prefix + "└──", _print_node_label(symbol_table, node.right_node))
-            _print_node(symbol_table, node.right_node, prefix + "    ")
-
-        elif is_binary_operation(node) or node.node_type == MOANodeTypes.ASSIGN:
-            print(prefix + "├──", _print_node_label(symbol_table, node.left_node))
-            _print_node(symbol_table, node.left_node,  prefix + "│   ")
-            print(prefix + "└──", _print_node_label(symbol_table, node.right_node))
-            _print_node(symbol_table, node.right_node, prefix + "    ")
-
-        elif node.node_type == MOANodeTypes.CONDITION:
-            print(prefix + "└──", _print_node_label(symbol_table, node.right_node))
-            _print_node(symbol_table, node.right_node, prefix + "    ")
-
-        elif node.node_type in {MOANodeTypes.FUNCTION, MOANodeTypes.LOOP, MOANodeTypes.IF}:
-            for child_node in node.body[:-1]:
+        def _node_function(symbol_node, child_node, context=None):
+            context = context or {}
+            if context.get('last'):
+                print(prefix + "└──", _print_node_label(symbol_table, child_node))
+                _print_node(symbol_table, child_node, prefix + "    ")
+            else:
                 print(prefix + "├──", _print_node_label(symbol_table, child_node))
                 _print_node(symbol_table, child_node,  prefix + "│   ")
-            print(prefix + "└──", _print_node_label(symbol_table, node.body[-1]))
-            _print_node(symbol_table, node.body[-1], prefix + "    ")
+
+        visit_node_children(symbol_table, node, _node_function)
 
     print(_print_node_label(symbol_table, node))
     _print_node(symbol_table, node)
@@ -203,21 +194,12 @@ def visualize_ast(symbol_table, node, comment='MOA AST', with_attrs=True, vector
     def _visualize_node(dot, symbol_table, node):
         node_id = _visualize_node_label(dot, symbol_table, node)
 
-        if is_unary_operation(node) or node.node_type == MOANodeTypes.CONDITION:
-            right_node_id = _visualize_node(dot, symbol_table, node.right_node)
-            dot.edge(node_id, right_node_id)
+        def _node_function(symbol_node, child_node, context=None):
+            context = context or {}
+            child_node_id = _visualize_node(dot, symbol_table, child_node)
+            dot.edge(node_id, child_node_id)
 
-        elif is_binary_operation(node) or node.node_type == MOANodeTypes.ASSIGN:
-            left_node_id = _visualize_node(dot, symbol_table, node.left_node)
-            dot.edge(node_id, left_node_id)
-            right_node_id = _visualize_node(dot, symbol_table, node.right_node)
-            dot.edge(node_id, right_node_id)
-
-        elif node.node_type in {MOANodeTypes.FUNCTION, MOANodeTypes.LOOP, MOANodeTypes.IF}:
-            for child_node in node.body:
-                child_node_id = _visualize_node(dot, symbol_table, child_node)
-                dot.edge(node_id, child_node_id)
-
+        visit_node_children(symbol_table, node, _node_function)
         return node_id
 
     _visualize_node(dot, symbol_table, node)
