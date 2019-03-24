@@ -1,6 +1,5 @@
 from .ast import (
-    MOANodeTypes, node_traversal,
-    Node,
+    MOANodeTypes, node_traversal, Node,
     is_array, is_unary_operation, is_binary_operation,
     generate_unique_array_name, add_symbol,
     is_symbolic_element, has_symbolic_elements

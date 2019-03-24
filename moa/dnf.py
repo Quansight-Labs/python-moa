@@ -2,13 +2,10 @@ import itertools
 
 from .core import MOAException
 from .ast import (
-    MOANodeTypes,
-    Node,
-    add_symbol,
-    generate_unique_index_name, generate_unique_array_name,
+    MOANodeTypes, Node, node_traversal,
+    add_symbol, generate_unique_index_name, generate_unique_array_name,
     is_binary_operation, is_unary_operation, is_array,
     has_symbolic_elements, is_symbolic_element,
-    node_traversal,
 )
 from .shape import dimension, is_vector, is_scalar
 
