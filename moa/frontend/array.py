@@ -28,21 +28,34 @@ class LazyArray:
         self.tree = Node(MOANodeTypes.ARRAY, None, name)
 
     def __getitem__(self, index):
-        array_name = generate_unique_array_name(self.symbol_table)
-        if isinstance(index, int):
-            indicies = (index,)
-        else: # tuple
-            indicies = ()
-            for i in index:
-                if not isinstance(i, int):
-                    raise TypeError('expecting indexing arguments to be int or tuple of ints')
-                else:
-                    indicies = indicies + (i,)
+        if isinstance(index, (int, str, slice)):
+            index = (index,)
 
-        self.symbol_table = add_symbol(self.symbol_table, array_name, MOANodeTypes.ARRAY, (len(indicies),), indicies)
-        self.tree = Node(MOANodeTypes.PSI, None,
-                               Node(MOANodeTypes.ARRAY, None, array_name),
-                               self.tree)
+        indicies = ()
+        strides = ()
+        for i in index:
+            if isinstance(i, str):
+                if strides:
+                    raise IndexError('current limitation that indexing is not allowed past strides')
+                self.symbol_table = add_symbol(self.symbol_table, i, MOANodeTypes.ARRAY, (), None)
+                indicies = indicies + (Node(MOANodeTypes.ARRAY, (), i),)
+            elif isinstance(i, int):
+                if strides:
+                    raise IndexError('current limitation that indexing is not allowed past strides')
+                indicies = indicies + (i,)
+            elif isinstance(i, slice):
+                strides = strides + ((i.start, i.stop, i.step),)
+            else:
+                raise IndexError('only integers, symbols, and slices (`:`) are valid indicies')
+
+        if indicies:
+            array_name = generate_unique_array_name(self.symbol_table)
+            self.symbol_table = add_symbol(self.symbol_table, array_name, MOANodeTypes.ARRAY, (len(indicies),), indicies)
+            self.tree = Node(MOANodeTypes.PSI, None,
+                                   Node(MOANodeTypes.ARRAY, None, array_name),
+                                   self.tree)
+        if strides:
+            raise NotImplemenetedError('strides not implemented')
         return self
 
     def _create_array_from_int_float_string(self, value):
