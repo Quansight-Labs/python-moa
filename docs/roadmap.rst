@@ -218,16 +218,53 @@ Also note that a max function will be required to determine shape.
 
 The resulting shape is ``k = max(n, m)`` :math:`\vccc3k4`.
 
-Numpy Ufuncs
+gufuncs
 ------------
 
-ufuncs further documented.
+gufuncs are the idea that a given operation ``f`` can take in ``n``
+arrays with differing dimensions and output ``p`` arrays with
+differing dimensions. With this the input arrays "eat" the right most
+dimensions from the input arrays. The remaining left most dimensions
+of the arrays must be equal or satisfy some relaxed condition such as
+broadcasting or scalar extension in moa.
+
+So gufuncs are two ideas in moa.
+
+1. ``f(A, B, C, ...) -> D, E, ...``
+2. ``omega`` which applies the given operation to the left most dimensions.
+
+Lets looks at an example and show that MOA is "almost" advocating broadcasting.
+
+Suppose a function ``g`` that takes input arguments 2 dimensional, 1 dimensional.
+
+And we have two input arrays.
+
+ - :math:`\shape A = \vcccc2345`
+ - :math:`\shape B = \vcc34`
+
+:math:`m = \min(4-2, 2-1) = 1`
+
+Then the only requirement is that :math:`\vc3 = \vc3`. Notice that 2
+is not in this. Lenore then implies that scalar extension also applies
+to omega.
+
+Lets consider a complex example. A tensor contraction with broadcasting.
+
+ - :math:`\shape A = \vcccc945`
+ - :math:`\shape B = \vcc56`
+ - :math:`\shape C = \vccc946`
+
+We apply a tensor contraction to the innermost "right most" dimensions
+of A and B. With :math:`\emptyset` and :math:`\vc9`. This is
+broadcasted to :math:`\vc9`. With the resulting shape of C.
 
 
 Slice MOA Operation
 -------------------
 
-Take, drop, and reverse are not general enough.
+Take, drop, and reverse are not general enough. How would one
+represent ``A[::2]``? Currently this is not possible but the shape is
+deterministic. Thus I recommend a slice operation ``A slice B`` where :math:`\shape A = \vccn3`.
 
 
 Conditional Indexing
@@ -239,6 +276,9 @@ Allowing a selection of elements to be taken from an array. The resulting shape.
 
    A[A > 5]
 
+This indexing will result in a vector. A corresponding reshape
+operation would be nice to have.
+
 
 Reshape
 -------
@@ -249,4 +289,4 @@ PSI Reduction Implementation
 ----------------------------
 
 Useful for a huge performance increase and reduce the number of
-loops.
+loops. Need further understanding of this topic.
