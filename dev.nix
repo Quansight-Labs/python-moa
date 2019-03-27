@@ -26,7 +26,8 @@ rec {
     checkInputs = if benchmark then testInputs ++ benchmarkInputs else testInputs;
 
     checkPhase = ''
-      pytest tests ${if benchmark then "benchmarks" else ""} --cov=moa
+      # pytest tests ${if benchmark then "benchmarks" else ""} --cov=moa
+      pytest tests/test_ast.py
     '';
   };
 

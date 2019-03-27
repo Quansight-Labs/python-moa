@@ -1,31 +1,26 @@
-from .ast import (
-    MOANodeTypes, node_traversal, Node,
-    is_array, is_unary_operation, is_binary_operation,
-    generate_unique_array_name, add_symbol,
-    is_symbolic_element, has_symbolic_elements
-)
-from .core import MOAException
+from . import ast
+from .exception import MOAException
 
 
-class MOAShapeException(MOAException):
+class MOAShapeError(MOAException):
     pass
 
 
 # dimension
-def dimension(symbol_table, node):
-    if is_array(node):
+def dimension(context):
+    if ast.is_array(context):
         return len(symbol_table[node.symbol_node].shape)
     elif node.shape:
         return len(node.shape)
-    raise MOAShapeException(f'cannot determine dimension from node {node.node_type} with shape {node.shape}')
+    raise MOAShapeError(f'cannot determine dimension from node {node.node_type} with shape {node.shape}')
 
 
-def is_scalar(symbol_table, node):
-    return node.node_type == MOANodeTypes.ARRAY and dimension(symbol_table, node) == 0
+def is_scalar(context):
+    return ast.is_array(context) and dimension(context) == 0
 
 
-def is_vector(symbol_table, node):
-    return node.node_type == MOANodeTypes.ARRAY and dimension(symbol_table, node) == 1
+def is_vector(context):
+    return ast.is_array(context) and dimension(context) == 1
 
 
 # shape calculation

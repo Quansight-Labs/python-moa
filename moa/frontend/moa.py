@@ -6,10 +6,7 @@ import sly
 from sly.lex import LexError
 from sly.yacc import YaccError
 
-from ..ast import (
-    MOANodeTypes, Node,
-    add_symbol, generate_unique_array_name
-)
+from .. import ast
 
 
 class MOALexer(sly.Lexer):
@@ -188,10 +185,10 @@ class MOAParser(sly.Parser):
             raise YaccError('Parse error in input. EOF\n')
 
     def parse(self, text):
-        self.symbol_table = {}
-        self.counter = 0
+        self.context = create_context()
 
         lexer = MOALexer()
         tokens = lexer.tokenize(text)
         tree = super().parse(tokens)
-        return self.symbol_table, tree
+
+        return self.context
