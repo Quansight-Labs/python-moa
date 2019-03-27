@@ -9,16 +9,16 @@ def assert_context_equal(left_context, right_context):
 
 def assert_ast_equal(left_ast, right_ast, index=()):
     if left_ast.symbol != right_ast.symbol:
-        raise ValueError(f'symbol {left_ast.symbol} != {right_ast.symbol} at path {index}')
+        raise ValueError(f'symbol {left_ast.symbol} != {right_ast.symbol} at node path {index}')
 
     if left_ast.shape != right_ast.shape:
-        raise ValueError(f'shape {left_ast.shape} != {right_ast.shape} at path {index}')
+        raise ValueError(f'shape {left_ast.shape} != {right_ast.shape} at node path {index}')
 
     if left_ast.attrib != right_ast.attrib:
-        raise ValueError(f'attrib {left_ast.attrib} != {right_ast.attrib} at path {index}')
+        raise ValueError(f'attrib {left_ast.attrib} != {right_ast.attrib} at node path {index}')
 
     if len(left_ast.child) != len(right_ast.child):
-        raise ValueError(f'left and right node have differing number of children {len(left_ast.child)} != {len(right_ast.child)} at path {index}')
+        raise ValueError(f'left and right node have differing number of children {len(left_ast.child)} != {len(right_ast.child)} at node path {index}')
 
     for i, (left_child, right_child) in enumerate(zip(left_ast.child, right_ast.child)):
         assert_ast_equal(left_child, right_child, index + (i,))

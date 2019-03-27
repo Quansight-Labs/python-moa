@@ -3,6 +3,8 @@ import collections
 import copy
 import itertools
 
+from .exception import MOAException
+
 
 NodeSymbol = enum.Enum('NodeSymbol', [
     # storage
@@ -68,6 +70,10 @@ def is_binary_operation(context):
     return is_operation(context) and len(context.ast.child) == 2
 
 
+def num_node_children(context):
+    return len(context.ast.child)
+
+
 def select_node(context, selection):
     """Select a nested child node from a context
 
@@ -83,11 +89,13 @@ def select_node(context, selection):
     return Context(ast=node, symbol_table=context.symbol_table)
 
 
-def replace_node(context, replacement_node, selection):
-    """Replace a nested child node from a context with node
+def replace_node_by_function(context, replacement_function, selection):
+    """Replace a nested node shape with new node determined from replacement_function
 
     context: Context
       MOA context
+    replacement_function: function
+      function that takes in node and returns new node
     selection: List[int]
       list of integers to select nested child node
     """
@@ -98,10 +106,41 @@ def replace_node(context, replacement_node, selection):
         stack.append((node, index))
         node = node.child[index]
 
-    node = replacement_node
+    node = replacement_function(node)
+
     for stack_node, index in reversed(stack):
         node = Node(symbol=stack_node.symbol, shape=stack_node.shape, attrib=stack_node.attrib, child=replace_tuple(stack_node.child, node, index))
     return Context(ast=node, symbol_table=context.symbol_table)
+
+
+def replace_node(context, replacement_node, selection):
+    """Replace a nested child node from a context with node
+
+    context: Context
+      MOA context
+    replacement_node: tuple
+      replacement node to insert at child node
+    selection: List[int]
+      list of integers to select nested child node
+    """
+    def _replace_node(node):
+        return replacement_node
+
+    return replace_node_by_function(context, _replace_node, selection)
+
+
+def replace_node_shape(context, replacement_shape, selection):
+    """Replace a nested child node shape with new shape
+
+    context: Context
+      MOA context
+    selection: List[int]
+      list of integers to select nested child node
+    """
+    def _replace_shape(node):
+        return Node(symbol=node.symbol, shape=replacement_shape, attrib=node.attrib, child=node.child)
+
+    return replace_node_by_function(context, _replace_shape, selection)
 
 
 # symbol table methods
@@ -139,8 +178,12 @@ def is_symbolic_element(element):
 
 
 ## replacement methods
-def node_traversal(context, replacement_function, traversal, max_iterations=100):
-    if traversal == 'pre':
+class MOAReplacementError(MOAException):
+    pass
+
+
+def node_traversal(context, replacement_function, traversal, max_iterations=range(100)):
+    if traversal == 'preorder':
         for iteration in max_iterations:
             replacement_context = replacement_function(context)
             if replacement_context is None:
@@ -149,12 +192,13 @@ def node_traversal(context, replacement_function, traversal, max_iterations=100)
         else:
             raise MOAReplacementError(f'reduction failed to complete in max_iterations')
 
-    for index in range(len(context.ast.child)):
-        child_context = select_context_node(context, (index,))
-        replacement_child_context = node_traversal(child_context, replacement_function, traversal)
-        context = replace_context_node(context, replacement_child_context, (index,))
+    for index in range(num_node_children(context)):
+        child_context = select_node(context, (index,))
+        replacement_child_context = node_traversal(child_context, replacement_function, traversal, max_iterations)
+        context = replace_node(context, replacement_child_context.ast, (index,))
+        context = Context(ast=context.ast, symbol_table=replacement_child_context.symbol_table)
 
-    if traversal == 'post':
+    if traversal == 'postorder':
         return replacement_function(context)
 
     return context

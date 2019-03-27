@@ -1,30 +1,32 @@
 from moa.visualize import visualize_ast, print_ast
-from moa.ast import MOANodeTypes, Node, SymbolNode
+from moa import ast
 
 
 def test_graphviz_visualization():
-    symbol_table = {'_a1': SymbolNode(MOANodeTypes.ARRAY, (1,), (0,)),
-                    'A': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None),
-                    'B': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None)}
-    tree = Node(MOANodeTypes.PSI, None,
-                Node(MOANodeTypes.ARRAY, None, '_a1'),
-                Node(MOANodeTypes.TRANSPOSE, None,
-                     Node(MOANodeTypes.PLUS, None,
-                          Node(MOANodeTypes.ARRAY, None, 'A'),
-                          Node(MOANodeTypes.ARRAY, None, 'B'))))
+    symbol_table = {'_a1': ast.SymbolNode(ast.NodeSymbol.ARRAY, (1,), None, (0,)),
+                    'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (3, 4), None, None),
+                    'B': ast.SymbolNode(ast.NodeSymbol.ARRAY, (3, 4), None, None)}
+    tree = ast.Node((ast.NodeSymbol.PSI,), None, (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), None, ('_a1',), ()),
+        ast.Node((ast.NodeSymbol.TRANSPOSE,), None, (), (
+            ast.Node((ast.NodeSymbol.PLUS,), None, (), (
+                ast.Node((ast.NodeSymbol.ARRAY,), None, ('A',), ()),
+                ast.Node((ast.NodeSymbol.ARRAY,), None, ('B',), ()),)),))))
 
-    visualize_ast(symbol_table, tree)
+    context = ast.create_context(ast=tree, symbol_table=symbol_table)
+    visualize_ast(context)
 
 
 def test_print_visualization():
-    symbol_table = {'_a1': SymbolNode(MOANodeTypes.ARRAY, (1,), (0,)),
-                    'A': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None),
-                    'B': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None)}
-    tree = Node(MOANodeTypes.PSI, None,
-                Node(MOANodeTypes.ARRAY, None, '_a1'),
-                Node(MOANodeTypes.TRANSPOSE, None,
-                     Node(MOANodeTypes.PLUS, None,
-                          Node(MOANodeTypes.ARRAY, None, 'A'),
-                          Node(MOANodeTypes.ARRAY, None, 'B'))))
+    symbol_table = {'_a1': ast.SymbolNode(ast.NodeSymbol.ARRAY, (1,), None, (0,)),
+                    'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (3, 4), None, None),
+                    'B': ast.SymbolNode(ast.NodeSymbol.ARRAY, (3, 4), None, None)}
+    tree = ast.Node((ast.NodeSymbol.PSI,), None, (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), None, ('_a1',), ()),
+        ast.Node((ast.NodeSymbol.TRANSPOSE,), None, (), (
+            ast.Node((ast.NodeSymbol.PLUS,), None, (), (
+                ast.Node((ast.NodeSymbol.ARRAY,), None, ('A',), ()),
+                ast.Node((ast.NodeSymbol.ARRAY,), None, ('B',), ()),)),))))
 
-    print_ast(symbol_table, tree)
+    context = ast.create_context(ast=tree, symbol_table=symbol_table)
+    print_ast(context)
