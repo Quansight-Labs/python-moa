@@ -57,7 +57,6 @@ def test_array_addition():
     testing.assert_context_equal(context, expression.context)
 
 
-
 def test_array_transpose_T():
     expression = LazyArray(name='A', shape=(2, 3)).T
     node = ast.Node((ast.NodeSymbol.TRANSPOSE,), None, (), (

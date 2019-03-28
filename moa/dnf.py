@@ -1,12 +1,7 @@
 import itertools
 
-from .core import MOAException
-from .ast import (
-    MOANodeTypes, Node, node_traversal,
-    add_symbol, generate_unique_index_name, generate_unique_array_name,
-    is_binary_operation, is_unary_operation, is_array,
-    has_symbolic_elements, is_symbolic_element,
-)
+from .exception import MOAException
+from . import ast
 from .shape import dimension, is_vector, is_scalar
 
 
@@ -14,30 +9,31 @@ class MOAReductionError(MOAException):
     pass
 
 
-def add_indexing_node(symbol_table, node):
+def add_indexing_node(context):
     """Adds indexing into the MOA AST
 
     For example: <i0 i1> psi (A + B)
     """
     condition_node = None
-    if node.node_type == MOANodeTypes.CONDITION:
-        condition_node = node.condition_node
-        node = node.right_node
+    if context.ast.symbol == (ast.NodeSymbol.CONDITION,):
+        condition_node = ast.select_node(context, (0,)).ast
+        context = ast.select_node(context, (1,))
 
     index_symbols = ()
-    for bound in node.shape:
-        index_name = generate_unique_index_name(symbol_table)
-        symbol_table = add_symbol(symbol_table, index_name, MOANodeTypes.INDEX, (), (0, bound))
-        index_symbols = index_symbols + (Node(MOANodeTypes.ARRAY, (), index_name),)
+    for bound in context.ast.shape:
+        index_name = ast.generate_unique_index_name(context)
+        context = ast.add_symbol(context, index_name, ast.NodeSymbol.INDEX, (), None, (0, bound, 1))
+        index_symbols = index_symbols + (ast.Node(ast.NodeSymbol.ARRAY, (), (index_name,), ()),)
 
-    array_name = generate_unique_array_name(symbol_table)
-    symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (len(index_symbols),), index_symbols)
-    vector_node = Node(MOANodeTypes.ARRAY, (len(index_symbols),), array_name)
-    node = Node(MOANodeTypes.PSI, node.shape, vector_node, node)
+    array_name = ast.generate_unique_array_name(context)
+    context = ast.add_symbol(context, array_name, ast.NodeSymbol.ARRAY, (len(index_symbols),), None, index_symbols)
+    vector_node = ast.Node((ast.NodeSymbol.ARRAY,), (len(index_symbols),), (array_name,), ())
+    node = ast.Node((ast.NodeSymbol.PSI,), context.ast.shape, (), (vector_node, context.ast))
 
     if condition_node:
-        node = Node(MOANodeTypes.CONDITION, node.shape, condition_node, node)
-    return symbol_table, node
+        node = ast.Node(ast.NodeSymbol.CONDITION, node.shape, (), (condition_node, node))
+
+    return ast.create_context(ast=node, symbol_table=context.symbol_table)
 
 
 def reduce_to_dnf(symbol_table, node):
