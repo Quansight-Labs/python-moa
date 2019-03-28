@@ -43,10 +43,10 @@ class LazyArray:
 
         if indicies:
             array_name = ast.generate_unique_array_name(self.context)
-            self.context = ast.add_symbol(self.context, array_name, NodeSymbol.ARRAY, (len(indicies),), indicies)
-            self.context = ast.replace_node(
-                ast.Node(ast.NodeSymbol.PSI, None, (), (ast.Node((NodeSymbol.ARRAY,), None, array_name), None)),
-                self.context.ast, (1,))
+            self.context = ast.add_symbol(self.context, array_name, ast.NodeSymbol.ARRAY, (len(indicies),), None, indicies)
+            self.context = ast.create_context(
+                ast=ast.Node((ast.NodeSymbol.PSI,), None, (), (ast.Node((ast.NodeSymbol.ARRAY,), None, (array_name,), ()), self.context.ast)),
+                symbol_table=self.context.symbol_table)
         if strides:
             raise NotImplemenetedError('strides not implemented')
         return self
@@ -54,10 +54,10 @@ class LazyArray:
     def _create_array_from_int_float_string(self, value):
         if isinstance(value, str):
             array_name = value
-            self.context = ast.add_symbol(self.context, array_name, NodeSymbol.ARRAY, (), None, None)
+            self.context = ast.add_symbol(self.context, array_name, ast.NodeSymbol.ARRAY, (), None, None)
         else:
             array_name = ast.generate_unique_array_name(self.context)
-            self.context = add_symbol(self.context, array_name, NodeSymbol.ARRAY, (), None, (value,))
+            self.context = add_symbol(self.context, array_name, ast.NodeSymbol.ARRAY, (), None, (value,))
         return ast.Node((ast.NodeSymbol.ARRAY,), None, (array_name,), ())
 
     def _create_array_from_list_tuple(self, value):
@@ -79,17 +79,17 @@ class LazyArray:
 
     def transpose(self, transpose_vector=None):
         if transpose_vector is None:
-            self.context = ast.replace_node(
-                ast.Node((ast.NodeSymbol.TRANSPOSE,), None, (), (None,)),
-                self.context.ast, (0,))
+            self.context = ast.create_context(
+                ast=ast.Node((ast.NodeSymbol.TRANSPOSE,), None, (), (self.context.ast,)),
+                symbol_table=self.context.symbol_table)
         else:
             symbolic_vector = self._create_array_from_list_tuple(transpose_vector)
 
-            array_name = generate_unique_array_name(self.context)
-            self.context = ast.add_symbol(self.context, array_name, NodeSymbol.ARRAY, (len(symbolic_vector),), None, tuple(symbolic_vector))
-            self.context = ast.replace_node(
-                ast.Node((ast.NodeSymbol.TRANSPOSEV,), None, (), (ast.Node((NodeSymbol.ARRAY,), None, (array_name,), ()), None)),
-                self.context.ast, (1,))
+            array_name = ast.generate_unique_array_name(self.context)
+            self.context = ast.add_symbol(self.context, array_name, ast.NodeSymbol.ARRAY, (len(symbolic_vector),), None, tuple(symbolic_vector))
+            self.context = ast.create_context(
+                ast=ast.Node((ast.NodeSymbol.TRANSPOSEV,), None, (), (ast.Node((ast.NodeSymbol.ARRAY,), None, (array_name,), ()), self.context.ast)),
+                symbol_table=self.context.symbol_table)
         return self
 
     # def outer(self, operation, array):
@@ -115,15 +115,17 @@ class LazyArray:
 
     def reduce(self, operation):
         operation_map = {
-            '+': (NodeSymbol.REDUCE, NodeSymbol.PLUS),
-            '-': (NodeSymbol.REDUCE, NodeSymbol.MINUS),
-            '*': (NodeSymbol.REDUCE, NodeSymbol.TIMES),
-            '/': (NodeSymbol.REDUCE, NodeSymbol.DIVIDE),
+            '+': (ast.NodeSymbol.REDUCE, ast.NodeSymbol.PLUS),
+            '-': (ast.NodeSymbol.REDUCE, ast.NodeSymbol.MINUS),
+            '*': (ast.NodeSymbol.REDUCE, ast.NodeSymbol.TIMES),
+            '/': (ast.NodeSymbol.REDUCE, ast.NodeSymbol.DIVIDE),
         }
         if operation not in operation:
             raise ValueError(f'operation {operation} not in allowed operations (+-*/)')
 
-        self.tree = Node(operation_map[operation], None, None, self.tree)
+        self.context = ast.create_context(
+            ast=ast.Node(operation_map[operation], None, (), (self.context.ast,)),
+            symbol_table=self.context.symbol_table)
         return self
 
     # def _rbinary_opperation(self, operation, left):
@@ -196,14 +198,14 @@ class LazyArray:
             raise ValueError('stage must be "shape", "dnf", or "onf"')
 
         if stage is None:
-            context = self.symbol_table, self.tree
+            context = self.context
         else:
             context = getattr(self, f'_{stage}')()
 
         if as_text:
-            print_ast(*context)
+            print_ast(context)
         else:
-            return visualize_ast(*context)
+            return visualize_ast(context)
 
 
     def _repr_svg_(self):
