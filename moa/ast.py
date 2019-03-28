@@ -156,6 +156,10 @@ def add_symbol(context, name, symbol, shape, type, value):
     return Context(ast=context.ast, symbol_table=symbol_table_copy)
 
 
+def get_array_node_symbol(context):
+    return context.symbol_table[context.ast.attrib[0]]
+
+
 def generate_unique_array_name(context):
     return f'_a{len(context.symbol_table)}'
 

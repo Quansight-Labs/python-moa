@@ -6,7 +6,6 @@ except ImportError as e:
     graphviz = None
 
 from . import ast
-# from .shape import is_vector
 # from .backend import generate_python_source
 
 _NODE_LABEL_MAP = {
@@ -49,23 +48,19 @@ _NODE_LABEL_MAP = {
 }
 
 
-def stringify_elements(symbol_table, elements):
+def stringify_elements(context, elements):
     strings = []
     for element in elements:
-        if is_symbolic_element(element):
-            strings.append(generate_python_source(symbol_table, element, materialize_scalars=True))
+        if ast.is_symbolic_element(element):
+            element_context = ast.create_context(ast=element, symbol_table=context.symbol_table)
+            strings.append(generate_python_source(element_context, materialize_scalars=True))
         else:
             strings.append(str(element))
     return strings
-    shape_str = '<'
 
 
-def shape_string(symbol_table, shape):
-    return "<" + " ".join(stringify_elements(symbol_table, shape)) + ">"
-
-
-def value_string(symbol_table, value):
-    return "(" + " ".join(stringify_elements(symbol_table, value)) + ")"
+def symbolic_tuple_string(context, shape, start='(', end=')'):
+    return start + " ".join(stringify_elements(context, shape)) + end
 
 
 def escape_dot_string(string):
@@ -76,41 +71,43 @@ def _node_label(context):
     node_label = {
         'name': _NODE_LABEL_MAP[context.ast.symbol],
     }
-    # if is_array(node) and symbol_table[node.symbol_node].shape is not None: # cannot assume that shape traversal has already happened and shape is defined
-    #     symbol_node = symbol_table[node.symbol_node]
-    #     node_label['name'] += f' {node.symbol_node}'
-    #     if symbol_node.shape:
-    #         node_label['shape'] = shape_string(symbol_table, symbol_node.shape)
-    #     if is_vector(symbol_table, node) and symbol_node.value:
-    #         node_label['value'] = value_string(symbol_table, symbol_node.value)
+    # name
+    if ast.is_array(context):
+        node_label['name'] += f' {context.ast.attrib[0]}'
 
-    # elif node.node_type == MOANodeTypes.ERROR:
-    #     node_label['value'] = node.message
+    # shape
+    if ast.is_array(context):
+        shape = ast.get_array_node_symbol(context).shape
+        if shape is not None:
+            node_label['shape'] = symbolic_tuple_string(context, shape, start='<', end='>')
+    elif context.ast.shape is not None:
+        node_label['shape'] = symbolic_tuple_string(context, context.ast.shape, start='<', end='>')
 
-    # elif node.node_type in {MOANodeTypes.LOOP, MOANodeTypes.INITIALIZE}:
-    #     if node.shape:
-    #         node_label['shape'] = shape_string(symbol_table, node.shape)
-    #     node_label['value'] = node.symbol_node
+    # value
+    if ast.is_array(context):
+        value = ast.get_array_node_symbol(context).value
+        if value is not None:
+            node_label['value'] = symbolic_tuple_string(context, value, start='(', end=')')
+    elif context.ast.symbol == (ast.NodeSymbol.ERROR,):
+        message = context.ast.attrib[0]
+        if message is not None:
+            node_label['value'] = message
+    elif context.ast.symbol in {(ast.NodeSymbol.LOOP,), (ast.NodeSymbol.INITIALIZE,)}:
+        symbol_node = context.ast.attrib[0]
+        if symbol_node is not None:
+            node_label['value'] = symbol_node
+    elif context.ast.symbol == (ast.NodeSymbol.CONDITION,):
+        condition_context = ast.select_node(context, (0,))
+        node_label['value'] = generate_python_source(condition_context, materialize_scalars=True)
+    elif context.ast.symbol == (ast.NodeSymbol.FUNCTION,):
+        arguments, result = context.ast.attrib[0], context.ast.attrib[1]
+        if arguments is not None and result is not None:
+            node_label['value'] = symbolic_tuple_string(context, arguments, start='(', end=')') + ' -> ' + result
+    elif context.ast.symbol[0] == ast.NodeSymbol.REDUCE:
+        symbol_node = context.ast.attrib[0]
+        if symbol_node is not None:
+            node_label['value'] = symbol_node
 
-    # elif node.node_type in {MOANodeTypes.CONDITION, MOANodeTypes.IF}:
-    #     if node.shape:
-    #         node_label['shape'] = shape_string(symbol_table, node.shape)
-    #     node_label['value'] = generate_python_source(symbol_table, node.condition_node, materialize_scalars=True)
-
-    # elif node.node_type == MOANodeTypes.FUNCTION:
-    #     if node.shape:
-    #         node_label['shape'] = shape_string(symbol_table, node.shape)
-    #     node_label['value'] = value_string(symbol_table, node.arguments) + ' -> ' + node.result
-
-    # elif isinstance(node.node_type, tuple) and node.node_type[0] == MOANodeTypes.REDUCE:
-    #     if node.shape:
-    #         node_label['shape'] = shape_string(symbol_table, node.shape)
-    #     if node.symbol_node:
-    #         node_label['value'] = node.symbol_node
-
-    # else:
-    #     if node.shape:
-    #         node_label['shape'] = shape_string(symbol_table, node.shape)
     return node_label
 
 

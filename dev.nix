@@ -27,7 +27,7 @@ rec {
 
     checkPhase = ''
       # pytest tests ${if benchmark then "benchmarks" else ""} --cov=moa
-      pytest tests/test_ast.py tests/test_visualize.py
+      pytest tests/test_ast.py tests/test_visualize.py tests/test_shape.py
     '';
   };
 
