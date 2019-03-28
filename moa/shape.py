@@ -63,6 +63,17 @@ def compare_tuples(comparison, context, left_tuple, right_tuple, message):
     return context, conditions, shape
 
 
+def apply_node_conditions(context, conditions):
+    if conditions:
+        condition_node = conditions[0]
+        for condition in conditions[1:]:
+            condition_node = ast.Node(ast.NodeSymbol.AND, (), (), (condition, condition_node))
+
+        node = ast.Node(ast.NodeSymbol.CONDITION, context.ast.shape, (), (condition_node, context.ast))
+        context = ast.create_context(ast=node, symbol_table=context.symbol_table)
+    return context
+
+
 # shape calculation
 def calculate_shapes(context):
     """Postorder traversal to calculate node shapes
@@ -79,18 +90,18 @@ def _shape_replacement(context):
         (ast.NodeSymbol.ASSIGN,): _shape_assign,
         (ast.NodeSymbol.SHAPE,): _shape_shape,
         (ast.NodeSymbol.PSI,): _shape_psi,
-        # (ast.NodeSymbol.PLUS,): _shape_plus_minus_divide_times,
-        # (ast.NodeSymbol.MINUS,): _shape_plus_minus_divide_times,
-        # (ast.NodeSymbol.TIMES,): _shape_plus_minus_divide_times,
-        # (ast.NodeSymbol.DIVIDE,): _shape_plus_minus_divide_times,
-        # (ast.NodeSymbol.DOT, ast.NodeSymbol.PLUS): _shape_outer_plus_minus_divide_times,
-        # (ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS): _shape_outer_plus_minus_divide_times,
-        # (ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES): _shape_outer_plus_minus_divide_times,
-        # (ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE): _shape_outer_plus_minus_divide_times,
-        # (ast.NodeSymbol.REDUCE, ast.NodeSymbol.PLUS): _shape_reduce_plus_minus_divide_times,
-        # (ast.NodeSymbol.REDUCE, ast.NodeSymbol.MINUS): _shape_reduce_plus_minus_divide_times,
-        # (ast.NodeSymbol.REDUCE, ast.NodeSymbol.TIMES): _shape_reduce_plus_minus_divide_times,
-        # (ast.NodeSymbol.REDUCE, ast.NodeSymbol.DIVIDE): _shape_reduce_plus_minus_divide_times,
+        (ast.NodeSymbol.PLUS,): _shape_plus_minus_divide_times,
+        (ast.NodeSymbol.MINUS,): _shape_plus_minus_divide_times,
+        (ast.NodeSymbol.TIMES,): _shape_plus_minus_divide_times,
+        (ast.NodeSymbol.DIVIDE,): _shape_plus_minus_divide_times,
+        (ast.NodeSymbol.DOT, ast.NodeSymbol.PLUS): _shape_outer_plus_minus_divide_times,
+        (ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS): _shape_outer_plus_minus_divide_times,
+        (ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES): _shape_outer_plus_minus_divide_times,
+        (ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE): _shape_outer_plus_minus_divide_times,
+        (ast.NodeSymbol.REDUCE, ast.NodeSymbol.PLUS): _shape_reduce_plus_minus_divide_times,
+        (ast.NodeSymbol.REDUCE, ast.NodeSymbol.MINUS): _shape_reduce_plus_minus_divide_times,
+        (ast.NodeSymbol.REDUCE, ast.NodeSymbol.TIMES): _shape_reduce_plus_minus_divide_times,
+        (ast.NodeSymbol.REDUCE, ast.NodeSymbol.DIVIDE): _shape_reduce_plus_minus_divide_times,
     }
 
     # condition_node = None
@@ -163,13 +174,7 @@ def _shape_assign(context):
                                                 ast.select_node_shape(context, (1,)), 'ASSIGN')
 
     context = ast.replace_node_shape(context, shape)
-    if conditions:
-        condition_node = conditions[0]
-        for condition in conditions[1:]:
-            condition_node = ast.Node(ast.NodeSymbol.AND, (), (), (condition, condition_node))
-        node = ast.Node(ast.NodeSymbol.CONDITION, shape, (), (condition_node, node))
-        context = ast.create_context(ast=node, symbol_table=context.symbol_table)
-    return context
+    return apply_node_conditions(context, conditions)
 
 
 def _shape_shape(context):
@@ -194,61 +199,36 @@ def _shape_psi(context):
                                                 left_node_symbol.value,
                                                 ast.select_node_shape(context, (1,)), 'PSI')
 
-    context = ast.replace_node_shape(context, ast.select_node_shape(context, (1,))[drop_dimensions:])
-    if conditions:
-        condition_node = conditions[0]
-        for condition in conditions[1:]:
-            condition_node = ast.Node(ast.NodeSymbol.AND, (), (), (condition, condition_node))
-        node = ast.Node(ast.NodeSymbol.CONDITION, shape, (), (condition_node, node))
-        context = ast.create_context(ast=node, symbol_table=context.symbol_table)
-    return context
+    shape = ast.select_node_shape(context, (1,))[drop_dimensions:]
+    context = ast.replace_node_shape(context, shape)
+    return apply_node_conditions(context, conditions)
 
 
-# def _shape_reduce_plus_minus_divide_times(symbol_table, node):
-#     if dimension(symbol_table, node.right_node) == 0:
-#         return symbol_table, node.right_node
-#     return symbol_table, Node(node.node_type, node.right_node.shape[1:], None, node.right_node)
+def _shape_reduce_plus_minus_divide_times(context):
+    if dimension(context, (0,)) == 0:
+        return ast.select_node(context, (0,))
+    shape = ast.select_node_shape(context, (0,))[1:]
+    return ast.replace_node_shape(context, shape)
 
 
-# def _shape_outer_plus_minus_divide_times(symbol_table, node):
-#     node_shape = node.left_node.shape + node.right_node.shape
-#     return symbol_table, Node(node.node_type, node_shape, node.left_node, node.right_node)
+def _shape_outer_plus_minus_divide_times(context):
+    shape = ast.select_node_shape(context, (0,)) + ast.select_node_shape(context, (1,))
+    return ast.replace_node_shape(context, shape)
 
 
-# def _shape_plus_minus_divide_times(symbol_table, node):
-#     conditions = []
-#     if is_scalar(symbol_table, node.left_node): # scalar extension
-#         shape = node.right_node.shape
-#     elif is_scalar(symbol_table, node.right_node): # scalar extension
-#         shape = node.left_node.shape
-#     else: # shapes must match
-#         if dimension(symbol_table, node.left_node) != dimension(symbol_table, node.right_node):
-#             raise MOAShapeException('(+,-,/,*) requires dimension to match or single argument to be scalar')
+def _shape_plus_minus_divide_times(context):
+    conditions = ()
+    if is_scalar(context, (0,)): # scalar extension
+        shape = ast.select_node_shape(context, (1,))
+    elif is_scalar(context, (1,)): # scalar extension
+        shape = ast.select_node_shape(context, (0,))
+    else: # shapes must match
+        if dimension(context, (0,)) != dimension(context, (1,)):
+            raise MOAShapeError('(+,-,/,*) requires dimension to match or single argument to be scalar')
 
-#         shape = ()
-#         for i, (left_element, right_element) in enumerate(zip(node.left_node.shape, node.right_node.shape)):
-#             if is_symbolic_element(left_element) and is_symbolic_element(right_element): # both are symbolic
-#                 conditions.append(Node(MOANodeTypes.EQUAL, (), left_element, right_element))
-#                 shape = shape + (left_element,)
-#             elif is_symbolic_element(left_element): # only left is symbolic
-#                 array_name = generate_unique_array_name(symbol_table)
-#                 symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (), (right_element,))
-#                 conditions.append(Node(MOANodeTypes.EQUAL, (), left_element, Node(MOANodeTypes.ARRAY, (), array_name)))
-#                 shape = shape + (right_element,)
-#             elif is_symbolic_element(right_element): # only right is symbolic
-#                 array_name = generate_unique_array_name(symbol_table)
-#                 symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (), (left_element,))
-#                 conditions.append(Node(MOANodeTypes.EQUAL, (), Node(MOANodeTypes.ARRAY, (), array_name), right_element))
-#                 shape = shape + (left_element,)
-#             else: # neither symbolic
-#                 if left_element != right_element:
-#                     raise MOAShapeException(f'(+,-,/,*) requires shapes to match elements #{i} left {left_element} != right {right_element}')
-#                 shape = shape + (left_element,)
+        context, conditions, shape = compare_tuples(ast.NodeSymbol.EQUAL, context,
+                                                    ast.select_node_shape(context, (0,)),
+                                                    ast.select_node_shape(context, (1,)), '(+-*/)')
 
-#     node = Node(node.node_type, shape, node.left_node, node.right_node)
-#     if conditions:
-#         condition_node = conditions[0]
-#         for condition in conditions[1:]:
-#             condition_node = Node(MOANodeTypes.AND, (), condition, condition_node)
-#         node = Node(MOANodeTypes.CONDITION, node.shape, condition_node, node)
-#     return symbol_table, node
+    context = ast.replace_node_shape(context, shape)
+    return apply_node_conditions(context, conditions)

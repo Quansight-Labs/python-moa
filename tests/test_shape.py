@@ -120,95 +120,98 @@ def test_shape_unit(symbol_table, tree, shape_symbol_table, shape_tree):
     testing.assert_context_equal(new_context, expected_context)
 
 
-# @pytest.mark.parametrize("operation", [
-#     ast.NodeSymbol.PLUS, ast.NodeSymbol.MINUS,
-#     ast.NodeSymbol.DIVIDE, ast.NodeSymbol.TIMES,
-# ])
-# def test_shape_unit_outer_plus_minus_multiply_divide_no_symbol(operation):
-#     symbol_table = {
-#         'A': SymbolNode(ast.NodeSymbol.ARRAY, (1, 2, 3), None),
-#         'B': SymbolNode(ast.NodeSymbol.ARRAY, (4, 5, 6), None)
-#     }
-#     symbol_table_copy = copy.deepcopy(symbol_table)
-#     tree = Node((ast.NodeSymbol.DOT, operation), None,
-#                 Node(ast.NodeSymbol.ARRAY, None, 'A'),
-#                 Node(ast.NodeSymbol.ARRAY, None, 'B'))
-#     new_symbol_tree, new_tree = calculate_shapes(symbol_table, tree)
-#     assert symbol_table == symbol_table_copy
-#     assert new_tree == Node((ast.NodeSymbol.DOT, operation), (1, 2, 3, 4, 5, 6),
-#                             Node(ast.NodeSymbol.ARRAY, (1, 2, 3), 'A'),
-#                             Node(ast.NodeSymbol.ARRAY, (4, 5, 6), 'B'))
-#     assert new_symbol_tree == symbol_table
+@pytest.mark.parametrize("operation", [
+    ast.NodeSymbol.PLUS, ast.NodeSymbol.MINUS,
+    ast.NodeSymbol.DIVIDE, ast.NodeSymbol.TIMES,
+])
+def test_shape_unit_outer_plus_minus_multiply_divide_no_symbol(operation):
+    symbol_table = {
+        'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (1, 2, 3), None, None),
+        'B': ast.SymbolNode(ast.NodeSymbol.ARRAY, (4, 5, 6), None, None)
+    }
+    tree = ast.Node((ast.NodeSymbol.DOT, operation), None, (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), None, ('A',), ()),
+        ast.Node((ast.NodeSymbol.ARRAY,), None, ('B',), ()),))
+
+    expected_tree = ast.Node((ast.NodeSymbol.DOT, operation), (1, 2, 3, 4, 5, 6), (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), (1, 2, 3), ('A',), ()),
+        ast.Node((ast.NodeSymbol.ARRAY,), (4, 5, 6), ('B',), ()),))
+
+    context = ast.create_context(ast=tree, symbol_table=symbol_table)
+    expected_context = ast.create_context(ast=expected_tree, symbol_table=symbol_table)
+    context_copy = copy.deepcopy(context)
+
+    new_context = calculate_shapes(context)
+    testing.assert_context_equal(context, context_copy)
+    testing.assert_context_equal(expected_context, new_context)
 
 
-# @pytest.mark.parametrize("operation", [
-#     ast.NodeSymbol.PLUS, ast.NodeSymbol.MINUS,
-#     ast.NodeSymbol.DIVIDE, ast.NodeSymbol.TIMES,
-# ])
-# def test_shape_unit_reduce_plus_minus_multiply_divide_no_symbol(operation):
-#     symbol_table = {
-#         'A': SymbolNode(ast.NodeSymbol.ARRAY, (1, 2, 3), None),
-#     }
-#     symbol_table_copy = copy.deepcopy(symbol_table)
-#     tree = Node((ast.NodeSymbol.REDUCE, operation), None, None,
-#                 Node(ast.NodeSymbol.ARRAY, None, 'A'))
-#     new_symbol_tree, new_tree = calculate_shapes(symbol_table, tree)
-#     assert symbol_table == symbol_table_copy
-#     assert new_tree == Node((ast.NodeSymbol.REDUCE, operation), (2, 3), None,
-#                             Node(ast.NodeSymbol.ARRAY, (1, 2, 3), 'A'))
+@pytest.mark.parametrize("operation", [
+    ast.NodeSymbol.PLUS, ast.NodeSymbol.MINUS,
+    ast.NodeSymbol.DIVIDE, ast.NodeSymbol.TIMES,
+])
+def test_shape_unit_reduce_plus_minus_multiply_divide_no_symbol(operation):
+    symbol_table = {
+        'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (1, 2, 3), None, None),
+    }
+    tree = ast.Node((ast.NodeSymbol.REDUCE, operation), None, (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), None, ('A',), ()),))
+    expected_tree = ast.Node((ast.NodeSymbol.REDUCE, operation), (2, 3), (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), (1, 2, 3), ('A',), ()),))
+    context = ast.create_context(ast=tree, symbol_table=symbol_table)
+    expected_context = ast.create_context(ast=expected_tree, symbol_table=symbol_table)
+    context_copy = copy.deepcopy(context)
 
-#     assert new_symbol_tree == symbol_table
-
-
-# @pytest.mark.parametrize("operation", [
-#     ast.NodeSymbol.PLUS, ast.NodeSymbol.MINUS,
-#     ast.NodeSymbol.DIVIDE, ast.NodeSymbol.TIMES,
-# ])
-# def test_shape_unit_plus_minus_multiply_divide_no_symbol(operation):
-#     symbol_table = {
-#         'A': SymbolNode(ast.NodeSymbol.ARRAY, (3, 4, 5), None),
-#         'B': SymbolNode(ast.NodeSymbol.ARRAY, (3, 4, 5), None)
-#     }
-
-#     def generate_test_ast(operation):
-#         return Node(operation, None,
-#                     Node(ast.NodeSymbol.ARRAY, None, 'A'),
-#                     Node(ast.NodeSymbol.ARRAY, None, 'B'))
-
-#     def generate_expected_ast(operation):
-#         return Node(operation, (3, 4, 5),
-#                     Node(ast.NodeSymbol.ARRAY, (3, 4, 5), 'A'),
-#                     Node(ast.NodeSymbol.ARRAY, (3, 4, 5), 'B'))
-
-#     symbol_table_copy = copy.deepcopy(symbol_table)
-#     new_symbol_tree, new_tree = calculate_shapes(symbol_table, generate_test_ast(operation))
-#     assert symbol_table == symbol_table_copy
-#     assert new_tree == generate_expected_ast(operation)
-#     assert new_symbol_tree == symbol_table
+    new_context = calculate_shapes(context)
+    testing.assert_context_equal(context, context_copy)
+    testing.assert_context_equal(expected_context, new_context)
 
 
-# @pytest.mark.parametrize("operation", [
-#     ast.NodeSymbol.PLUS, ast.NodeSymbol.MINUS,
-#     ast.NodeSymbol.DIVIDE, ast.NodeSymbol.TIMES,
-# ])
-# def test_shape_scalar_plus_minus_multiply_divide_no_symbol(operation):
-#     symbol_table = {
-#         'A': SymbolNode(ast.NodeSymbol.ARRAY, (3, 4, 5), None),
-#         'B': SymbolNode(ast.NodeSymbol.ARRAY, (), (0,))
-#     }
+@pytest.mark.parametrize("operation", [
+    ast.NodeSymbol.PLUS, ast.NodeSymbol.MINUS,
+    ast.NodeSymbol.DIVIDE, ast.NodeSymbol.TIMES,
+])
+def test_shape_unit_plus_minus_multiply_divide_no_symbol(operation):
+    symbol_table = {
+        'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (3, 4, 5), None, None),
+        'B': ast.SymbolNode(ast.NodeSymbol.ARRAY, (3, 4, 5), None, None)
+    }
+    tree = ast.Node((operation,), None, (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), None, ('A',), ()),
+        ast.Node((ast.NodeSymbol.ARRAY,), None, ('B',), ()),))
+    expected_tree = ast.Node((operation,), (3, 4, 5), (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), (3, 4, 5), ('A',), ()),
+        ast.Node((ast.NodeSymbol.ARRAY,), (3, 4, 5), ('B',), ()),))
 
-#     def generate_test_ast(operation):
-#         return Node(operation, None,
-#                     Node(ast.NodeSymbol.ARRAY, None, 'A'),
-#                     Node(ast.NodeSymbol.ARRAY, None, 'B'))
+    context = ast.create_context(ast=tree, symbol_table=symbol_table)
+    expected_context = ast.create_context(ast=expected_tree, symbol_table=symbol_table)
+    context_copy = copy.deepcopy(context)
 
-#     def generate_expected_ast(operation):
-#         return Node(operation, (3, 4, 5),
-#                     Node(ast.NodeSymbol.ARRAY, (3, 4, 5), 'A'),
-#                     Node(ast.NodeSymbol.ARRAY, (), 'B'))
+    new_context = calculate_shapes(context)
+    testing.assert_context_equal(context, context_copy)
+    testing.assert_context_equal(expected_context, new_context)
 
-#     symbol_table_copy = copy.deepcopy(symbol_table)
-#     new_symbol_table, new_tree = calculate_shapes(symbol_table, generate_test_ast(operation))
-#     assert symbol_table == symbol_table_copy
-#     assert new_tree == generate_expected_ast(operation)
-#     assert new_symbol_table == symbol_table
+
+@pytest.mark.parametrize("operation", [
+    ast.NodeSymbol.PLUS, ast.NodeSymbol.MINUS,
+    ast.NodeSymbol.DIVIDE, ast.NodeSymbol.TIMES,
+])
+def test_shape_scalar_plus_minus_multiply_divide_no_symbol(operation):
+    symbol_table = {
+        'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (3, 4, 5), None, None),
+        'B': ast.SymbolNode(ast.NodeSymbol.ARRAY, (), None, (0,))
+    }
+    tree = ast.Node((operation,), None, (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), None, ('A',), ()),
+        ast.Node((ast.NodeSymbol.ARRAY,), None, ('B',), ()),))
+    expected_tree = ast.Node((operation,), (3, 4, 5), (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), (3, 4, 5), ('A',), ()),
+        ast.Node((ast.NodeSymbol.ARRAY,), (), ('B',), ()),))
+
+    context = ast.create_context(ast=tree, symbol_table=symbol_table)
+    expected_context = ast.create_context(ast=expected_tree, symbol_table=symbol_table)
+    context_copy = copy.deepcopy(context)
+
+    new_context = calculate_shapes(context)
+    testing.assert_context_equal(context, context_copy)
+    testing.assert_context_equal(expected_context, new_context)
