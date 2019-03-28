@@ -57,7 +57,7 @@ class LazyArray:
             self.context = ast.add_symbol(self.context, array_name, ast.NodeSymbol.ARRAY, (), None, None)
         else:
             array_name = ast.generate_unique_array_name(self.context)
-            self.context = add_symbol(self.context, array_name, ast.NodeSymbol.ARRAY, (), None, (value,))
+            self.context = ast.add_symbol(self.context, array_name, ast.NodeSymbol.ARRAY, (), None, (value,))
         return ast.Node((ast.NodeSymbol.ARRAY,), None, (array_name,), ())
 
     def _create_array_from_list_tuple(self, value):
@@ -92,26 +92,29 @@ class LazyArray:
                 symbol_table=self.context.symbol_table)
         return self
 
-    # def outer(self, operation, array):
-    #     operation_map = {
-    #         '+': (NodeSymbol.DOT, NodeSymbol.PLUS),
-    #         '-': (NodeSymbol.DOT, NodeSymbol.MINUS),
-    #         '*': (NodeSymbol.DOT, NodeSymbol.TIMES),
-    #         '/': (NodeSymbol.DOT, NodeSymbol.DIVIDE),
-    #     }
-    #     if operation not in operation:
-    #         raise ValueError(f'operation {operation} not in allowed operations (+-*/)')
+    def outer(self, operation, array):
+        operation_map = {
+            '+': (ast.NodeSymbol.DOT, ast.NodeSymbol.PLUS),
+            '-': (ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS),
+            '*': (ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES),
+            '/': (ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE),
+        }
+        if operation not in operation:
+            raise ValueError(f'operation {operation} not in allowed operations (+-*/)')
 
-    #     if isinstance(array, self.__class__):
-    #         self.symbol_table, left_tree, right_tree = join_symbol_tables(self.symbol_table, self.tree, array.symbol_table, array.tree)
-    #         self.tree = Node(operation_map[operation], None, left_tree, right_tree)
-    #     elif isinstance(left, (int, float, str)):
-    #         self.tree = Node(operation_map[operation], None,
-    #                                self.tree,
-    #                                self._create_array_from_int_float_string(array))
-    #     else:
-    #         raise TypeError(f'not known how to handle outer product with type {type(array)}')
-    #     return self
+        if isinstance(array, self.__class__):
+            new_symbol_table, left_context, right_context = ast.join_symbol_tables(self.context, array.context)
+            self.context = ast.create_context(
+                ast=ast.Node(operation_map[operation], None, (), (left_context.ast, right_context.ast)),
+                symbol_table=new_symbol_table)
+
+        elif isinstance(left, (int, float, str)):
+            self.context = ast.Node(operation_map[operation], None, (), (
+                self.context.ast,
+                self._create_array_from_int_float_string(array)))
+        else:
+            raise TypeError(f'not known how to handle outer product with type {type(array)}')
+        return self
 
     def reduce(self, operation):
         operation_map = {
@@ -128,52 +131,60 @@ class LazyArray:
             symbol_table=self.context.symbol_table)
         return self
 
-    # def _rbinary_opperation(self, operation, left):
-    #     if isinstance(left, self.__class__):
-    #         self.symbol_table, left_tree, right_tree = join_symbol_tables(left.symbol_table, left.tree, self.symbol_table, self.tree)
-    #         self.tree = Node(operation, None, left_tree, right_tree)
-    #     elif isinstance(left, (int, float, str)):
-    #         self.tree = Node(operation, None, self._create_array_from_int_float_string(left), self.tree)
-    #     else:
-    #         raise TypeError(f'not known how to handle binary operation with type {type(left)}')
-    #     return self
+    def _rbinary_opperation(self, operation, left):
+        if isinstance(left, self.__class__):
+            new_symbol_table, left_context, right_context = ast.join_symbol_tables(left.context, self.context)
+            self.context = ast.create_context(
+                ast=ast.Node((operation,), None, (), (left_context.ast, right_context.ast)),
+                symbol_table=new_symbol_table)
+        elif isinstance(left, (int, float, str)):
+            self.context = ast.create_context(
+                ast=ast.Node((operation,), None, (), (self._create_array_from_int_float_string(left), self.context.ast)),
+                symbol_table=self.context.symbol_table)
+        else:
+            raise TypeError(f'not known how to handle binary operation with type {type(left)}')
+        return self
 
-    # def _binary_opperation(self, operation, right):
-    #     if isinstance(right, self.__class__):
-    #         self.symbol_table, left_tree, right_tree = join_symbol_tables(self.symbol_table, self.tree, right.symbol_table, right.tree)
-    #         self.tree = Node(operation, None, left_tree, right_tree)
-    #     elif isinstance(right, (int, float, str)):
-    #         self.tree = Node(operation, None, self.tree, self._create_array_from_int_float_string(right))
-    #     else:
-    #         raise TypeError(f'not known how to handle binary operation with type {type(right)}')
-    #     return self
+    def _binary_opperation(self, operation, right):
+        if isinstance(right, self.__class__):
+            new_symbol_table, left_context, right_context = ast.join_symbol_tables(self.context, right.context)
+            self.context = ast.create_context(
+                ast=ast.Node((operation,), None, (), (left_context.ast, right_context.ast)),
+                symbol_table=new_symbol_table)
+        elif isinstance(right, (int, float, str)):
+            self.context = ast.create_context(
+                ast=ast.Node((operation,), None, (), (self.context.ast, self._create_array_from_int_float_string(right))),
+                symbol_table=self.context.symbol_table)
+        else:
+            raise TypeError(f'not known how to handle binary operation with type {type(right)}')
+        return self
 
-    # def __add__(self, other):
-    #     return self._binary_opperation(NodeSymbol.PLUS, other)
+    def __add__(self, other):
+        return self._binary_opperation(ast.NodeSymbol.PLUS, other)
 
-    # def __radd__(self, other):
-    #     return self._rbinary_opperation(NodeSymbol.PLUS, other)
+    def __radd__(self, other):
+        return self._rbinary_opperation(ast.NodeSymbol.PLUS, other)
 
-    # def __sub__(self, other):
-    #     return self._binary_opperation(NodeSymbol.MINUS, other)
+    def __sub__(self, other):
+        return self._binary_opperation(ast.NodeSymbol.MINUS, other)
 
-    # def __rsub__(self, other):
-    #     return self._rbinary_opperation(NodeSymbol.MINUS, other)
+    def __rsub__(self, other):
+        return self._rbinary_opperation(ast.NodeSymbol.MINUS, other)
 
-    # def __mul__(self, other):
-    #     return self._binary_opperation(NodeSymbol.TIMES, other)
+    def __mul__(self, other):
+        return self._binary_opperation(ast.NodeSymbol.TIMES, other)
 
-    # def __rmul__(self, other):
-    #     return self._rbinary_opperation(NodeSymbol.TIMES, other)
+    def __rmul__(self, other):
+        return self._rbinary_opperation(ast.NodeSymbol.TIMES, other)
 
-    # def __truediv__(self, other):
-    #     return self._binary_opperation(NodeSymbol.DIVIDE, other)
+    def __truediv__(self, other):
+        return self._binary_opperation(ast.NodeSymbol.DIVIDE, other)
 
-    # def __rtruediv__(self, other):
-    #     return self._rbinary_opperation(NodeSymbol.DIVIDE, other)
+    def __rtruediv__(self, other):
+        return self._rbinary_opperation(ast.NodeSymbol.DIVIDE, other)
 
-    # def compile(self, backend='python', **kwargs):
-    #     return compiler.compiler(self, frontend='array', backend=backend, **kwargs)
+    def compile(self, backend='python', **kwargs):
+        return compiler.compiler(self, frontend='array', backend=backend, **kwargs)
 
     def _shape(self):
         return calculate_shapes(self.symbol_table, self.tree)

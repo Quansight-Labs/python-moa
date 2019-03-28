@@ -216,43 +216,58 @@ def test_has_symbolic_elements(elements, result):
     assert ast.has_symbolic_elements(elements) == result
 
 
-# def test_join_symbol_tables_simple():
-#     left_tree = Node(MOANodeTypes.PLUS, None,
-#                      Node(MOANodeTypes.ARRAY, None, 'A'),
-#                      Node(MOANodeTypes.ARRAY, None, 'B'))
-#     left_symbol_table = {
-#         'A': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None),
-#         '_a1': SymbolNode(MOANodeTypes.ARRAY, (1, Node(MOANodeTypes.ARRAY, (), 'm')), None),
-#         'B': SymbolNode(MOANodeTypes.ARRAY, (2, 4), None)
-#     }
+def test_join_symbol_tables_simple():
+    left_tree = ast.Node((ast.NodeSymbol.PLUS,), None, (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), None, ('A',), ()),
+        ast.Node((ast.NodeSymbol.ARRAY,), None, ('B',), ()),))
+    left_symbol_table = {
+        'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (3, 4), None, None),
+        '_a1': ast.SymbolNode(ast.NodeSymbol.ARRAY, (1, ast.Node((ast.NodeSymbol.ARRAY,), (), ('m',), ())), None, None),
+        'B': ast.SymbolNode(ast.NodeSymbol.ARRAY, (2, 4), None, None)
+    }
 
-#     right_tree = Node(MOANodeTypes.MINUS, None,
-#                       Node(MOANodeTypes.ARRAY, None, 'A'),
-#                       Node(MOANodeTypes.ARRAY, None, '_a3'))
-#     right_symbol_table = {
-#         'A': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None),
-#         '_a3': SymbolNode(MOANodeTypes.ARRAY, (Node(MOANodeTypes.ARRAY, (), '_a10'), Node(MOANodeTypes.ARRAY, (), 'm')), None),
-#         '_a10': SymbolNode(MOANodeTypes.ARRAY, (), (1,)),
-#         'm': SymbolNode(MOANodeTypes.ARRAY, (), None),
-#         'B': SymbolNode(MOANodeTypes.ARRAY, (2, 4), None),
-#         'n': SymbolNode(MOANodeTypes.ARRAY, (), None),
-#     }
+    right_tree = ast.Node((ast.NodeSymbol.MINUS,), None, (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), None, ('A',), ()),
+        ast.Node((ast.NodeSymbol.ARRAY,), None, ('_a3',), ()),))
+    right_symbol_table = {
+        'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (3, 4), None, None),
+        '_a3': ast.SymbolNode(ast.NodeSymbol.ARRAY, (ast.Node((ast.NodeSymbol.ARRAY,), (), ('_a10',), ()), ast.Node((ast.NodeSymbol.ARRAY,), (), ('m',), ())), None, None),
+        '_a10': ast.SymbolNode(ast.NodeSymbol.ARRAY, (), None, (1,)),
+        'm': ast.SymbolNode(ast.NodeSymbol.ARRAY, (), None, None),
+        'B': ast.SymbolNode(ast.NodeSymbol.ARRAY, (2, 4), None, None),
+        'n': ast.SymbolNode(ast.NodeSymbol.ARRAY, (), None, None),
+    }
+    left_context = ast.create_context(ast=left_tree, symbol_table=left_symbol_table)
+    right_context = ast.create_context(ast=right_tree, symbol_table=right_symbol_table)
 
-#     symbol_table, new_left_tree, new_right_tree = join_symbol_tables(left_symbol_table, left_tree, right_symbol_table, right_tree)
+    new_symbol_table, new_left_context, new_right_context = ast.join_symbol_tables(left_context, right_context)
 
-#     assert symbol_table == {
-#         'A': SymbolNode(MOANodeTypes.ARRAY, (3, 4), None),
-#         'B': SymbolNode(MOANodeTypes.ARRAY, (2, 4), None),
-#         'm': SymbolNode(MOANodeTypes.ARRAY, (), None),
-#         '_a0': SymbolNode(MOANodeTypes.ARRAY, (), (1,)),
-#         '_a1': SymbolNode(MOANodeTypes.ARRAY, (Node(MOANodeTypes.ARRAY, (), '_a0'), Node(MOANodeTypes.ARRAY, (), 'm')), None),
-#     }
-#     assert new_left_tree == Node(MOANodeTypes.PLUS, None,
-#                                        Node(MOANodeTypes.ARRAY, None, 'A'),
-#                                        Node(MOANodeTypes.ARRAY, None, 'B'))
-#     assert new_right_tree == Node(MOANodeTypes.MINUS, None,
-#                                   Node(MOANodeTypes.ARRAY, None, 'A'),
-#                                   Node(MOANodeTypes.ARRAY, None, '_a1'))
+    assert new_symbol_table == {
+        'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (3, 4), None, None),
+        'B': ast.SymbolNode(ast.NodeSymbol.ARRAY, (2, 4), None, None),
+        'm': ast.SymbolNode(ast.NodeSymbol.ARRAY, (), None, None),
+        '_a0': ast.SymbolNode(ast.NodeSymbol.ARRAY, (), None, (1,)),
+        '_a1': ast.SymbolNode(ast.NodeSymbol.ARRAY, (ast.Node((ast.NodeSymbol.ARRAY,), (), ('_a0',), ()), ast.Node((ast.NodeSymbol.ARRAY,), (), ('m',), ())), None, None),
+    }
+
+    expected_left_context = ast.create_context(
+        ast=ast.Node((ast.NodeSymbol.PLUS,), None, (), (
+            ast.Node((ast.NodeSymbol.ARRAY,), None, ('A',), ()),
+            ast.Node((ast.NodeSymbol.ARRAY,), None, ('B',), ()),)),
+        symbol_table={'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (3, 4), None, None),
+                      'B': ast.SymbolNode(ast.NodeSymbol.ARRAY, (2, 4), None, None)})
+
+    expected_right_context = ast.create_context(
+        ast=ast.Node((ast.NodeSymbol.MINUS,), None, (), (
+            ast.Node((ast.NodeSymbol.ARRAY,), None, ('A',), ()),
+            ast.Node((ast.NodeSymbol.ARRAY,), None, ('_a1',), ()),)),
+        symbol_table={'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (3, 4), None, None),
+                      'm': ast.SymbolNode(ast.NodeSymbol.ARRAY, (), None, None),
+                      '_a0': ast.SymbolNode(ast.NodeSymbol.ARRAY, (), None, (1,)),
+                      '_a1': ast.SymbolNode(ast.NodeSymbol.ARRAY, (ast.Node((ast.NodeSymbol.ARRAY,), (), ('_a0',), ()), ast.Node((ast.NodeSymbol.ARRAY,), (), ('m',), ())), None, None)})
+
+    testing.assert_context_equal(new_left_context, expected_left_context)
+    testing.assert_context_equal(new_right_context, expected_right_context)
 
 
 def test_postorder_replacement():
