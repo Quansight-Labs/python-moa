@@ -77,7 +77,7 @@ def _node_label(context):
 
     # shape
     if ast.is_array(context):
-        shape = ast.get_array_node_symbol(context).shape
+        shape = ast.select_array_node_symbol(context).shape
         if shape is not None:
             node_label['shape'] = symbolic_tuple_string(context, shape, start='<', end='>')
     elif context.ast.shape is not None:
@@ -85,7 +85,7 @@ def _node_label(context):
 
     # value
     if ast.is_array(context):
-        value = ast.get_array_node_symbol(context).value
+        value = ast.select_array_node_symbol(context).value
         if value is not None:
             node_label['value'] = symbolic_tuple_string(context, value, start='(', end=')')
     elif context.ast.symbol == (ast.NodeSymbol.ERROR,):

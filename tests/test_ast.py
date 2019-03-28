@@ -38,31 +38,40 @@ def test_ast_num_node_children(node, result):
     assert ast.num_node_children(context) == result
 
 
-@pytest.mark.parametrize('node, selection, result_node', [
-    (ast.Node((ast.NodeSymbol.ARRAY,), None, (), ()),
-     (),
-     ast.Node((ast.NodeSymbol.ARRAY,), None, (), ())),
-
-    (ast.Node(ast.NodeSymbol.PLUS, None, (), (
-        ast.Node((ast.NodeSymbol.ARRAY,), None, (0,), ()),
-        ast.Node((ast.NodeSymbol.ARRAY,), None, (1,), ()))),
-     (0,),
-     ast.Node((ast.NodeSymbol.ARRAY,), None, (0,), ())),
-
-    (ast.Node((ast.NodeSymbol.PLUS,), None, (), (
+@pytest.mark.parametrize('selection, result_node', [
+    ((), ast.Node((ast.NodeSymbol.PLUS,), None, (), (
         ast.Node((ast.NodeSymbol.ARRAY,), None, (0,), ()),
         ast.Node((ast.NodeSymbol.TRANSPOSE,), None, (1,), (
-            ast.Node((ast.NodeSymbol.ARRAY,), None, (2,), ()),
-        )))),
-     (1, 0),
-     ast.Node((ast.NodeSymbol.ARRAY,), None, (2,), ())),
+            ast.Node((ast.NodeSymbol.ARRAY,), None, (2,), ()),)),))),
+    ((0,), ast.Node((ast.NodeSymbol.ARRAY,), None, (0,), ())),
+    ((1, 0), ast.Node((ast.NodeSymbol.ARRAY,), None, (2,), ())),
 ])
-def test_ast_select_node(node, selection, result_node):
+def test_ast_select_node(selection, result_node):
+    node = ast.Node((ast.NodeSymbol.PLUS,), None, (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), None, (0,), ()),
+        ast.Node((ast.NodeSymbol.TRANSPOSE,), None, (1,), (
+            ast.Node((ast.NodeSymbol.ARRAY,), None, (2,), ()),)),))
+
     context = ast.create_context(ast=node)
     result_context = ast.create_context(ast=result_node)
     testing.assert_context_equal(
         ast.select_node(context, selection),
         result_context)
+
+
+@pytest.mark.parametrize('selection, result_shape', [
+    ((), (1, 2, 3)),
+    ((0,), (4, 5, 6)),
+    ((1, 0), (10, 11, 12)),
+])
+def test_ast_select_node_shape(selection, result_shape):
+    node = ast.Node((ast.NodeSymbol.PLUS,), (1, 2, 3), (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), (4, 5, 6), (0,), ()),
+        ast.Node((ast.NodeSymbol.TRANSPOSE,), (7, 8, 9), (1,), (
+            ast.Node((ast.NodeSymbol.ARRAY,), (10, 11, 12), (2,), ()),)),))
+
+    context = ast.create_context(ast=node)
+    assert ast.select_node_shape(context, selection) == result_shape
 
 
 @pytest.mark.parametrize('node, replacement_node, selection, result_node', [

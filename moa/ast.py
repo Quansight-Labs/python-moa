@@ -50,11 +50,13 @@ def create_context(ast=None, symbol_table=None):
 
 
 # context node methods
-def is_array(context):
+def is_array(context, selection=()):
+    context = select_node(context, selection)
     return context.ast.symbol == (NodeSymbol.ARRAY,)
 
 
-def is_operation(context):
+def is_operation(context, selection=()):
+    context = select_node(context, selection)
     return context.ast.symbol[0] not in {
         NodeSymbol.ARRAY, NodeSymbol.INDEX,
         NodeSymbol.INITIALIZE, NodeSymbol.ERROR,
@@ -62,19 +64,22 @@ def is_operation(context):
         NodeSymbol.FUNCTION, NodeSymbol.LOOP, NodeSymbol.CONDITION}
 
 
-def is_unary_operation(context):
+def is_unary_operation(context, selection=()):
+    context = select_node(context, selection)
     return is_operation(context) and len(context.ast.child) == 1
 
 
-def is_binary_operation(context):
+def is_binary_operation(context, selection=()):
+    context = select_node(context, selection)
     return is_operation(context) and len(context.ast.child) == 2
 
 
-def num_node_children(context):
+def num_node_children(context, selection=()):
+    context = select_node(context, selection)
     return len(context.ast.child)
 
 
-def select_node(context, selection):
+def select_node(context, selection=()):
     """Select a nested child node from a context
 
     context: Context
@@ -89,7 +94,13 @@ def select_node(context, selection):
     return Context(ast=node, symbol_table=context.symbol_table)
 
 
-def replace_node_by_function(context, replacement_function, selection):
+def select_node_shape(context, selection=()):
+    """Select a nested child node shape from a context
+    """
+    return select_node(context, selection).ast.shape
+
+
+def replace_node_by_function(context, replacement_function, selection=()):
     """Replace a nested node shape with new node determined from replacement_function
 
     context: Context
@@ -113,7 +124,7 @@ def replace_node_by_function(context, replacement_function, selection):
     return Context(ast=node, symbol_table=context.symbol_table)
 
 
-def replace_node(context, replacement_node, selection):
+def replace_node(context, replacement_node, selection=()):
     """Replace a nested child node from a context with node
 
     context: Context
@@ -129,7 +140,7 @@ def replace_node(context, replacement_node, selection):
     return replace_node_by_function(context, _replace_node, selection)
 
 
-def replace_node_shape(context, replacement_shape, selection):
+def replace_node_shape(context, replacement_shape, selection=()):
     """Replace a nested child node shape with new shape
 
     context: Context
@@ -156,7 +167,8 @@ def add_symbol(context, name, symbol, shape, type, value):
     return Context(ast=context.ast, symbol_table=symbol_table_copy)
 
 
-def get_array_node_symbol(context):
+def select_array_node_symbol(context, selection=()):
+    context = select_node(context, selection)
     return context.symbol_table[context.ast.attrib[0]]
 
 
