@@ -13,7 +13,6 @@ class MOALexer(sly.Lexer):
     tokens = {
         PLUS, MINUS, TIMES, DIVIDE,
         PSI, TAKE, DROP, CAT,
-        PLUSRED, MINUSRED, TIMESRED, DIVIDERED,
         IOTA, DIM, TAU, SHAPE, RAV, TRANSPOSE,
         LANGLEBRACKET, RANGLEBRACKET,
         LPAREN, RPAREN,
@@ -46,10 +45,6 @@ class MOALexer(sly.Lexer):
     CARROT = r'\^'
 
     ## unary operators
-    PLUSRED   = r'\+red'
-    MINUSRED  = r'\-red'
-    TIMESRED  = r'\*red'
-    DIVIDERED = r'/red'
     IDENTIFIER['iota'] = IOTA
     IDENTIFIER['dim']  = DIM
     IDENTIFIER['shp']  = SHAPE
@@ -87,36 +82,28 @@ class MOAParser(sly.Parser):
 
     @_('unary_operation expr %prec UNARYOP')
     def expr(self, p):
-        return Node(p.unary_operation, None, p.expr)
+        return ast.Node((p.unary_operation,), None, (), (p.expr,))
 
     @_('IOTA',
        'DIM',
        'TAU',
        'SHAPE',
        'RAV',
-       'TRANSPOSE',
-       'PLUSRED',
-       'MINUSRED',
-       'TIMESRED',
-       'DIVIDERED')
+       'TRANSPOSE')
     def unary_operation(self, p):
         unary_map = {
-            '+red': MOANodeTypes.PLUSRED,
-            '-red': MOANodeTypes.MINUSRED,
-            '*red': MOANodeTypes.TIMESRED,
-            '/red': MOANodeTypes.DIVIDERED,
-            'tran': MOANodeTypes.TRANSPOSE,
-            'iota': MOANodeTypes.IOTA,
-            'dim': MOANodeTypes.DIM,
-            'tau': MOANodeTypes.TAU,
-            'shp': MOANodeTypes.SHAPE,
-            'rav': MOANodeTypes.RAV,
+            'tran': ast.NodeSymbol.TRANSPOSE,
+            'iota': ast.NodeSymbol.IOTA,
+            'dim': ast.NodeSymbol.DIM,
+            'tau': ast.NodeSymbol.TAU,
+            'shp': ast.NodeSymbol.SHAPE,
+            'rav': ast.NodeSymbol.RAV,
         }
         return unary_map[p[0].lower()]
 
     @_('expr binary_operation expr %prec BINARYOP')
     def expr(self, p):
-        return Node(p.binary_operation, None, p.expr0, p.expr1)
+        return ast.Node((p.binary_operation,), None, (), (p.expr0, p.expr1))
 
     @_('PLUS',
        'MINUS',
@@ -129,15 +116,15 @@ class MOAParser(sly.Parser):
        'TRANSPOSE')
     def binary_operation(self, p):
         binary_map = {
-            '+': MOANodeTypes.PLUS,
-            '-': MOANodeTypes.MINUS,
-            '*': MOANodeTypes.TIMES,
-            '/': MOANodeTypes.DIVIDE,
-            'psi': MOANodeTypes.PSI,
-            'take': MOANodeTypes.TAKE,
-            'drop': MOANodeTypes.DROP,
-            'cat': MOANodeTypes.CAT,
-            'tran': MOANodeTypes.TRANSPOSEV,
+            '+': ast.NodeSymbol.PLUS,
+            '-': ast.NodeSymbol.MINUS,
+            '*': ast.NodeSymbol.TIMES,
+            '/': ast.NodeSymbol.DIVIDE,
+            'psi': ast.NodeSymbol.PSI,
+            'take': ast.NodeSymbol.TAKE,
+            'drop': ast.NodeSymbol.DROP,
+            'cat': ast.NodeSymbol.CAT,
+            'tran': ast.NodeSymbol.TRANSPOSEV,
         }
         return binary_map[p[0].lower()]
 
@@ -147,19 +134,19 @@ class MOAParser(sly.Parser):
 
     @_('IDENTIFIER CARROT LANGLEBRACKET vector_list RANGLEBRACKET')
     def array(self, p):
-        self.symbol_table = add_symbol(self.symbol_table, p.IDENTIFIER, MOANodeTypes.ARRAY, tuple(p.vector_list), None)
-        return Node(MOANodeTypes.ARRAY, None, p.IDENTIFIER)
+        self.context = ast.add_symbol(self.context, p.IDENTIFIER, ast.NodeSymbol.ARRAY, tuple(p.vector_list), None, None)
+        return ast.Node((ast.NodeSymbol.ARRAY,), None, (p.IDENTIFIER,), ())
 
     @_('IDENTIFIER')
     def array(self, p):
-        self.symbol_table = add_symbol(self.symbol_table, p.IDENTIFIER, MOANodeTypes.ARRAY, None, None)
-        return Node(MOANodeTypes.ARRAY, None, p.IDENTIFIER)
+        self.context = ast.add_symbol(self.context, p.IDENTIFIER, ast.NodeSymbol.ARRAY, None, None, None)
+        return ast.Node((ast.NodeSymbol.ARRAY,), None, (p.IDENTIFIER,), ())
 
     @_('LANGLEBRACKET vector_list RANGLEBRACKET')
     def array(self, p):
-        unique_array_name = generate_unique_array_name(self.symbol_table)
-        self.symbol_table = add_symbol(self.symbol_table, unique_array_name, MOANodeTypes.ARRAY, (len(p.vector_list),), tuple(p.vector_list))
-        return Node(MOANodeTypes.ARRAY, None, unique_array_name)
+        unique_array_name = ast.generate_unique_array_name(self.context)
+        self.context = ast.add_symbol(self.context, unique_array_name, ast.NodeSymbol.ARRAY, (len(p.vector_list),), None, tuple(p.vector_list))
+        return ast.Node((ast.NodeSymbol.ARRAY,), None, (unique_array_name,), ())
 
     @_('INTEGER vector_list')
     def vector_list(self, p):
@@ -167,8 +154,8 @@ class MOAParser(sly.Parser):
 
     @_('IDENTIFIER vector_list')
     def vector_list(self, p):
-        self.symbol_table = add_symbol(self.symbol_table, p.IDENTIFIER, MOANodeTypes.ARRAY, (), None)
-        return (Node(MOANodeTypes.ARRAY, (), p.IDENTIFIER),) + p.vector_list
+        self.context = ast.add_symbol(self.context, p.IDENTIFIER, ast.NodeSymbol.ARRAY, (), None, None)
+        return (ast.Node((ast.NodeSymbol.ARRAY,), (), (p.IDENTIFIER,), ()),) + p.vector_list
 
     @_('empty')
     def vector_list(self, p):
@@ -185,10 +172,10 @@ class MOAParser(sly.Parser):
             raise YaccError('Parse error in input. EOF\n')
 
     def parse(self, text):
-        self.context = create_context()
+        self.context = ast.create_context()
 
         lexer = MOALexer()
         tokens = lexer.tokenize(text)
         tree = super().parse(tokens)
 
-        return self.context
+        return ast.create_context(ast=tree, symbol_table=self.context.symbol_table)

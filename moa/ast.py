@@ -158,7 +158,7 @@ def replace_node_shape(context, replacement_shape, selection=()):
 def add_symbol(context, name, symbol, shape, type, value):
     symbol_table = context.symbol_table
     if name in symbol_table and symbol_table[name] != (symbol, shape, type, value):
-        raise MOAException(f'attempted to add to symbol table different symbol with same name "{name}" {symbol_table[name]} != {SymbolNode(symbol, shape, value)}')
+        raise MOAException(f'attempted to add to symbol table different symbol with same name "{name}" {symbol_table[name]} != {SymbolNode(symbol, shape, type, value)}')
 
     # idempotency makes debugging way easier dict(str: tuple)
     # deep copy not necessary
