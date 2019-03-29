@@ -2,26 +2,28 @@ import ast
 import astunparse
 
 from ..ast import (
-    MOANodeTypes, node_traversal,
+    create_context,
+    select_node,
+    NodeSymbol, node_traversal,
     has_symbolic_elements, is_symbolic_element
 )
 
 
-def python_backend(symbol_table, tree):
+def python_backend(context):
     """Convert MOA reduced AST to python source code
 
     """
-    symbol_table, python_ast = node_traversal(symbol_table, tree, _ast_replacement, traversal='post')
-    return python_ast
+    context = node_traversal(context, _ast_replacement, traversal='postorder')
+    return context.ast
 
 
-def generate_python_source(symbol_table, tree, materialize_scalars=False, use_numba=False):
-    python_ast = python_backend(symbol_table, tree)
+def generate_python_source(context, materialize_scalars=False, use_numba=False):
+    python_ast = python_backend(context)
 
     class ReplaceScalars(ast.NodeTransformer):
         def visit_Name(self, node):
-            symbol_node = symbol_table.get(node.id)
-            if symbol_node is not None and symbol_node.node_type != MOANodeTypes.INDEX and (symbol_node.shape == () and symbol_node.value is not None and not has_symbolic_elements(symbol_node.value)):
+            symbol_node = context.symbol_table.get(node.id)
+            if symbol_node is not None and symbol_node.symbol != NodeSymbol.INDEX and (symbol_node.shape == () and symbol_node.value is not None and not has_symbolic_elements(symbol_node.value)):
                 return ast.Num(symbol_node.value[0])
             return node
 
@@ -54,60 +56,63 @@ def generate_python_source(symbol_table, tree, materialize_scalars=False, use_nu
     return astunparse.unparse(python_ast)[:-1] # remove newline
 
 
-def _ast_replacement(symbol_table, node):
+def _ast_replacement(context):
     _NODE_AST_MAP = {
-        MOANodeTypes.ARRAY: _ast_array,
-        MOANodeTypes.INDEX: _ast_array,
-        MOANodeTypes.FUNCTION: _ast_function,
-        MOANodeTypes.CONDITION: _ast_condition,
-        MOANodeTypes.IF: _ast_if,
-        MOANodeTypes.ERROR: _ast_error,
-        MOANodeTypes.ASSIGN: _ast_assignment,
-        MOANodeTypes.INITIALIZE: _ast_initialize,
-        MOANodeTypes.LOOP: _ast_loop,
-        MOANodeTypes.SHAPE: _ast_shape,
-        MOANodeTypes.DIM: _ast_dimension,
-        MOANodeTypes.PSI: _ast_psi,
-        MOANodeTypes.PLUS: _ast_plus_minus_times_divide,
-        MOANodeTypes.MINUS: _ast_plus_minus_times_divide,
-        MOANodeTypes.TIMES: _ast_plus_minus_times_divide,
-        MOANodeTypes.DIVIDE: _ast_plus_minus_times_divide,
-        MOANodeTypes.EQUAL: _ast_comparison_operations,
-        MOANodeTypes.NOTEQUAL: _ast_comparison_operations,
-        MOANodeTypes.LESSTHAN: _ast_comparison_operations,
-        MOANodeTypes.LESSTHANEQUAL: _ast_comparison_operations,
-        MOANodeTypes.GREATERTHAN: _ast_comparison_operations,
-        MOANodeTypes.GREATERTHANEQUAL: _ast_comparison_operations,
-        MOANodeTypes.AND: _ast_boolean_binary_operations,
-        MOANodeTypes.OR: _ast_boolean_binary_operations,
-        MOANodeTypes.NOT: _ast_boolean_unary_operations,
+        (NodeSymbol.ARRAY,): _ast_array,
+        (NodeSymbol.INDEX,): _ast_array,
+        (NodeSymbol.FUNCTION,): _ast_function,
+        (NodeSymbol.CONDITION,): _ast_condition,
+        (NodeSymbol.BLOCK,): _ast_block,
+        (NodeSymbol.ERROR,): _ast_error,
+        (NodeSymbol.ASSIGN,): _ast_assignment,
+        (NodeSymbol.INITIALIZE,): _ast_initialize,
+        (NodeSymbol.LOOP,): _ast_loop,
+        (NodeSymbol.SHAPE,): _ast_shape,
+        (NodeSymbol.DIM,): _ast_dimension,
+        (NodeSymbol.PSI,): _ast_psi,
+        (NodeSymbol.PLUS,): _ast_plus_minus_times_divide,
+        (NodeSymbol.MINUS,): _ast_plus_minus_times_divide,
+        (NodeSymbol.TIMES,): _ast_plus_minus_times_divide,
+        (NodeSymbol.DIVIDE,): _ast_plus_minus_times_divide,
+        (NodeSymbol.EQUAL,): _ast_comparison_operations,
+        (NodeSymbol.NOTEQUAL,): _ast_comparison_operations,
+        (NodeSymbol.LESSTHAN,): _ast_comparison_operations,
+        (NodeSymbol.LESSTHANEQUAL,): _ast_comparison_operations,
+        (NodeSymbol.GREATERTHAN,): _ast_comparison_operations,
+        (NodeSymbol.GREATERTHANEQUAL,): _ast_comparison_operations,
+        (NodeSymbol.AND,): _ast_boolean_binary_operations,
+        (NodeSymbol.OR,): _ast_boolean_binary_operations,
+        (NodeSymbol.NOT,): _ast_boolean_unary_operations,
     }
-    return _NODE_AST_MAP[node.node_type](symbol_table, node)
+    return _NODE_AST_MAP[context.ast.symbol](context)
 
 
 # helper
-def _ast_element(symbol_table, element):
+def _ast_element(context, element):
     if is_symbolic_element(element):
-        _, symbolic_expression = _ast_replacement(symbol_table, element)
-        return symbolic_expression
+        return _ast_replacement(create_context(ast=element, symbol_table=context.symbol_table)).ast
     else:
         return ast.Num(n=element)
 
 
-def _ast_tuple(symbol_table, value):
-    return ast.Tuple(elts=[_ast_element(symbol_table, element) for element in value])
+def _ast_tuple(context, value):
+    return ast.Tuple(elts=[_ast_element(context, element) for element in value])
 
 
 # python elements
-def _ast_psi(symbol_table, node):
-    left_symbol_node = node.left_node.id
-    return symbol_table, ast.Subscript(value=node.right_node,
-                                       slice=ast.Index(value=_ast_tuple(symbol_table, symbol_table[left_symbol_node].value)),
-                                       ctx=ast.Load())
+def _ast_psi(context):
+    left_symbol_node = select_node(context, (0,)).ast.id
+    return create_context(
+        ast=ast.Subscript(value=select_node(context, (1,)).ast,
+                          slice=ast.Index(value=_ast_tuple(context, context.symbol_table[left_symbol_node].value)),
+                          ctx=ast.Load()),
+        symbol_table=context.symbol_table)
 
 
-def _ast_array(symbol_table, node):
-    return symbol_table, ast.Name(id=node.symbol_node, ctx=ast.Load())
+def _ast_array(context):
+    return create_context(
+        ast=ast.Name(id=context.ast.attrib[0], ctx=ast.Load()),
+        symbol_table=context.symbol_table)
 
 
 def _ast_function(symbol_table, node):
@@ -119,79 +124,107 @@ def _ast_function(symbol_table, node):
                                          returns=None)
 
 
-def _ast_assignment(symbol_table, node):
-    return symbol_table, ast.Assign(targets=[node.left_node], value=node.right_node)
+def _ast_assignment(context):
+    return create_context(
+        ast=ast.Assign(targets=[select_node(context, (0,)).ast], value=select_node(context, (1,)).ast),
+        symbol_table=context.symbol_table)
 
 
-def _ast_loop(symbol_table, node):
-    symbol_node = symbol_table[node.symbol_node]
-    return symbol_table, ast.For(target=ast.Name(id=node.symbol_node),
-                                 iter=ast.Call(func=ast.Name(id='range'),
-                                               args=[
-                                                   _ast_element(symbol_table, symbol_node.value[0]),
-                                                   _ast_element(symbol_table, symbol_node.value[1])
-                                               ], keywords=[]), body=[ast.Expr(value=child_node) for child_node in node.body], orelse=[])
+def _ast_loop(context):
+    node_symbol = select_array_node_symbol(context)
+    return create_context(
+        ast=ast.For(target=ast.Name(id=context.ast.attrib[0]),
+                iter=ast.Call(func=ast.Name(id='range'),
+                              args=[
+                                  _ast_element(context, node_symbol.value[0]),
+                                  _ast_element(context, node_symbol.value[1]),
+                                  _ast_element(context, node_symbol.value[2])
+                              ], keywords=[]), body=select_node(context, (0,)).ast, orelse=[]),
+        symbol_table=context.symbol_table)
 
 
-def _ast_error(symbol_table, node):
-    return symbol_table, ast.Raise(exc=ast.Call(func=ast.Name(id='Exception'), args=[ast.Str(s=node.message)], keywords=[]), cause=None)
+def _ast_error(context):
+    return create_context(
+        ast=ast.Raise(exc=ast.Call(func=ast.Name(id='Exception'), args=[ast.Str(s=context.ast.attrib[0])], keywords=[]), cause=None),
+        symbol_table=context.symbol_table)
 
 
-def _ast_initialize(symbol_table, node):
-    return symbol_table, ast.Assign(targets=[ast.Name(id=node.symbol_node)], value=ast.Call(func=ast.Name(id='Array'), args=[_ast_tuple(symbol_table, node.shape)], keywords=[]))
+def _ast_initialize(context):
+    return create_context(
+        ast=ast.Assign(targets=[ast.Name(id=context.ast.attrib[0])],
+                       value=ast.Call(func=ast.Name(id='Array'),
+                                      args=[_ast_tuple(context, context.ast.shape)],
+                                      keywords=[])),
+        symbol_table=context.symbol_table)
 
 
-def _ast_shape(symbol_table, node):
-    return symbol_table, ast.Attribute(value=node.right_node, attr='shape', ctx=ast.Load())
+def _ast_shape(context):
+    return create_context(
+        ast=ast.Attribute(value=select_node(context, (0,)), attr='shape', ctx=ast.Load()),
+        symbol_table=context.symbol_table)
 
 
-def _ast_dimension(symbol_table, node):
-    symbol_table, shape_ast = _ast_shape(symbol_table, node)
-    return symbol_table, ast.Call(func=ast.Name(id='len', ctx=ast.Load()), args=[shape_ast], keywords=[])
+def _ast_dimension(context):
+    return create_context(
+        ast=ast.Call(func=ast.Name(id='len', ctx=ast.Load()), args=[_ast_shape(context).ast], keywords=[]),
+        symbol_table=context.symbol_table)
 
 
-def _ast_plus_minus_times_divide(symbol_table, node):
+def _ast_plus_minus_times_divide(context):
     binop_map = {
-        MOANodeTypes.PLUS: ast.Add,
-        MOANodeTypes.MINUS: ast.Sub,
-        MOANodeTypes.TIMES: ast.Mult,
-        MOANodeTypes.DIVIDE: ast.Div,
+        (NodeSymbol.PLUS,): ast.Add,
+        (NodeSymbol.MINUS,): ast.Sub,
+        (NodeSymbol.TIMES,): ast.Mult,
+        (NodeSymbol.DIVIDE,): ast.Div,
     }
-    return symbol_table, ast.BinOp(left=node.left_node, op=binop_map[node.node_type](), right=node.right_node)
+    return create_context(
+        ast=ast.BinOp(left=select_node(context, (0,)).ast, op=binop_map[context.ast.symbol](), right=select_node(context, (1,)).ast),
+        symbol_table=context.symbol_table)
 
 
-def _ast_if(symbol_table, node):
-    return symbol_table, ast.If(test=node.condition_node, body=[ast.Expr(value=child_node) for child_node in node.body], orelse=[])
+def _ast_block(context):
+    return create_context(
+        ast=[ast.Expr(value=child_node) for child_node in node.child],
+        symbol_table=context.symbol_table)
 
 
-def _ast_condition(symbol_table, node):
-    return symbol_table, ast.If(test=node.condition_node, body=[ast.Expr(value=node.right_node)], orelse=[])
+def _ast_condition(context):
+    return create_context(
+        ast=ast.If(test=select_node(context, (0,)).ast, body=select_node(context, (1,)).ast, orelse=[]),
+        symbol_table=context.symbol_table)
 
 
-def _ast_comparison_operations(symbol_table, node):
+def _ast_comparison_operations(context):
     comparision_map = {
-        MOANodeTypes.EQUAL: ast.Eq,
-        MOANodeTypes.NOTEQUAL: ast.NotEq,
-        MOANodeTypes.LESSTHAN: ast.Lt,
-        MOANodeTypes.LESSTHANEQUAL: ast.LtE,
-        MOANodeTypes.GREATERTHAN: ast.Gt,
-        MOANodeTypes.GREATERTHANEQUAL: ast.GtE,
+        (NodeSymbol.EQUAL,): ast.Eq,
+        (NodeSymbol.NOTEQUAL,): ast.NotEq,
+        (NodeSymbol.LESSTHAN,): ast.Lt,
+        (NodeSymbol.LESSTHANEQUAL,): ast.LtE,
+        (NodeSymbol.GREATERTHAN,): ast.Gt,
+        (NodeSymbol.GREATERTHANEQUAL,): ast.GtE,
     }
-    return symbol_table, ast.Compare(left=node.left_node,
-                                     ops=[comparision_map[node.node_type]()],
-                                     comparators=[node.right_node])
+    return create_context(
+        ast=ast.Compare(left=select_node(context, (0,)).ast,
+                        ops=[comparision_map[context.ast.symbol]()],
+                        comparators=[select_node(context, (1,)).ast]),
+        symbol_table=context.symbol_table)
 
 
 def _ast_boolean_binary_operations(symbol_table, node):
     boolean_map = {
-        MOANodeTypes.AND: ast.And,
-        MOANodeTypes.OR: ast.Or
+        (NodeSymbol.AND,): ast.And,
+        (NodeSymbol.OR,): ast.Or
     }
-    return symbol_table, ast.BoolOp(op=boolean_map[node.node_type](), values=[node.left_node, node.right_node])
+    return create_context(
+        ast=ast.BoolOp(op=boolean_map[context.ast.symbol](), values=[
+            select_node(context, (0,)).ast, select_node(context, (1,)).ast]),
+        symbol_table=context.symbol_table)
 
 
-def _ast_boolean_unary_operations(symbol_table, node):
+def _ast_boolean_unary_operations(context):
     boolean_map = {
-        MOANodeTypes.NOT: ast.Not
+        (NodeSymbol.NOT,): ast.Not
     }
-    return symbol_table, ast.UnaryOp(op=boolean_map[node.node_type](), operand=node.right_node)
+    return create_context(
+        ast=ast.UnaryOp(op=boolean_map[context.ast.symbol](), operand=select_node(context, (0,)).ast),
+        symbol_table=context.symbol_table)

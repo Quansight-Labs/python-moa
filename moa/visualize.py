@@ -5,8 +5,7 @@ try:
 except ImportError as e:
     graphviz = None
 
-from . import ast
-# from .backend import generate_python_source
+from . import ast, backend
 
 _NODE_LABEL_MAP = {
     #Symbols
@@ -53,7 +52,7 @@ def stringify_elements(context, elements):
     for element in elements:
         if ast.is_symbolic_element(element):
             element_context = ast.create_context(ast=element, symbol_table=context.symbol_table)
-            strings.append(generate_python_source(element_context, materialize_scalars=True))
+            strings.append(backend.generate_python_source(element_context, materialize_scalars=True))
         else:
             strings.append(str(element))
     return strings
@@ -98,7 +97,7 @@ def _node_label(context):
             node_label['value'] = symbol_node
     elif context.ast.symbol == (ast.NodeSymbol.CONDITION,):
         condition_context = ast.select_node(context, (0,))
-        node_label['value'] = generate_python_source(condition_context, materialize_scalars=True)
+        node_label['value'] = backend.generate_python_source(condition_context, materialize_scalars=True)
     elif context.ast.symbol == (ast.NodeSymbol.FUNCTION,):
         arguments, result = context.ast.attrib[0], context.ast.attrib[1]
         if arguments is not None and result is not None:

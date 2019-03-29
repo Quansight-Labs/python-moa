@@ -8,22 +8,18 @@ from moa import ast, dnf, testing
 def test_add_indexing_node():
     tree = ast.Node((ast.NodeSymbol.ARRAY,), (2, 3), ('A',), ())
     symbol_table = {'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (2, 3), None, (1, 2, 3, 4, 5, 6))}
-    context = ast.create_context(ast=tree, symbol_table=symbol_table)
-    context_copy = copy.deepcopy(context)
 
     expected_tree = ast.Node((ast.NodeSymbol.PSI,), (2, 3), (), (
         ast.Node((ast.NodeSymbol.ARRAY,), (2,), ('_a3',), ()),
         ast.Node((ast.NodeSymbol.ARRAY,), (2, 3), ('A',), ())))
     expected_symbol_table = {
         'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (2, 3), None, (1, 2, 3, 4, 5, 6)),
-        '_i1': ast.SymbolNode(ast.NodeSymbol.INDEX, (), None, (0, 2)),
-        '_i2': ast.SymbolNode(ast.NodeSymbol.INDEX, (), None, (0, 3)),
+        '_i1': ast.SymbolNode(ast.NodeSymbol.INDEX, (), None, (0, 2, 1)),
+        '_i2': ast.SymbolNode(ast.NodeSymbol.INDEX, (), None, (0, 3, 1)),
         '_a3': ast.SymbolNode(ast.NodeSymbol.ARRAY, (2,), None, (ast.Node((ast.NodeSymbol.ARRAY,), (), ('_i1',), ()), ast.Node((ast.NodeSymbol.ARRAY,), (), ('_i2',), ()))),
     }
-    exptected_context = ast.create_context(ast=expected_tree, symbol_table=expected_symbol_table)
 
-    new_context = dnf.add_indexing_node(context)
-    testing.assert_context_equal(context, context_copy)
+    testing.assert_transformation(tree, symbol_table, expected_tree, expected_symbol_table, dnf.add_indexing_node)
 
 
 def test_matches_rule_simple():
@@ -43,85 +39,96 @@ def test_not_matches_rule_simple():
     assert not dnf.matches_rule(rule, context)
 
 
+def test_matches_rule_nested():
+    tree = ast.Node((ast.NodeSymbol.TRANSPOSE,), None, (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), (2, 3), ('A',), ()),))
+    symbol_table = {'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (2, 3), None, (1, 2, 3, 4, 5, 6))}
+    context = ast.create_context(ast=tree, symbol_table=symbol_table)
 
-# def test_reduce_psi_psi():
-#     symbol_table = {
-#         '_i0': SymbolNode(ast.NodeSymbol.INDEX, (), (0, 3)),
-#         '_a1': SymbolNode(ast.NodeSymbol.ARRAY, (1,), ('_i0',)),
-#         '_a2': SymbolNode(ast.NodeSymbol.ARRAY, (3,), (1, 2, 3)),
-#         '_a3': SymbolNode(ast.NodeSymbol.ARRAY, (1, 2, 3, 4), None),
-#     }
-#     symbol_table_copy = copy.deepcopy(symbol_table)
-#     tree = Node(ast.NodeSymbol.PSI, (0,),
-#                 Node(ast.NodeSymbol.ARRAY, (1,), '_a1'),
-#                 Node(ast.NodeSymbol.PSI, (4,),
-#                      Node(ast.NodeSymbol.ARRAY, (3,), '_a2'),
-#                      Node(ast.NodeSymbol.ARRAY, (1, 2, 3, 4), '_a3')))
-
-#     new_symbol_table, new_tree = _reduce_psi_psi(symbol_table, tree)
-#     assert symbol_table_copy == symbol_table
-#     assert new_symbol_table == {
-#         '_i0': SymbolNode(ast.NodeSymbol.INDEX, (), (0, 3)),
-#         '_a1': SymbolNode(ast.NodeSymbol.ARRAY, (1,), ('_i0',)),
-#         '_a2': SymbolNode(ast.NodeSymbol.ARRAY, (3,), (1, 2, 3)),
-#         '_a3': SymbolNode(ast.NodeSymbol.ARRAY, (1, 2, 3, 4), None),
-#         '_a4': SymbolNode(ast.NodeSymbol.ARRAY, (4,), (1, 2, 3, '_i0')),
-#     }
-#     assert new_tree == Node(ast.NodeSymbol.PSI, (0,),
-#                             Node(ast.NodeSymbol.ARRAY, (4,), '_a4'),
-#                             Node(ast.NodeSymbol.ARRAY, (1, 2, 3, 4), '_a3'))
+    rule = ((ast.NodeSymbol.TRANSPOSE,), (((ast.NodeSymbol.ARRAY,),),))
+    assert dnf.matches_rule(rule, context)
 
 
-# def test_reduce_psi_assign():
-#     symbol_table = {
-#         '_a1': SymbolNode(ast.NodeSymbol.ARRAY, (1,), (0, 1, 2)),
-#         '_a2': SymbolNode(ast.NodeSymbol.ARRAY, (1, 2, 3), None),
-#         '_a3': SymbolNode(ast.NodeSymbol.ARRAY, (1, 2, 3), None),
-#     }
-#     symbol_table_copy = copy.deepcopy(symbol_table)
-#     tree = Node(ast.NodeSymbol.PSI, (),
-#                 Node(ast.NodeSymbol.ARRAY, (3,), '_a1'),
-#                 Node(ast.NodeSymbol.ASSIGN, (1, 2, 3),
-#                      Node(ast.NodeSymbol.ARRAY, (1, 2, 3), '_a2'),
-#                      Node(ast.NodeSymbol.ARRAY, (1, 2, 3), '_a3')))
+def test_not_matches_rule_nested():
+    tree = ast.Node((ast.NodeSymbol.TRANSPOSE,), None, (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), (2, 3), ('A',), ()),))
+    symbol_table = {'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (2, 3), None, (1, 2, 3, 4, 5, 6))}
+    context = ast.create_context(ast=tree, symbol_table=symbol_table)
 
-#     new_symbol_table, new_tree = _reduce_psi_assign(symbol_table, tree)
-#     assert symbol_table_copy == symbol_table
-#     assert new_symbol_table == symbol_table
-#     assert new_tree == Node(ast.NodeSymbol.ASSIGN, (),
-#                             Node(ast.NodeSymbol.PSI, (),
-#                                  Node(ast.NodeSymbol.ARRAY, (3,), '_a1'),
-#                                  Node(ast.NodeSymbol.ARRAY, (1, 2, 3), '_a2')),
-#                             Node(ast.NodeSymbol.PSI, (),
-#                                  Node(ast.NodeSymbol.ARRAY, (3,), '_a1'),
-#                                  Node(ast.NodeSymbol.ARRAY, (1, 2, 3), '_a3')))
+    rule = ((ast.NodeSymbol.TRANSPOSE,), (((ast.NodeSymbol.TRANSPOSE,),),))
+    assert not dnf.matches_rule(rule, context)
 
 
-# def test_reduce_psi_transpose():
-#     symbol_table = {
-#         '_i0': SymbolNode(ast.NodeSymbol.INDEX, (), (0, 3)),
-#         '_i1': SymbolNode(ast.NodeSymbol.INDEX, (), (0, 2)),
-#         '_a2': SymbolNode(ast.NodeSymbol.ARRAY, (4,), (3, 2, '_i0', '_i1')),
-#         '_a3': SymbolNode(ast.NodeSymbol.ARRAY, (1, 2, 3, 4), None),
-#     }
-#     symbol_table_copy = copy.deepcopy(symbol_table)
-#     tree = Node(ast.NodeSymbol.PSI, (0,),
-#                 Node(ast.NodeSymbol.ARRAY, (4,), '_a2'),
-#                 Node(ast.NodeSymbol.TRANSPOSE, (4, 3, 2, 1),
-#                      Node(ast.NodeSymbol.ARRAY, (1, 2, 3, 4), '_a3')))
+def test_reduce_psi_psi():
+    symbol_table = {
+        '_i0': ast.SymbolNode(ast.NodeSymbol.INDEX, (), None, (0, 3, 1)),
+        '_a1': ast.SymbolNode(ast.NodeSymbol.ARRAY, (1,), None, (ast.Node((ast.NodeSymbol.INDEX,), (), ('_i0',), ()),)),
+        '_a2': ast.SymbolNode(ast.NodeSymbol.ARRAY, (3,), None, (1, 2, 3)),
+        '_a3': ast.SymbolNode(ast.NodeSymbol.ARRAY, (1, 2, 3, 4), None, None),
+    }
+    tree = ast.Node((ast.NodeSymbol.PSI,), (0,), (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), (1,), ('_a1',), ()),
+        ast.Node((ast.NodeSymbol.PSI,), (4,), (), (
+            ast.Node((ast.NodeSymbol.ARRAY,), (3,), ('_a2',), ()),
+            ast.Node((ast.NodeSymbol.ARRAY,), (1, 2, 3, 4), ('_a3',), ())))))
 
-#     new_symbol_table, new_tree = _reduce_psi_transpose(symbol_table, tree)
-#     assert symbol_table_copy == symbol_table
-#     assert new_symbol_table == {
-#         '_i0': SymbolNode(ast.NodeSymbol.INDEX, (), (0, 3)),
-#         '_i1': SymbolNode(ast.NodeSymbol.INDEX, (), (0, 2)),
-#         '_a2': SymbolNode(ast.NodeSymbol.ARRAY, (4,), (3, 2, '_i0', '_i1')),
-#         '_a3': SymbolNode(ast.NodeSymbol.ARRAY, (1, 2, 3, 4), None),
-#         '_a4': SymbolNode(ast.NodeSymbol.ARRAY, (4,), ('_i1', '_i0', 2, 3)),
-#     }
-#     assert new_tree ==  Node(ast.NodeSymbol.PSI, (0,),
-#                              Node(ast.NodeSymbol.ARRAY, (4,), '_a4'),
-#                              Node(ast.NodeSymbol.ARRAY, (1, 2, 3, 4), '_a3'))
+    expected_symbol_table = {
+        **symbol_table,
+        '_a4': ast.SymbolNode(ast.NodeSymbol.ARRAY, (4,), None, (1, 2, 3, ast.Node((ast.NodeSymbol.INDEX,), (), ('_i0',), ())))
+    }
+    expected_tree = ast.Node((ast.NodeSymbol.PSI,), (0,), (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), (4,), ('_a4',), ()),
+        ast.Node((ast.NodeSymbol.ARRAY,), (1, 2, 3, 4), ('_a3',), ())))
+
+    testing.assert_transformation(tree, symbol_table, expected_tree, expected_symbol_table, dnf._reduce_psi_psi)
+
+
+def test_reduce_psi_assign():
+    symbol_table = {
+        '_a1': ast.SymbolNode((ast.NodeSymbol.ARRAY,), (1,), None, (0, 1, 2)),
+        '_a2': ast.SymbolNode((ast.NodeSymbol.ARRAY,), (1, 2, 3), None, None),
+        '_a3': ast.SymbolNode((ast.NodeSymbol.ARRAY,), (1, 2, 3), None, None),
+    }
+    tree = ast.Node((ast.NodeSymbol.PSI,), (), (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), (3,), ('_a1',), ()),
+        ast.Node((ast.NodeSymbol.ASSIGN,), (1, 2, 3), (), (
+            ast.Node((ast.NodeSymbol.ARRAY,), (1, 2, 3), ('_a2',), ()),
+            ast.Node((ast.NodeSymbol.ARRAY,), (1, 2, 3), ('_a3',), ())))))
+
+    expected_tree = ast.Node((ast.NodeSymbol.ASSIGN,), (), (), (
+        ast.Node((ast.NodeSymbol.PSI,), (), (), (
+            ast.Node((ast.NodeSymbol.ARRAY,), (3,), ('_a1',), ()),
+            ast.Node((ast.NodeSymbol.ARRAY,), (1, 2, 3), ('_a2',), ()))),
+        ast.Node((ast.NodeSymbol.PSI,), (), (), (
+            ast.Node((ast.NodeSymbol.ARRAY,), (3,), ('_a1',), ()),
+            ast.Node((ast.NodeSymbol.ARRAY,), (1, 2, 3), ('_a3',), ())))))
+
+    testing.assert_transformation(tree, symbol_table, expected_tree, symbol_table, dnf._reduce_psi_assign)
+
+
+def test_reduce_psi_transpose():
+    symbol_table = {
+        '_i0': ast.SymbolNode(ast.NodeSymbol.INDEX, (), None, (0, 3, 1)),
+        '_i1': ast.SymbolNode(ast.NodeSymbol.INDEX, (), None, (0, 2, 1)),
+        '_a2': ast.SymbolNode(ast.NodeSymbol.ARRAY, (4,), None, (
+            ast.Node((ast.NodeSymbol.ARRAY,), (), ('_i0',), ()),
+            ast.Node((ast.NodeSymbol.ARRAY,), (), ('_i1',), ()), 1, 0)),
+        '_a3': ast.SymbolNode(ast.NodeSymbol.ARRAY, (1, 2, 3, 4), None, None),
+    }
+    tree = ast.Node((ast.NodeSymbol.PSI,), (0,), (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), (4,), ('_a2',), ()),
+        ast.Node((ast.NodeSymbol.TRANSPOSE,), (4, 3, 2, 1), (), (
+            ast.Node((ast.NodeSymbol.ARRAY,), (1, 2, 3, 4), ('_a3',), ()),))))
+
+    expected_symbol_table = {
+        **symbol_table,
+        '_a4': ast.SymbolNode(ast.NodeSymbol.ARRAY, (4,), None, (0, 1, ast.Node((ast.NodeSymbol.ARRAY,), (), ('_i1',), ()), ast.Node((ast.NodeSymbol.ARRAY,), (), ('_i0',), ()))),
+    }
+    expected_tree = ast.Node((ast.NodeSymbol.PSI,), (0,), (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), (4,), ('_a4',), ()),
+        ast.Node((ast.NodeSymbol.ARRAY,), (1, 2, 3, 4), ('_a3',), ())))
+
+    testing.assert_transformation(tree, symbol_table, expected_tree, expected_symbol_table, dnf._reduce_psi_transpose, debug=True)
 
 
 # def test_reduce_psi_transposev():

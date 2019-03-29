@@ -1,8 +1,7 @@
 import itertools
 
 from .exception import MOAException
-from . import ast
-from .shape import dimension, is_vector, is_scalar
+from . import ast, shape
 
 
 class MOAReductionError(MOAException):
@@ -23,7 +22,7 @@ def add_indexing_node(context):
     for bound in context.ast.shape:
         index_name = ast.generate_unique_index_name(context)
         context = ast.add_symbol(context, index_name, ast.NodeSymbol.INDEX, (), None, (0, bound, 1))
-        index_symbols = index_symbols + (ast.Node(ast.NodeSymbol.ARRAY, (), (index_name,), ()),)
+        index_symbols = index_symbols + (ast.Node((ast.NodeSymbol.ARRAY,), (), (index_name,), ()),)
 
     array_name = ast.generate_unique_array_name(context)
     context = ast.add_symbol(context, array_name, ast.NodeSymbol.ARRAY, (len(index_symbols),), None, index_symbols)
@@ -65,22 +64,22 @@ def matches_rule(rule, context):
 
 def _reduce_replacement(context):
     reduction_rules = {
-        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.ASSIGN,)),)): _reduce_psi_assign,
-        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.PSI,)),)): _reduce_psi_psi,
-        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.TRANSPOSE,)),)): _reduce_psi_transpose,
-        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.TRANSPOSEV,)),)): _reduce_psi_transposev,
-        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.PLUS,)),)): _reduce_psi_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.MINUS,)),)): _reduce_psi_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.TIMES,)),)): _reduce_psi_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DIVIDE,)),)): _reduce_psi_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.PLUS)),)): _reduce_psi_outer_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS)),)): _reduce_psi_outer_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES)),)): _reduce_psi_outer_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE)),)): _reduce_psi_outer_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.REDUCE, ast.NodeSymbol.PLUS)),)): _reduce_psi_reduce_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.REDUCE, ast.NodeSymbol.MINUS)),)): _reduce_psi_reduce_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.REDUCE, ast.NodeSymbol.TIMES)),)): _reduce_psi_reduce_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.REDUCE, ast.NodeSymbol.DIVIDE)),)): _reduce_psi_reduce_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.ASSIGN,),),),)): _reduce_psi_assign,
+        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.PSI,),),),)): _reduce_psi_psi,
+        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.TRANSPOSE,),),),)): _reduce_psi_transpose,
+        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.TRANSPOSEV,),),),)): _reduce_psi_transposev,
+        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.PLUS,),),),)): _reduce_psi_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.MINUS,),),),)): _reduce_psi_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.TIMES,),),),)): _reduce_psi_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.DIVIDE,),),),)): _reduce_psi_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.DOT, ast.NodeSymbol.PLUS),),),)): _reduce_psi_outer_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS),),),)): _reduce_psi_outer_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES),),),)): _reduce_psi_outer_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE),),),)): _reduce_psi_outer_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.REDUCE, ast.NodeSymbol.PLUS),),),)): _reduce_psi_reduce_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.REDUCE, ast.NodeSymbol.MINUS),),),)): _reduce_psi_reduce_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.REDUCE, ast.NodeSymbol.TIMES),),),)): _reduce_psi_reduce_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.REDUCE, ast.NodeSymbol.DIVIDE),),),)): _reduce_psi_reduce_plus_minus_times_divide,
     }
 
     for rule, replacement_function in reduction_rules.items():
@@ -89,42 +88,51 @@ def _reduce_replacement(context):
     return None, None
 
 
-def _reduce_psi_assign(symbol_table, node):
+def _reduce_psi_assign(context):
     """<i j> psi ... assign ... => <i j> psi ... assign <i j> psi ..."""
-    return symbol_table, Node(ast.NodeSymbol.ASSIGN, node.shape,
-                                    Node(ast.NodeSymbol.PSI, node.shape, node.left_node, node.right_node.left_node),
-                                    Node(ast.NodeSymbol.PSI, node.shape, node.left_node, node.right_node.right_node))
+    return ast.create_context(
+        ast=ast.Node((ast.NodeSymbol.ASSIGN,), context.ast.shape, (), (
+            ast.Node((ast.NodeSymbol.PSI,), context.ast.shape, (), (ast.select_node(context, (0,)).ast, ast.select_node(context, (1, 0)).ast)),
+            ast.Node((ast.NodeSymbol.PSI,), context.ast.shape, (), (ast.select_node(context, (0,)).ast, ast.select_node(context, (1, 1)).ast)))),
+        symbol_table=context.symbol_table)
 
 
-
-def _reduce_psi_psi(symbol_table, node):
+def _reduce_psi_psi(context):
     """<i j> psi <k l> psi ... => <k l i j> psi ..."""
-    if not is_vector(symbol_table, node.right_node.left_node) or symbol_table[node.right_node.left_node.symbol_node].value is None:
-        raise MOAReductionError('<...> PSI <...> PSI ... replacement assumes that the inner left_node is vector with defined values')
+    # shape check implies that left_nodes are vectors
+    left_node_symbol = ast.select_array_node_symbol(context, (0,))
+    left_left_node_symbol = ast.select_array_node_symbol(context, (1, 0))
 
-    array_name = generate_unique_array_name(symbol_table)
-    array_values = symbol_table[node.right_node.left_node.symbol_node].value + symbol_table[node.left_node.symbol_node].value
-    symbol_table = add_symbol(symbol_table, array_name, ast.NodeSymbol.ARRAY, (len(array_values),), array_values)
+    if left_node_symbol.value is None or left_left_node_symbol is None:
+        raise MOAReductionError('<...> PSI <...> PSI ... replacement assumes that the inner psi left_nodes have defined values')
 
-    return symbol_table, Node(node.node_type, node.shape,
-                                    Node(ast.NodeSymbol.ARRAY, (len(array_values),), array_name),
-                                    node.right_node.right_node)
+    array_name = ast.generate_unique_array_name(context)
+    array_values = left_left_node_symbol.value + left_node_symbol.value
+    context = ast.add_symbol(context, array_name, ast.NodeSymbol.ARRAY, (len(array_values),), None, array_values)
+
+    return ast.create_context(
+        ast=ast.Node((ast.NodeSymbol.PSI,), context.ast.shape, (), (
+            ast.Node((ast.NodeSymbol.ARRAY,), (len(array_values),), (array_name,), ()),
+            ast.select_node(context, (1, 1)).ast)),
+        symbol_table=context.symbol_table)
 
 
-def _reduce_psi_transpose(symbol_table, node):
+def _reduce_psi_transpose(context):
     """<i j k> psi transpose ... => <k j i> psi ..."""
-    array_name = generate_unique_array_name(symbol_table)
-    array_values = symbol_table[node.left_node.symbol_node].value[::-1]
-    symbol_table = add_symbol(symbol_table, array_name, ast.NodeSymbol.ARRAY, (len(array_values),), array_values)
+    array_name = ast.generate_unique_array_name(context)
+    array_values = ast.select_array_node_symbol(context, (0,)).value[::-1]
+    context = ast.add_symbol(context, array_name, ast.NodeSymbol.ARRAY, (len(array_values),), None, array_values)
 
-    return symbol_table, Node(ast.NodeSymbol.PSI, node.shape,
-                                    Node(ast.NodeSymbol.ARRAY, (len(array_values),), array_name),
-                                    node.right_node.right_node)
+    return ast.create_context(
+        ast=ast.Node((ast.NodeSymbol.PSI,), context.ast.shape, (), (
+            ast.Node((ast.NodeSymbol.ARRAY,), (len(array_values),), (array_name,), ()),
+            ast.select_node(context, (1, 1)))),
+        symbol_table=context.symbol_table)
 
 
 def _reduce_psi_transposev(symbol_table, node):
     """<i j k> psi <2 0 1> transpose ... => <k i j> psi ..."""
-    array_name = generate_unique_array_name(symbol_table)
+    array_name = ast.generate_unique_array_name(symbol_table)
     array_values = tuple(s for _, s in sorted(zip(symbol_table[node.right_node.left_node.symbol_node].value, symbol_table[node.left_node.symbol_node].value), key=lambda pair: pair[0]))
     symbol_table = add_symbol(symbol_table, array_name, ast.NodeSymbol.ARRAY, (len(array_values),), array_values)
     return symbol_table, Node(ast.NodeSymbol.PSI, node.shape,

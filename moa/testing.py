@@ -1,6 +1,29 @@
 """Utilities to help with testing moa
 
 """
+import copy
+
+from . import ast, visualize
+
+
+def assert_transformation(tree, symbol_table, expected_tree, expected_symbol_table, operation, debug=False):
+    context = ast.create_context(ast=tree, symbol_table=symbol_table)
+    expected_context = ast.create_context(ast=expected_tree, symbol_table=expected_symbol_table)
+
+    if debug:
+        visualize.print_ast(context)
+        visualize.print_ast(expected_context)
+    assert_context_transformation(context, expected_context, operation)
+
+
+def assert_context_transformation(context, expected_context, operation):
+    context_copy = copy.deepcopy(context)
+
+    new_context = operation(context)
+
+    assert_context_equal(context, context_copy)
+    assert_context_equal(new_context, expected_context)
+
 
 def assert_context_equal(left_context, right_context):
     assert_ast_equal(left_context.ast, right_context.ast)
@@ -29,5 +52,8 @@ def assert_symbol_table_equal(left_symbol_table, right_symbol_table):
         raise ValueError(f'left symbol table is missing keys {left_symbol_table.keys() - right_symbol_table.keys()} and right is missing keys {right_symbol_table.keys() - left_symbol_table.keys()}')
 
     for key in left_symbol_table:
-        if left_symbol_table[key] != right_symbol_table[key]:
-            raise ValueError(f'left and right symbol nodes at "{key}" do not match {left_symbol_table[key]} != {right_symbol_table[key]}')
+        for attr in {'symbol', 'shape', 'type', 'value'}:
+            left_value = getattr(left_symbol_table[key], attr)
+            right_value = getattr(right_symbol_table[key], attr)
+            if left_value != right_value:
+                raise ValueError(f'left and right symbol nodes at "{key}.{attr}" do not match {left_value} != {right_value}')
