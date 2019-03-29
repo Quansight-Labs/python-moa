@@ -12,8 +12,8 @@ def dimension(context, selection=()):
 
     if ast.is_array(context):
         return len(ast.select_array_node_symbol(context).shape)
-    elif node.shape:
-        return len(node.shape)
+    elif context.ast.shape is not None:
+        return len(context.ast.shape)
     raise MOAShapeError(f'cannot determine dimension from node {node.node_type} with shape {node.shape}')
 
 
@@ -44,16 +44,16 @@ def compare_tuples(comparison, context, left_tuple, right_tuple, message):
         element_message = message + f'requires shapes to match elements #{i} left {left_element} != right {right_element}'
 
         if ast.is_symbolic_element(left_element) and ast.is_symbolic_element(right_element): # both are symbolic
-            conditions = conditions + (ast.Node((MOANodeTypes.EQUAL,), (), (), (left_element, right_element)),)
+            conditions = conditions + (ast.Node((ast.NodeSymbol.EQUAL,), (), (), (left_element, right_element)),)
             shape = shape + (left_element,)
         elif ast.is_symbolic_element(left_element): # only left is symbolic
-            array_name = ast.generate_unique_array_name(symbol_table)
-            context = ast.add_symbol(context, array_name, MOANodeTypes.ARRAY, (), None, (right_element,))
-            conditions = conditions + (ast.Node((MOANodeTypes.EQUAL,), (), (), (left_element, ast.Node((ast.NodeSymbol.ARRAY,), (), (), (array_name,)))),)
+            array_name = ast.generate_unique_array_name(context)
+            context = ast.add_symbol(context, array_name, ast.NodeSymbol.ARRAY, (), None, (right_element,))
+            conditions = conditions + (ast.Node((ast.NodeSymbol.EQUAL,), (), (), (left_element, ast.Node((ast.NodeSymbol.ARRAY,), (), (), (array_name,)))),)
             shape = shape + (right_element,)
         elif ast.is_symbolic_element(right_element): # only right is symbolic
-            array_name = generate_unique_array_name(symbol_table)
-            context = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (), None, (left_element,))
+            array_name = ast.generate_unique_array_name(context)
+            context = ast.add_symbol(context, array_name, ast.NodeSymbol.ARRAY, (), None, (left_element,))
             conditions = conditions + (ast.Node((comparison,), (), (), (ast.Node((ast.NodeSymbol.ARRAY,), (), (), (array_name,)), right_element)),)
             shape = shape + (left_element,)
         else: # neither symbolic
@@ -69,7 +69,7 @@ def apply_node_conditions(context, conditions):
         for condition in conditions[1:]:
             condition_node = ast.Node(ast.NodeSymbol.AND, (), (), (condition, condition_node))
 
-        node = ast.Node(ast.NodeSymbol.CONDITION, context.ast.shape, (), (condition_node, context.ast))
+        node = ast.Node((ast.NodeSymbol.CONDITION,), context.ast.shape, (), (condition_node, context.ast))
         context = ast.create_context(ast=node, symbol_table=context.symbol_table)
     return context
 
@@ -104,33 +104,15 @@ def _shape_replacement(context):
         (ast.NodeSymbol.REDUCE, ast.NodeSymbol.DIVIDE): _shape_reduce_plus_minus_divide_times,
     }
 
-    # condition_node = None
-    # # condition propagation
-    # if is_binary_operation(node):
-    #     if node.left_node.node_type == MOANodeTypes.CONDITION and node.right_node.node_type == MOANodeTypes.CONDITION:
-    #         condition_node = Node(MOANodeTypes.AND, None, node.left_node.condition_node, node.right_node.condition_node)
-    #         node = Node(node.node_type, None, node.left_node.right_node, node.right_node.right_node)
-    #     if node.left_node.node_type == MOANodeTypes.CONDITION:
-    #         condition_node = node.left_node.condition_node
-    #         node = Node(node.node_type, None, node.left_node.right_node, node.right_node)
-    #     elif node.right_node.node_type == MOANodeTypes.CONDITION:
-    #         condition_node = node.right_node.condition_node
-    #         node = Node(node.node_type, None, node.left_node, node.right_node.right_node)
-    # elif is_unary_operation(node):
-    #     if node.right_node.node_type == MOANodeTypes.CONDITION:
-    #         condition_node = node.right_node.condition_node
-    #         node = Node(node.node_type, None, node.right_node.right_node)
+    conditions = ()
+    for i in range(ast.num_node_children(context)):
+        node = ast.select_node(context, (i,)).ast
+        if node.symbol == (ast.NodeSymbol.CONDITION,):
+            conditions = conditions + (node.child[0],)
+            context = ast.replace_node(context, node.child[1], (i,))
 
     context = shape_map[context.ast.symbol](context)
-
-    # # combine possible two conditions and set shape
-    # if node.node_type == MOANodeTypes.CONDITION and condition_node:
-    #    node = Node(MOANodeTypes.CONDITION, node.shape,
-    #                Node(MOANodeTypes.AND, (), condition_node, node.condition_node),
-    #                node.right_node)
-    # elif condition_node:
-    #     node = Node(MOANodeTypes.CONDITION, node.shape, condition_node, node)
-
+    context = apply_node_conditions(context, conditions)
     return context
 
 

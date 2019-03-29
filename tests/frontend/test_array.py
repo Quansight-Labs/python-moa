@@ -1,14 +1,25 @@
 import pytest
 
 from moa.frontend import LazyArray
-from moa import ast
-from moa import testing
+from moa import ast, testing, visualize
 
 
 def test_array_single_array():
     expression = LazyArray(name='A', shape=(2, 3))
     node = ast.Node((ast.NodeSymbol.ARRAY,), None, ('A',), ())
     symbol_table = {'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (2, 3), None, None)}
+    context = ast.create_context(ast=node, symbol_table=symbol_table)
+
+    testing.assert_context_equal(context, expression.context)
+
+
+def test_array_single_array_symbolic():
+    expression = LazyArray(name='A', shape=('n', 3))
+    node = ast.Node((ast.NodeSymbol.ARRAY,), None, ('A',), ())
+    symbol_table = {
+        'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (ast.Node((ast.NodeSymbol.ARRAY,), (), ('n',), ()), 3), None, None),
+        'n': ast.SymbolNode(ast.NodeSymbol.ARRAY, (), None, None),
+    }
     context = ast.create_context(ast=node, symbol_table=symbol_table)
 
     testing.assert_context_equal(context, expression.context)

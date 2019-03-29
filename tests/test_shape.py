@@ -2,9 +2,24 @@ import copy
 
 import pytest
 
-from moa import ast
-from moa.shape import calculate_shapes, is_vector, is_scalar
-from moa import testing
+from moa import ast, shape, testing
+
+
+def test_dimension_array():
+    symbol_table = {'_a1': ast.SymbolNode(ast.NodeSymbol.ARRAY, (), None, (3,))}
+    node = ast.Node((ast.NodeSymbol.ARRAY,), None, ('_a1',), ())
+    context = ast.create_context(ast=node, symbol_table=symbol_table)
+
+    assert shape.dimension(context) == 0
+
+
+def test_dimension_operation():
+    symbol_table = {'_a1': ast.SymbolNode(ast.NodeSymbol.ARRAY, (3, 4), None, None)}
+    node = ast.Node((ast.NodeSymbol.TRANSPOSE,), (4, 3), (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), (3, 4), ('_a1',), ()),))
+    context = ast.create_context(ast=node, symbol_table=symbol_table)
+
+    assert shape.dimension(context) == 2
 
 
 def test_is_scalar():
@@ -12,7 +27,7 @@ def test_is_scalar():
     node = ast.Node((ast.NodeSymbol.ARRAY,), None, ('_a1',), ())
     context = ast.create_context(ast=node, symbol_table=symbol_table)
 
-    assert is_scalar(context)
+    assert shape.is_scalar(context)
 
 
 def test_is_not_scalar_1d(): # vector
@@ -20,7 +35,7 @@ def test_is_not_scalar_1d(): # vector
     node = ast.Node((ast.NodeSymbol.ARRAY,), None, ('_a1',), ())
     context = ast.create_context(ast=node, symbol_table=symbol_table)
 
-    assert not is_scalar(context)
+    assert not shape.is_scalar(context)
 
 
 def test_is_not_scalar_2d(): # 2D array
@@ -28,7 +43,7 @@ def test_is_not_scalar_2d(): # 2D array
     node = ast.Node((ast.NodeSymbol.ARRAY,), None, ('_a1',), ())
     context = ast.create_context(ast=node, symbol_table=symbol_table)
 
-    assert not is_scalar(context)
+    assert not shape.is_scalar(context)
 
 
 def test_is_vector():
@@ -36,7 +51,7 @@ def test_is_vector():
     node = ast.Node((ast.NodeSymbol.ARRAY,), None, ('_a1',), ())
     context = ast.create_context(ast=node, symbol_table=symbol_table)
 
-    assert is_vector(context)
+    assert shape.is_vector(context)
 
 
 def test_is_not_vector_1d(): # scalar
@@ -44,7 +59,7 @@ def test_is_not_vector_1d(): # scalar
     node = ast.Node((ast.NodeSymbol.ARRAY,), None, ('asdf',), ())
     context = ast.create_context(ast=node, symbol_table=symbol_table)
 
-    assert not is_vector(context)
+    assert not shape.is_vector(context)
 
 
 def test_is_not_vector_2d(): # 2D array
@@ -52,7 +67,7 @@ def test_is_not_vector_2d(): # 2D array
     node = ast.Node((ast.NodeSymbol.ARRAY,), None, ('A',), ())
     context = ast.create_context(ast=node, symbol_table=symbol_table)
 
-    assert not is_vector(context)
+    assert not shape.is_vector(context)
 
 
 
@@ -115,7 +130,7 @@ def test_shape_unit(symbol_table, tree, shape_symbol_table, shape_tree):
     context = ast.create_context(ast=tree, symbol_table=symbol_table)
     expected_context = ast.create_context(ast=shape_tree, symbol_table=shape_symbol_table)
     context_copy = copy.deepcopy(context)
-    new_context = calculate_shapes(context)
+    new_context = shape.calculate_shapes(context)
     testing.assert_context_equal(context, context_copy)
     testing.assert_context_equal(new_context, expected_context)
 
@@ -141,7 +156,7 @@ def test_shape_unit_outer_plus_minus_multiply_divide_no_symbol(operation):
     expected_context = ast.create_context(ast=expected_tree, symbol_table=symbol_table)
     context_copy = copy.deepcopy(context)
 
-    new_context = calculate_shapes(context)
+    new_context = shape.calculate_shapes(context)
     testing.assert_context_equal(context, context_copy)
     testing.assert_context_equal(expected_context, new_context)
 
@@ -162,7 +177,7 @@ def test_shape_unit_reduce_plus_minus_multiply_divide_no_symbol(operation):
     expected_context = ast.create_context(ast=expected_tree, symbol_table=symbol_table)
     context_copy = copy.deepcopy(context)
 
-    new_context = calculate_shapes(context)
+    new_context = shape.calculate_shapes(context)
     testing.assert_context_equal(context, context_copy)
     testing.assert_context_equal(expected_context, new_context)
 
@@ -187,7 +202,7 @@ def test_shape_unit_plus_minus_multiply_divide_no_symbol(operation):
     expected_context = ast.create_context(ast=expected_tree, symbol_table=symbol_table)
     context_copy = copy.deepcopy(context)
 
-    new_context = calculate_shapes(context)
+    new_context = shape.calculate_shapes(context)
     testing.assert_context_equal(context, context_copy)
     testing.assert_context_equal(expected_context, new_context)
 
@@ -212,6 +227,37 @@ def test_shape_scalar_plus_minus_multiply_divide_no_symbol(operation):
     expected_context = ast.create_context(ast=expected_tree, symbol_table=symbol_table)
     context_copy = copy.deepcopy(context)
 
-    new_context = calculate_shapes(context)
+    new_context = shape.calculate_shapes(context)
     testing.assert_context_equal(context, context_copy)
     testing.assert_context_equal(expected_context, new_context)
+
+
+@pytest.mark.parametrize("left_shape, right_shape", [
+    ((3, 4, ast.Node((ast.NodeSymbol.ARRAY,), (), ('n',), ())), (3, 4, 5)),
+    ((3, 4, 5), (3, 4, ast.Node((ast.NodeSymbol.ARRAY,), (), ('n',), ())))
+])
+def test_shape_unit_plus_symbolic(left_shape, right_shape):
+    symbol_table = {
+        'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, left_shape, None, None),
+        'B': ast.SymbolNode(ast.NodeSymbol.ARRAY, right_shape, None, None),
+        'n': ast.SymbolNode(ast.NodeSymbol.ARRAY, (), None, None),
+    }
+    tree = ast.Node((ast.NodeSymbol.PLUS,), None, (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), None, ('A',), ()),
+        ast.Node((ast.NodeSymbol.ARRAY,), None, ('B',), ()),))
+    expected_tree = ast.Node((ast.NodeSymbol.PLUS,), (3, 4, 5), (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), left_shape, ('A',), ()),
+        ast.Node((ast.NodeSymbol.ARRAY,), right_shape, ('B',), ()),))
+
+    context = ast.create_context(ast=tree, symbol_table=symbol_table)
+    expected_context = ast.create_context(ast=expected_tree, symbol_table={
+        **symbol_table,
+        '_a3': ast.SymbolNode(ast.NodeSymbol.ARRAY, (), None, (5,)),
+    })
+    context_copy = copy.deepcopy(context)
+
+    new_context = shape.calculate_shapes(context)
+    exclude_condition_node = ast.select_node(new_context, (1,))
+    print(new_context.symbol_table)
+    testing.assert_context_equal(context, context_copy)
+    testing.assert_context_equal(expected_context, exclude_condition_node)

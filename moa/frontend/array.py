@@ -14,10 +14,14 @@ class LazyArray:
         if value is not None:
             raise NotImplemenetedError('not able to pass in value at compile time at this moment')
 
+        self.context = ast.create_context()
+
         shape = self._create_array_from_list_tuple(shape)
         name = name or ast.generate_unique_array_name(self.context)
 
-        self.context = ast.create_context(ast=ast.Node((ast.NodeSymbol.ARRAY,), None, (name,), ()))
+        self.context = ast.create_context(
+            ast=ast.Node((ast.NodeSymbol.ARRAY,), None, (name,), ()),
+            symbol_table=self.context.symbol_table)
         self.context = ast.add_symbol(self.context, name, ast.NodeSymbol.ARRAY, shape, None, value)
 
     def __getitem__(self, index):
@@ -67,8 +71,8 @@ class LazyArray:
         elements = ()
         for element in value:
             if isinstance(element, str):
-                self.context = ast.add_symbol(self.context, element, NodeSymbol.ARRAY, (), None, None)
-                elements = elements + (ast.Node((ast.NodeSymbol.ARRAY,), None, (element,), ()),)
+                self.context = ast.add_symbol(self.context, element, ast.NodeSymbol.ARRAY, (), None, None)
+                elements = elements + (ast.Node((ast.NodeSymbol.ARRAY,), (), (element,), ()),)
             else:
                 elements = elements + (element,)
         return elements
@@ -187,13 +191,13 @@ class LazyArray:
         return compiler.compiler(self, frontend='array', backend=backend, **kwargs)
 
     def _shape(self):
-        return calculate_shapes(self.symbol_table, self.tree)
+        return calculate_shapes(self.context)
 
     # def _dnf(self):
-    #     return reduce_to_dnf(*self._shape())
+    #     return reduce_to_dnf(self._shape())
 
     # def _onf(self):
-    #     return reduce_to_onf(*self._dnf())
+    #     return reduce_to_onf(self._dnf())
 
     # def analysis(self):
     #     shape_symbol_table, shape_tree = calculate_shapes(self.symbol_table, self.tree)
@@ -221,8 +225,6 @@ class LazyArray:
 
     def _repr_svg_(self):
         try:
-            from ..visualize import visualize_ast
-            dot = visualize_ast(self.symbol_table, self.tree)
-            return dot.pipe(format='svg').decode(dot._encoding)
+            return self.visualize()
         except ImportError as e:
             return None
