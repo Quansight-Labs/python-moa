@@ -222,7 +222,6 @@ class LazyArray:
         else:
             return visualize_ast(context)
 
-
     def _repr_svg_(self):
         try:
             return self.visualize()

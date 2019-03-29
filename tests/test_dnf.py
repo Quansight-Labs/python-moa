@@ -6,7 +6,7 @@ from moa import ast, dnf, testing
 
 
 def test_add_indexing_node():
-    tree = ast.Node(ast.NodeSymbol.ARRAY, (2, 3), ('A',), ())
+    tree = ast.Node((ast.NodeSymbol.ARRAY,), (2, 3), ('A',), ())
     symbol_table = {'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (2, 3), None, (1, 2, 3, 4, 5, 6))}
     context = ast.create_context(ast=tree, symbol_table=symbol_table)
     context_copy = copy.deepcopy(context)
@@ -24,6 +24,23 @@ def test_add_indexing_node():
 
     new_context = dnf.add_indexing_node(context)
     testing.assert_context_equal(context, context_copy)
+
+
+def test_matches_rule_simple():
+    tree = ast.Node((ast.NodeSymbol.ARRAY,), (2, 3), ('A',), ())
+    symbol_table = {'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (2, 3), None, (1, 2, 3, 4, 5, 6))}
+    context = ast.create_context(ast=tree, symbol_table=symbol_table)
+
+    rule = ((ast.NodeSymbol.ARRAY,),)
+    assert dnf.matches_rule(rule, context)
+
+def test_not_matches_rule_simple():
+    tree = ast.Node((ast.NodeSymbol.ARRAY,), (2, 3), ('A',), ())
+    symbol_table = {'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (2, 3), None, (1, 2, 3, 4, 5, 6))}
+    context = ast.create_context(ast=tree, symbol_table=symbol_table)
+
+    rule = ((ast.NodeSymbol.PSI,),)
+    assert not dnf.matches_rule(rule, context)
 
 
 
