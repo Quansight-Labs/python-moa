@@ -126,7 +126,7 @@ def _reduce_psi_transpose(context):
     return ast.create_context(
         ast=ast.Node((ast.NodeSymbol.PSI,), context.ast.shape, (), (
             ast.Node((ast.NodeSymbol.ARRAY,), (len(array_values),), (array_name,), ()),
-            ast.select_node(context, (1, 1)))),
+            ast.select_node(context, (1, 0)).ast)),
         symbol_table=context.symbol_table)
 
 

@@ -128,7 +128,7 @@ def test_reduce_psi_transpose():
         ast.Node((ast.NodeSymbol.ARRAY,), (4,), ('_a4',), ()),
         ast.Node((ast.NodeSymbol.ARRAY,), (1, 2, 3, 4), ('_a3',), ())))
 
-    testing.assert_transformation(tree, symbol_table, expected_tree, expected_symbol_table, dnf._reduce_psi_transpose, debug=True)
+    testing.assert_transformation(tree, symbol_table, expected_tree, expected_symbol_table, dnf._reduce_psi_transpose)
 
 
 # def test_reduce_psi_transposev():
