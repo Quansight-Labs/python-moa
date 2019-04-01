@@ -201,11 +201,11 @@ class LazyArray:
 
     def analysis(self):
         shape_context = calculate_shapes(self.context)
-        dnf_context = reduce_to_dnf(shape_symbol_table, shape_tree)
+        dnf_context = reduce_to_dnf(shape_context)
 
         return {
-            'unoptimized_flops': metric_flops(context),
-            'optimized_flops': metric_flops(context)
+            'unoptimized_flops': metric_flops(shape_context),
+            'optimized_flops': metric_flops(dnf_context)
         }
 
     def visualize(self, stage=None, as_text=False):
@@ -224,6 +224,7 @@ class LazyArray:
 
     def _repr_svg_(self):
         try:
-            return self.visualize()
+            dot = self.visualize()
+            return dot.pipe(format='svg').decode(dot._encoding)
         except ImportError as e:
             return None

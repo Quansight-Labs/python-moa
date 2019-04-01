@@ -125,7 +125,7 @@ def print_ast(context, vector_value=True):
         if ast.num_node_children(context) == 0:
             return
 
-        # hack for condition node since no needed to traverse condition nodes
+        # no need to traverse condition node since converted to python source
         if context.ast.symbol == (ast.NodeSymbol.CONDITION,):
             child_context = ast.select_node(context, (1,))
             print(prefix + "└──", _print_node_label(child_context))
@@ -185,6 +185,13 @@ def visualize_ast(context, comment='MOA AST', with_attrs=True, vector_value=True
 
     def _visualize_node(dot, context):
         node_id = _visualize_node_label(dot, context)
+
+        # no need to traverse condition node since converted to python source
+        if context.ast.symbol == (ast.NodeSymbol.CONDITION,):
+            child_context = ast.select_node(context, (1,))
+            child_node_id = _visualize_node(dot, child_context)
+            dot.edge(node_id, child_node_id)
+            return node_id
 
         for i in range(ast.num_node_children(context)):
             child_context = ast.select_node(context, (i,))
