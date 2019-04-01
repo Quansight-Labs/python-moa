@@ -16,6 +16,7 @@ _NODE_LABEL_MAP = {
     (ast.NodeSymbol.LOOP,): "loop",
     (ast.NodeSymbol.INITIALIZE,): 'initialize',
     (ast.NodeSymbol.ERROR,): 'error',
+    (ast.NodeSymbol.BLOCK,): 'block',
     # Unary
     (ast.NodeSymbol.IOTA,): "iota(ι)",
     (ast.NodeSymbol.DIM,): "dim(δ)",
@@ -122,6 +123,13 @@ def print_ast(context, vector_value=True):
 
     def _print_node(context, prefix=""):
         if ast.num_node_children(context) == 0:
+            return
+
+        # hack for condition node since no needed to traverse condition nodes
+        if context.ast.symbol == (ast.NodeSymbol.CONDITION,):
+            child_context = ast.select_node(context, (1,))
+            print(prefix + "└──", _print_node_label(child_context))
+            _print_node(child_context, prefix + "    ")
             return
 
         for i in range(ast.num_node_children(context) - 1):

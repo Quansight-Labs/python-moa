@@ -1,10 +1,10 @@
-from .. import ast
-# from .. import compiler
+from .. import ast, compiler
 from ..shape import calculate_shapes
-# from ..dnf import reduce_to_dnf
-# from ..onf import reduce_to_onf
-# from ..analysis import metric_flops
+from ..dnf import reduce_to_dnf
+from ..onf import reduce_to_onf
+from ..analysis import metric_flops
 from ..visualize import visualize_ast, print_ast
+
 
 class LazyArray:
     def __init__(self, shape, value=None, name=None):
@@ -193,20 +193,20 @@ class LazyArray:
     def _shape(self):
         return calculate_shapes(self.context)
 
-    # def _dnf(self):
-    #     return reduce_to_dnf(self._shape())
+    def _dnf(self):
+        return reduce_to_dnf(self._shape())
 
-    # def _onf(self):
-    #     return reduce_to_onf(self._dnf())
+    def _onf(self):
+        return reduce_to_onf(self._dnf())
 
-    # def analysis(self):
-    #     shape_symbol_table, shape_tree = calculate_shapes(self.symbol_table, self.tree)
-    #     dnf_symbol_table, dnf_tree = reduce_to_dnf(shape_symbol_table, shape_tree)
+    def analysis(self):
+        shape_context = calculate_shapes(self.context)
+        dnf_context = reduce_to_dnf(shape_symbol_table, shape_tree)
 
-    #     return {
-    #         'unoptimized_flops': metric_flops(shape_symbol_table, shape_tree),
-    #         'optimized_flops': metric_flops(dnf_symbol_table, dnf_tree)
-    #     }
+        return {
+            'unoptimized_flops': metric_flops(context),
+            'optimized_flops': metric_flops(context)
+        }
 
     def visualize(self, stage=None, as_text=False):
         if stage not in {None, 'shape', 'dnf', 'onf'}:

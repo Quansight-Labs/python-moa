@@ -30,7 +30,7 @@ def add_indexing_node(context):
     node = ast.Node((ast.NodeSymbol.PSI,), context.ast.shape, (), (vector_node, context.ast))
 
     if condition_node:
-        node = ast.Node(ast.NodeSymbol.CONDITION, node.shape, (), (condition_node, node))
+        node = ast.Node((ast.NodeSymbol.CONDITION,), node.shape, (), (condition_node, node))
 
     return ast.create_context(ast=node, symbol_table=context.symbol_table)
 
@@ -40,7 +40,7 @@ def reduce_to_dnf(context):
 
     """
     context = add_indexing_node(context)
-    context = node_traversal(context, _reduce_replacement, traversal='preorder')
+    context = ast.node_traversal(context, _reduce_replacement, traversal='preorder')
     return context
 
 
@@ -64,28 +64,28 @@ def matches_rule(rule, context):
 
 def _reduce_replacement(context):
     reduction_rules = {
-        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.ASSIGN,),),),)): _reduce_psi_assign,
-        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.PSI,),),),)): _reduce_psi_psi,
-        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.TRANSPOSE,),),),)): _reduce_psi_transpose,
-        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.TRANSPOSEV,),),),)): _reduce_psi_transposev,
-        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.PLUS,),),),)): _reduce_psi_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.MINUS,),),),)): _reduce_psi_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.TIMES,),),),)): _reduce_psi_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.DIVIDE,),),),)): _reduce_psi_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.DOT, ast.NodeSymbol.PLUS),),),)): _reduce_psi_outer_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS),),),)): _reduce_psi_outer_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES),),),)): _reduce_psi_outer_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE),),),)): _reduce_psi_outer_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.REDUCE, ast.NodeSymbol.PLUS),),),)): _reduce_psi_reduce_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.REDUCE, ast.NodeSymbol.MINUS),),),)): _reduce_psi_reduce_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.REDUCE, ast.NodeSymbol.TIMES),),),)): _reduce_psi_reduce_plus_minus_times_divide,
-        ((ast.NodeSymbol.PSI,), (None, (((ast.NodeSymbol.REDUCE, ast.NodeSymbol.DIVIDE),),),)): _reduce_psi_reduce_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.ASSIGN,),),)): _reduce_psi_assign,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.PSI,),),)): _reduce_psi_psi,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.TRANSPOSE,),),)): _reduce_psi_transpose,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.TRANSPOSEV,),),)): _reduce_psi_transposev,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.PLUS,),),)): _reduce_psi_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.MINUS,),),)): _reduce_psi_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.TIMES,),),)): _reduce_psi_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DIVIDE,),),)): _reduce_psi_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.PLUS),),)): _reduce_psi_outer_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS),),)): _reduce_psi_outer_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES),),)): _reduce_psi_outer_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE),),)): _reduce_psi_outer_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.REDUCE, ast.NodeSymbol.PLUS),),)): _reduce_psi_reduce_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.REDUCE, ast.NodeSymbol.MINUS),),)): _reduce_psi_reduce_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.REDUCE, ast.NodeSymbol.TIMES),),)): _reduce_psi_reduce_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.REDUCE, ast.NodeSymbol.DIVIDE),),)): _reduce_psi_reduce_plus_minus_times_divide,
     }
 
     for rule, replacement_function in reduction_rules.items():
         if matches_rule(rule, context):
             return replacement_function(context)
-    return None, None
+    return None
 
 
 def _reduce_psi_assign(context):

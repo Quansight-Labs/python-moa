@@ -5,7 +5,8 @@ from ..ast import (
     create_context,
     select_node,
     NodeSymbol, node_traversal,
-    has_symbolic_elements, is_symbolic_element
+    has_symbolic_elements, is_symbolic_element,
+    select_array_node_symbol,
 )
 
 
@@ -115,13 +116,15 @@ def _ast_array(context):
         symbol_table=context.symbol_table)
 
 
-def _ast_function(symbol_table, node):
-    return symbol_table, ast.FunctionDef(name='f',
-                                         args=ast.arguments(args=[ast.arg(arg=arg, annotation=None) for arg in node.arguments],
-                                                            vararg=None, kwonlyargs=[], kw_defaults=[], kwarg=None, defaults=[]),
-                                         body=[ast.Expr(value=child_node) for child_node in node.body] + [ast.Return(value=ast.Name(id=node.result))],
-                                         decorator_list=[],
-                                         returns=None)
+def _ast_function(context):
+    return create_context(
+        ast=ast.FunctionDef(name='f',
+                            args=ast.arguments(args=[ast.arg(arg=arg, annotation=None) for arg in context.ast.attrib[0]],
+                                               vararg=None, kwonlyargs=[], kw_defaults=[], kwarg=None, defaults=[]),
+                            body=[ast.Expr(value=child_node) for child_node in context.ast.child] + [ast.Return(value=ast.Name(id=context.ast.attrib[1]))],
+                            decorator_list=[],
+                            returns=None),
+        symbol_table=context.symbol_table)
 
 
 def _ast_assignment(context):
@@ -160,7 +163,7 @@ def _ast_initialize(context):
 
 def _ast_shape(context):
     return create_context(
-        ast=ast.Attribute(value=select_node(context, (0,)), attr='shape', ctx=ast.Load()),
+        ast=ast.Attribute(value=select_node(context, (0,)).ast, attr='shape', ctx=ast.Load()),
         symbol_table=context.symbol_table)
 
 
@@ -184,7 +187,7 @@ def _ast_plus_minus_times_divide(context):
 
 def _ast_block(context):
     return create_context(
-        ast=[ast.Expr(value=child_node) for child_node in node.child],
+        ast=[ast.Expr(value=child_node) for child_node in context.ast.child],
         symbol_table=context.symbol_table)
 
 
@@ -210,7 +213,7 @@ def _ast_comparison_operations(context):
         symbol_table=context.symbol_table)
 
 
-def _ast_boolean_binary_operations(symbol_table, node):
+def _ast_boolean_binary_operations(context):
     boolean_map = {
         (NodeSymbol.AND,): ast.And,
         (NodeSymbol.OR,): ast.Or

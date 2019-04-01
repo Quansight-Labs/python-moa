@@ -37,7 +37,6 @@ SymbolNode = collections.namedtuple(
 Context = collections.namedtuple(
     'Context', ['ast', 'symbol_table'])
 
-
 # context methods
 def create_context(ast=None, symbol_table=None):
     """Initialize context

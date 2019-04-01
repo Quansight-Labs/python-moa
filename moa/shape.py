@@ -44,17 +44,17 @@ def compare_tuples(comparison, context, left_tuple, right_tuple, message):
         element_message = message + f'requires shapes to match elements #{i} left {left_element} != right {right_element}'
 
         if ast.is_symbolic_element(left_element) and ast.is_symbolic_element(right_element): # both are symbolic
-            conditions = conditions + (ast.Node((ast.NodeSymbol.EQUAL,), (), (), (left_element, right_element)),)
+            conditions = conditions + (ast.Node((comparison,), (), (), (left_element, right_element)),)
             shape = shape + (left_element,)
         elif ast.is_symbolic_element(left_element): # only left is symbolic
             array_name = ast.generate_unique_array_name(context)
             context = ast.add_symbol(context, array_name, ast.NodeSymbol.ARRAY, (), None, (right_element,))
-            conditions = conditions + (ast.Node((ast.NodeSymbol.EQUAL,), (), (), (left_element, ast.Node((ast.NodeSymbol.ARRAY,), (), (), (array_name,)))),)
+            conditions = conditions + (ast.Node((comparison,), (), (), (left_element, ast.Node((ast.NodeSymbol.ARRAY,), (), (array_name,), ()))),)
             shape = shape + (right_element,)
         elif ast.is_symbolic_element(right_element): # only right is symbolic
             array_name = ast.generate_unique_array_name(context)
             context = ast.add_symbol(context, array_name, ast.NodeSymbol.ARRAY, (), None, (left_element,))
-            conditions = conditions + (ast.Node((comparison,), (), (), (ast.Node((ast.NodeSymbol.ARRAY,), (), (), (array_name,)), right_element)),)
+            conditions = conditions + (ast.Node((comparison,), (), (), (ast.Node((ast.NodeSymbol.ARRAY,), (), (array_name,), ()), right_element)),)
             shape = shape + (left_element,)
         else: # neither symbolic
             if not comparison_map[comparison](left_element, right_element):
@@ -67,10 +67,11 @@ def apply_node_conditions(context, conditions):
     if conditions:
         condition_node = conditions[0]
         for condition in conditions[1:]:
-            condition_node = ast.Node(ast.NodeSymbol.AND, (), (), (condition, condition_node))
+            condition_node = ast.Node((ast.NodeSymbol.AND,), (), (), (condition, condition_node))
 
-        node = ast.Node((ast.NodeSymbol.CONDITION,), context.ast.shape, (), (condition_node, context.ast))
-        context = ast.create_context(ast=node, symbol_table=context.symbol_table)
+        context = ast.create_context(
+            ast=ast.Node((ast.NodeSymbol.CONDITION,), context.ast.shape, (), (condition_node, context.ast)),
+            symbol_table=context.symbol_table)
     return context
 
 
@@ -112,6 +113,11 @@ def _shape_replacement(context):
             context = ast.replace_node(context, node.child[1], (i,))
 
     context = shape_map[context.ast.symbol](context)
+
+    if context.ast.symbol == (ast.NodeSymbol.CONDITION,):
+        conditions = conditions + (context.ast.child[0],)
+        context = ast.select_node(context, (1,))
+
     context = apply_node_conditions(context, conditions)
     return context
 

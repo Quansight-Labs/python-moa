@@ -1,117 +1,126 @@
-from .core import MOAException
-from .ast import (
-    MOANodeTypes, Node,
-    generate_unique_array_name, add_symbol,
-    has_symbolic_elements, is_symbolic_element
-)
+from .exception import MOAException
+from . import ast, visualize
 
 
 class MOAONFReductionError(MOAException):
     pass
 
 
-def reduce_to_onf(symbol_table, node, include_conditions=True):
-    return naive_reduction(symbol_table, node, include_conditions=include_conditions)
+def reduce_to_onf(context, include_conditions=True):
+    return naive_reduction(context, include_conditions=include_conditions)
 
 
-def naive_reduction(symbol_table, node, include_conditions=True):
+def naive_reduction(context, include_conditions=True):
     """Simple backend does not simplify loops and directly converts moa reduced statement to ONF
 
     ONF AST is a language independent representation
     """
-    array_arguments = determine_function_arguments(symbol_table)
+    array_arguments = determine_function_arguments(context.symbol_table)
 
     function_body = ()
 
-    # assert condition of array inputs
-    dimension_conditions = []
-    shape_conditions = []
-    assignments = []
-    for array in array_arguments:
-        # dim A == value
-        value_name = generate_unique_array_name(symbol_table)
-        symbol_table = add_symbol(symbol_table, value_name, MOANodeTypes.ARRAY, (), (len(array.shape),))
+    context, dimension_conditions = determine_dimension_conditions(context, array_arguments)
+    if include_conditions and dimension_conditions:
+        # dimension constraint
+        function_body = function_body + (ast.Node((ast.NodeSymbol.CONDITION,), (), (), (
+            ast.Node((ast.NodeSymbol.NOT,), (), (), (dimension_conditions,)),
+            ast.Node((ast.NodeSymbol.BLOCK,), (), (), (ast.Node((ast.NodeSymbol.ERROR,), (), ('arguments have invalid dimension',), ()),)))),)
 
-        dimension_conditions.append(Node(MOANodeTypes.EQUAL, (),
-                                         Node(MOANodeTypes.DIM, (),
-                                              Node(MOANodeTypes.ARRAY, (), array.symbol_node)),
-                                         Node(MOANodeTypes.ARRAY, (), value_name)))
-
-        for i, element in enumerate(array.shape):
-            array_name = generate_unique_array_name(symbol_table)
-            symbol_table = add_symbol(symbol_table, array_name, MOANodeTypes.ARRAY, (1,), (i,))
-
-            if is_symbolic_element(element):
-                # <i> psi shape A
-                assignments.append(Node(MOANodeTypes.ASSIGN, (),
-                                        Node(MOANodeTypes.ARRAY, (), element.symbol_node),
-                                        Node(MOANodeTypes.PSI, (),
-                                             Node(MOANodeTypes.ARRAY, (1,), array_name),
-                                             Node(MOANodeTypes.SHAPE, (len(array.shape),),
-                                                  Node(MOANodeTypes.ARRAY, array.shape, array.symbol_node)))))
-            else:
-                # <i> psi shape A == value
-                value_name = generate_unique_array_name(symbol_table)
-                symbol_table = add_symbol(symbol_table, value_name, MOANodeTypes.ARRAY, (), (element,))
-
-                shape_conditions.append(Node(MOANodeTypes.EQUAL, (),
-                                             Node(MOANodeTypes.ARRAY, (), value_name),
-                                             Node(MOANodeTypes.PSI, (),
-                                                  Node(MOANodeTypes.ARRAY, (1,), array_name),
-                                                  Node(MOANodeTypes.SHAPE, (len(array.shape),),
-                                                       Node(MOANodeTypes.ARRAY, array.shape, array.symbol_node)))))
-
-    if dimension_conditions and include_conditions:
-        condition_node = dimension_conditions[0]
-        for dimension_condition in dimension_conditions[1:]:
-            condition_node = Node(MOANodeTypes.AND, (), dimension_condition, condition_node)
-        function_body = function_body + (Node(MOANodeTypes.IF, (),
-                                              Node(MOANodeTypes.NOT, (), condition_node),
-                                              (Node(MOANodeTypes.ERROR, (), 'arguments have invalid dimension'),)),)
-
+    context, assignments, shape_conditions = determine_shape_conditions(context, array_arguments)
     function_body = function_body + tuple(assignments)
 
-    # grab condition node
-    condition_node = None
-    if shape_conditions:
-        condition_node = shape_conditions[0]
-        for shape_condition in shape_conditions[1:]:
-            condition_node = Node(MOANodeTypes.AND, (), shape_condition, condition_node)
+    if include_conditions and shape_conditions:
+        function_body = function_body + (ast.Node((ast.NodeSymbol.CONDITION,), (), (), (
+            ast.Node((ast.NodeSymbol.NOT,), (), (), (shape_conditions,)),
+            ast.Node((ast.NodeSymbol.BLOCK,), (), (), (ast.Node((ast.NodeSymbol.ERROR,), (), ('arguments do not match declared shape',), ()),)))),)
 
-    if node.node_type == MOANodeTypes.CONDITION:
-        if condition_node is not None:
-            condition_node = Node(MOANodeTypes.AND, (), condition_node, node.condition_node)
-        else:
-            condition_node = node.condition_node
-        node = node.right_node
+    # check for condition node in expression
+    if context.ast.symbol == (ast.NodeSymbol.CONDITION,):
+        condition_constraints = ast.select_node(context, (0,)).ast
+        if include_conditions and condition_constraints:
+            function_body = function_body + (ast.Node((ast.NodeSymbol.CONDITION,), (), (), (
+                ast.Node((ast.NodeSymbol.NOT,), (), (), (condition_constraints,)),
+                ast.Node((ast.NodeSymbol.BLOCK,), (), (), (ast.Node((ast.NodeSymbol.ERROR,), (), ('arguments have incompatible shape',), ()),)))),)
+        context = ast.select_node(context, (1,))
 
-    if condition_node and include_conditions:
-        function_body = function_body + (Node(MOANodeTypes.IF, (),
-                                                Node(MOANodeTypes.NOT, (), condition_node),
-                                                (Node(MOANodeTypes.ERROR, (), 'arguments have invalid shape'),)),)
-
-    indicies = tuple(determine_indicies(symbol_table))
+    indicies = tuple(determine_indicies(context.symbol_table))
 
     # eventually get shapes and match with conditions
-    result_array_name = generate_unique_array_name(symbol_table)
-    symbol_table = add_symbol(symbol_table, result_array_name, MOANodeTypes.ARRAY, node.shape, None)
-    result_index_name = generate_unique_array_name(symbol_table)
-    symbol_table = add_symbol(symbol_table, result_index_name, MOANodeTypes.ARRAY, (len(indicies),), indicies)
+    result_array_name = ast.generate_unique_array_name(context)
+    context = ast.add_symbol(context, result_array_name, ast.NodeSymbol.ARRAY, context.ast.shape, None, None)
+    result_index_name = ast.generate_unique_array_name(context)
+    context = ast.add_symbol(context, result_index_name, ast.NodeSymbol.ARRAY, (len(indicies),), None, indicies)
 
-    function_body = function_body + (Node(MOANodeTypes.INITIALIZE, node.shape, result_array_name),)
+    function_body = function_body + (ast.Node((ast.NodeSymbol.INITIALIZE,), context.ast.shape, (result_array_name,), ()),)
 
-    loop_node =  Node(MOANodeTypes.ASSIGN, node.shape,
-                            Node(MOANodeTypes.PSI, node.shape,
-                                       Node(MOANodeTypes.ARRAY, node.shape, result_index_name),
-                                       Node(MOANodeTypes.ARRAY, node.shape, result_array_name)),
-                             node)
+    loop_node =  ast.Node((ast.NodeSymbol.ASSIGN,), context.ast.shape, (), (
+        ast.Node((ast.NodeSymbol.PSI,), context.ast.shape, (), (
+            ast.Node((ast.NodeSymbol.ARRAY,), context.ast.shape, (result_index_name,), ()),
+            ast.Node((ast.NodeSymbol.ARRAY,), context.ast.shape, (result_array_name,), ()))),
+        context.ast))
 
     for index in indicies:
-        loop_node = Node(MOANodeTypes.LOOP, node.shape, index.symbol_node, (loop_node,))
+        loop_node = ast.Node((ast.NodeSymbol.LOOP,), context.ast.shape, (index.attrib[0],), (
+            ast.Node((ast.NodeSymbol.BLOCK,), context.ast.shape, (), (loop_node,)),))
 
     function_body = function_body + (loop_node,)
 
-    return symbol_table, Node(MOANodeTypes.FUNCTION, node.shape, tuple(arg.symbol_node for arg in array_arguments), result_array_name, function_body)
+    return ast.create_context(
+        ast=ast.Node((ast.NodeSymbol.FUNCTION,), context.ast.shape, (tuple(arg.attrib[0] for arg in array_arguments), result_array_name), (
+            ast.Node((ast.NodeSymbol.BLOCK,), context.ast.shape, (), function_body),)),
+        symbol_table=context.symbol_table)
+
+
+def determine_dimension_conditions(context, function_arguments):
+    dimension_conditions = []
+
+    for array in function_arguments:
+        # dim A == value
+        value_name = ast.generate_unique_array_name(context)
+        context = ast.add_symbol(context, value_name, ast.NodeSymbol.ARRAY, (), None, (len(array.shape),))
+
+        dimension_conditions.append(ast.Node((ast.NodeSymbol.EQUAL,), (), (), (
+            ast.Node((ast.NodeSymbol.DIM,), (), (), (array,)),
+            ast.Node((ast.NodeSymbol.ARRAY,), (), (value_name,), ()))))
+
+    node = dimension_conditions[0]
+    for dimension_condition in dimension_conditions[1:]:
+        node = ast.Node((ast.NodeSymbol.AND,), (), (), (dimension_condition, node))
+    return context, node
+
+
+def determine_shape_conditions(context, function_arguments):
+    shape_conditions = []
+    assignments = []
+    for array in function_arguments:
+        for i, element in enumerate(array.shape):
+            array_name = ast.generate_unique_array_name(context)
+            context = ast.add_symbol(context, array_name, ast.NodeSymbol.ARRAY, (1,), None, (i,))
+
+            if ast.is_symbolic_element(element):
+                # <i> psi shape A
+                assignments.append(ast.Node((ast.NodeSymbol.ASSIGN,), (), (), (
+                    ast.Node((ast.NodeSymbol.ARRAY,), (), (element.attrib[0],), ()),
+                    ast.Node((ast.NodeSymbol.PSI,), (), (), (
+                        ast.Node((ast.NodeSymbol.ARRAY,), (1,), (array_name,), ()),
+                        ast.Node((ast.NodeSymbol.SHAPE,), (len(array.shape),), (), (array,)))))))
+            else:
+                # <i> psi shape A == value
+                value_name = ast.generate_unique_array_name(context)
+                context = ast.add_symbol(context, value_name, ast.NodeSymbol.ARRAY, (), None, (element,))
+
+                shape_conditions.append(ast.Node((ast.NodeSymbol.EQUAL,), (), (), (
+                    ast.Node((ast.NodeSymbol.ARRAY,), (), (value_name,), ()),
+                    ast.Node((ast.NodeSymbol.PSI,), (), (), (
+                        ast.Node((ast.NodeSymbol.ARRAY,), (1,), (array_name,), ()),
+                        ast.Node((ast.NodeSymbol.SHAPE,), (len(array.shape),), (), (array,)))))))
+
+    node = ()
+    if shape_conditions:
+        node = shape_conditions[0]
+        for shape_condition in shape_conditions[1:]:
+            node = ast.Node((ast.NodeSymbol.AND,), (), (), (shape_condition, node))
+    return context, tuple(assignments), node
 
 
 def determine_function_arguments(symbol_table):
@@ -125,37 +134,37 @@ def determine_function_arguments(symbol_table):
     array_arguments = set()
 
     for symbol_name, symbol_node in symbol_table.items():
-        if symbol_node.node_type == MOANodeTypes.INDEX:
+        if symbol_node.symbol == ast.NodeSymbol.INDEX:
             pass # index nodes are not function arguments
         elif symbol_name.startswith('_'):
-            if symbol_node.shape is None or has_symbolic_elements(symbol_node.shape):
+            if symbol_node.shape is None or ast.has_symbolic_elements(symbol_node.shape):
                 raise NotImplementedError('cannot have implicit array with unknown shape')
-            elif has_symbolic_elements(symbol_node.value):
+            elif ast.has_symbolic_elements(symbol_node.value):
                 for element in symbol_node.value:
-                    if is_symbolic_element(element) and symbol_table[element.symbol_node].node_type != MOANodeTypes.INDEX:
-                        array_arguments.add(element.symbol_node)
+                    if ast.is_symbolic_element(element) and symbol_table[element.attrib[0]].symbol != ast.NodeSymbol.INDEX:
+                        array_arguments.add(element.attrib[0])
         else: # user defined
             if symbol_node.shape is None:
                 array_arguments.add(symbol_name)
-            elif has_symbolic_elements(symbol_node.shape):
+            elif ast.has_symbolic_elements(symbol_node.shape):
                 array_arguments.add(symbol_name)
                 for element in symbol_node.shape:
-                    if is_symbolic_element(element):
-                        dependent_arguments.add(element.symbol_node)
+                    if ast.is_symbolic_element(element):
+                        dependent_arguments.add(element.attrib[0])
 
             if symbol_node.value is None:
                 array_arguments.add(symbol_name)
-            elif has_symbolic_elements(symbol_node.value):
+            elif ast.has_symbolic_elements(symbol_node.value):
                 array_arguments.add(symbol_name)
                 for element in symbol_node.value:
-                    if is_symbolic_element(element):
-                        dependent_arguments.add(element.symbol_node)
-    return tuple(Node(MOANodeTypes.ARRAY, symbol_table[array_name].shape, array_name) for array_name in sorted(array_arguments - dependent_arguments))
+                    if ast.is_symbolic_element(element):
+                        dependent_arguments.add(element.attrib[0])
+    return tuple(ast.Node((ast.NodeSymbol.ARRAY,), symbol_table[array_name].shape, (array_name,), ()) for array_name in sorted(array_arguments - dependent_arguments))
 
 
 def determine_indicies(symbol_table):
     indicies = set()
     for symbol_name, symbol_node in symbol_table.items():
-        if symbol_node.node_type == MOANodeTypes.INDEX:
+        if symbol_node.symbol == ast.NodeSymbol.INDEX:
             indicies.add(symbol_name)
-    return tuple(Node(MOANodeTypes.ARRAY, (), i) for i in sorted(indicies))
+    return tuple(ast.Node((ast.NodeSymbol.ARRAY,), (), (i,), ()) for i in sorted(indicies))
