@@ -130,70 +130,86 @@ def _reduce_psi_transpose(context):
         symbol_table=context.symbol_table)
 
 
-def _reduce_psi_transposev(symbol_table, node):
+def _reduce_psi_transposev(context):
     """<i j k> psi <2 0 1> transpose ... => <k i j> psi ..."""
-    array_name = ast.generate_unique_array_name(symbol_table)
-    array_values = tuple(s for _, s in sorted(zip(symbol_table[node.right_node.left_node.symbol_node].value, symbol_table[node.left_node.symbol_node].value), key=lambda pair: pair[0]))
-    symbol_table = add_symbol(symbol_table, array_name, ast.NodeSymbol.ARRAY, (len(array_values),), array_values)
-    return symbol_table, Node(ast.NodeSymbol.PSI, node.shape,
-                                    Node(ast.NodeSymbol.ARRAY, (len(array_values),), array_name),
-                                    node.right_node.right_node)
+    left_node_symbol = ast.select_array_node_symbol(context, (0,))
+    left_left_node_symbol = ast.select_array_node_symbol(context, (1, 0))
+
+    array_name = ast.generate_unique_array_name(context)
+    array_values = tuple(s for _, s in sorted(zip(left_left_node_symbol.value, left_node_symbol.value), key=lambda pair: pair[0]))
+    context = ast.add_symbol(context, array_name, ast.NodeSymbol.ARRAY, (len(array_values),), None, array_values)
+
+    return ast.create_context(
+        ast=ast.Node((ast.NodeSymbol.PSI,), context.ast.shape, (), (
+            ast.Node((ast.NodeSymbol.ARRAY,), (len(array_values),), (array_name,), ()),
+            ast.select_node(context, (1, 1)).ast)),
+        symbol_table=context.symbol_table)
 
 
-def _reduce_psi_reduce_plus_minus_times_divide(symbol_table, node):
-    index_name = generate_unique_index_name(symbol_table)
-    symbol_table = add_symbol(symbol_table, index_name, ast.NodeSymbol.INDEX, (), (0, node.right_node.right_node.shape[0]))
+def _reduce_psi_reduce_plus_minus_times_divide(context):
+    right_right_node = ast.select_node(context, (1, 0)).ast
+    left_node_symbol = ast.select_array_node_symbol(context, (0,))
 
-    index_vector = (Node(ast.NodeSymbol.ARRAY, (), index_name),) + symbol_table[node.left_node.symbol_node].value
-    array_name = generate_unique_array_name(symbol_table)
-    symbol_table = add_symbol(symbol_table, array_name, ast.NodeSymbol.ARRAY, (len(index_vector),), index_vector)
+    index_name = ast.generate_unique_index_name(context)
+    context = ast.add_symbol(context, index_name, ast.NodeSymbol.INDEX, (), None, (0, right_right_node.shape[0], 1))
 
-    return symbol_table, Node(node.right_node.node_type, node.shape, index_name,
-                                    Node(ast.NodeSymbol.PSI, node.shape,
-                                               Node(ast.NodeSymbol.ARRAY, (len(index_vector),), array_name),
-                                               node.right_node.right_node))
+    index_vector = (ast.Node((ast.NodeSymbol.ARRAY,), (), (index_name,), ()),) + left_node_symbol.value
+    vector_name = ast.generate_unique_array_name(context)
+    context = ast.add_symbol(context, vector_name, ast.NodeSymbol.ARRAY, (len(index_vector),), None, index_vector)
 
+    right_node = ast.select_node(context, (1,))
 
-
-
-
-
-def _reduce_psi_outer_plus_minus_times_divide(symbol_table, node):
-    left_array_name = generate_unique_array_name(symbol_table)
-    left_dimension = dimension(symbol_table, node.right_node.left_node)
-    symbol_table = add_symbol(symbol_table, left_array_name, ast.NodeSymbol.ARRAY, (left_dimension,), symbol_table[node.left_node.symbol_node].value[:left_dimension])
-
-    right_array_name = generate_unique_array_name(symbol_table)
-    right_dimension = dimension(symbol_table, node.right_node.right_node)
-    symbol_table = add_symbol(symbol_table, right_array_name, ast.NodeSymbol.ARRAY, (right_dimension,), symbol_table[node.left_node.symbol_node].value[-right_dimension:])
-
-    return symbol_table, Node(node.right_node.node_type[1], node.shape,
-                                    Node(ast.NodeSymbol.PSI, node.shape,
-                                               Node(ast.NodeSymbol.ARRAY, (left_dimension,), left_array_name),
-                                               node.right_node.left_node),
-                                    Node(ast.NodeSymbol.PSI, node.shape,
-                                               Node(ast.NodeSymbol.ARRAY, (right_dimension,), right_array_name),
-                                               node.right_node.right_node))
+    return ast.create_context(
+        ast=ast.Node(right_node.ast.symbol, context.ast.shape, (index_name,), (
+            ast.Node((ast.NodeSymbol.PSI,), context.ast.shape, (), (
+                ast.Node((ast.NodeSymbol.ARRAY,), (len(index_vector),), (vector_name,), ()),
+                right_right_node)),)),
+        symbol_table=context.symbol_table)
 
 
-def _reduce_psi_plus_minus_times_divide(symbol_table, node):
+def _reduce_psi_outer_plus_minus_times_divide(context):
+    left_array_name = ast.generate_unique_array_name(context)
+    left_dimension = shape.dimension(context, (1, 0))
+    left_node_symbol = ast.select_array_node_symbol(context, (0,))
+    context = ast.add_symbol(context, left_array_name, ast.NodeSymbol.ARRAY, (left_dimension,), None, left_node_symbol.value[:left_dimension])
+
+    right_array_name = ast.generate_unique_array_name(context)
+    right_dimension = shape.dimension(context, (1, 1))
+    context = ast.add_symbol(context, right_array_name, ast.NodeSymbol.ARRAY, (right_dimension,), None, left_node_symbol.value[-right_dimension:])
+
+    right_node = ast.select_node(context, (1,))
+
+    return ast.create_context(
+        ast=ast.Node((right_node.ast.symbol[1],), context.ast.shape, (), (
+            ast.Node((ast.NodeSymbol.PSI,), context.ast.shape, (), (
+                ast.Node((ast.NodeSymbol.ARRAY,), (left_dimension,), (left_array_name,), ()),
+                ast.select_node(context, (1, 0)).ast)),
+            ast.Node((ast.NodeSymbol.PSI,), context.ast.shape, (), (
+                ast.Node((ast.NodeSymbol.ARRAY,), (right_dimension,), (right_array_name,), ()),
+                ast.select_node(context, (1, 1)).ast)))),
+        symbol_table=context.symbol_table)
+
+
+def _reduce_psi_plus_minus_times_divide(context):
     """<i j> psi (... (+-*/) ...) => (<i j> psi ...) (+-*/) (<k l> psi ...)
 
     Scalar Extension
       <i j> psi (scalar (+-*/) ...) = scalar (+-*/) <i j> psi ...
     """
-    if is_scalar(symbol_table, node.right_node.left_node):
-        left_node = node.right_node.left_node
+    if shape.is_scalar(context, (1, 0)):
+        left_node = ast.select_node(context, (1, 0)).ast
     else:
-        left_node = Node(ast.NodeSymbol.PSI, node.shape,
-                               node.left_node,
-                               node.right_node.left_node)
+        left_node = ast.Node((ast.NodeSymbol.PSI,), context.ast.shape, (), (
+            ast.select_node(context, (0,)).ast,
+            ast.select_node(context, (1, 0)).ast))
 
-    if is_scalar(symbol_table, node.right_node.right_node):
-        right_node = node.right_node.right_node
+    if shape.is_scalar(context, (1, 1)):
+        right_node = ast.select_node(context, (1, 1)).ast
     else:
-        right_node = Node(ast.NodeSymbol.PSI, node.shape,
-                                node.left_node,
-                                node.right_node.right_node)
+        right_node = ast.Node((ast.NodeSymbol.PSI,), context.ast.shape, (), (
+            ast.select_node(context, (0,)).ast,
+            ast.select_node(context, (1, 1)).ast))
 
-    return symbol_table, Node(node.right_node.node_type, node.shape, left_node, right_node)
+    return ast.create_context(
+        ast=ast.Node(ast.select_node(context, (1,)).ast.symbol, context.ast.shape, (), (left_node, right_node)),
+        symbol_table=context.symbol_table)
