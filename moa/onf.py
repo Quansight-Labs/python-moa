@@ -53,22 +53,36 @@ def naive_reduction(context, include_conditions=True):
 
     function_body = function_body + (ast.Node((ast.NodeSymbol.INITIALIZE,), context.ast.shape, (result_array_name,), ()),)
 
-    loop_node =  ast.Node((ast.NodeSymbol.ASSIGN,), context.ast.shape, (), (
-        ast.Node((ast.NodeSymbol.PSI,), context.ast.shape, (), (
-            ast.Node((ast.NodeSymbol.ARRAY,), context.ast.shape, (result_index_name,), ()),
-            ast.Node((ast.NodeSymbol.ARRAY,), context.ast.shape, (result_array_name,), ()))),
-        context.ast))
+    # reduce node
+    expression_context = ast.create_context(
+        ast=ast.Node((ast.NodeSymbol.ASSIGN,), context.ast.shape, (), (
+            ast.Node((ast.NodeSymbol.PSI,), context.ast.shape, (), (
+                ast.Node((ast.NodeSymbol.ARRAY,), context.ast.shape, (result_index_name,), ()),
+                ast.Node((ast.NodeSymbol.ARRAY,), context.ast.shape, (result_array_name,), ()))),
+            context.ast)),
+        symbol_table=context.symbol_table)
+
+    loop_block = rewrite_expression(expression_context)
 
     for index in indicies:
-        loop_node = ast.Node((ast.NodeSymbol.LOOP,), context.ast.shape, (index.attrib[0],), (
-            ast.Node((ast.NodeSymbol.BLOCK,), context.ast.shape, (), (loop_node,)),))
+        loop_block = (ast.Node((ast.NodeSymbol.LOOP,), context.ast.shape, (index.attrib[0],), (
+            ast.Node((ast.NodeSymbol.BLOCK,), context.ast.shape, (), loop_block),)),)
 
-    function_body = function_body + (loop_node,)
+    function_body = function_body + loop_block
 
     return ast.create_context(
         ast=ast.Node((ast.NodeSymbol.FUNCTION,), context.ast.shape, (tuple(arg.attrib[0] for arg in array_arguments), result_array_name), (
             ast.Node((ast.NodeSymbol.BLOCK,), context.ast.shape, (), function_body),)),
         symbol_table=context.symbol_table)
+
+
+def rewrite_expression(context):
+    def _reduce_traversal(context):
+        return context.ast
+
+    ast.node_traversal(context, _reduce_traversal, traversal='postorder')
+
+
 
 
 def determine_dimension_conditions(context, function_arguments):
