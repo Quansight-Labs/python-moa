@@ -50,17 +50,20 @@ def naive_reduction(context, include_conditions=True):
     context = ast.add_symbol(context, result_array_name, ast.NodeSymbol.ARRAY, context.ast.shape, None, None)
     result_index_name = ast.generate_unique_array_name(context)
     context = ast.add_symbol(context, result_index_name, ast.NodeSymbol.ARRAY, (len(indicies),), None, indicies)
-
-    function_body = function_body + (ast.Node((ast.NodeSymbol.INITIALIZE,), context.ast.shape, (result_array_name,), ()),)
+    result_initialization = (ast.Node((ast.NodeSymbol.INITIALIZE,), context.ast.shape, (result_array_name,), ()),)
 
     # reduce node
-    context = rewrite_expression(ast.create_context(
+    context, initializations = rewrite_expression(ast.create_context(
         ast=ast.Node((ast.NodeSymbol.ASSIGN,), context.ast.shape, (), (
             ast.Node((ast.NodeSymbol.PSI,), context.ast.shape, (), (
                 ast.Node((ast.NodeSymbol.ARRAY,), context.ast.shape, (result_index_name,), ()),
                 ast.Node((ast.NodeSymbol.ARRAY,), context.ast.shape, (result_array_name,), ()))),
             context.ast)),
         symbol_table=context.symbol_table))
+
+    # add array initializations
+    initializations = initializations + result_initialization
+    function_body = function_body + initializations
 
     if context.ast.symbol == (ast.NodeSymbol.BLOCK,):
         loop_block = context.ast.child
@@ -80,6 +83,15 @@ def naive_reduction(context, include_conditions=True):
 
 
 def rewrite_expression(context):
+    initializations = ()
+
+    initialization_map = {
+        ast.NodeSymbol.PLUS: 0,
+        ast.NodeSymbol.MINUS: 0,
+        ast.NodeSymbol.TIMES: 1,
+        ast.NodeSymbol.DIVIDE: 1,
+    }
+
     def _apply_operation_on_block(context):
         operations = []
         block = []
@@ -97,13 +109,21 @@ def rewrite_expression(context):
             symbol_table=context.symbol_table)
 
     def _reduce_traversal(context):
+        nonlocal initializations
+
         if context.ast.symbol[0] == ast.NodeSymbol.REDUCE:
             array_name = ast.generate_unique_array_name(context)
             context = ast.add_symbol(context, array_name, ast.NodeSymbol.ARRAY, (), None, None)
 
+            initializations = initializations + (ast.Node((ast.NodeSymbol.INITIALIZE,), (), (array_name,), ()),)
+            initial_value_name = ast.generate_unique_array_name(context)
+            context = ast.add_symbol(context, initial_value_name, ast.NodeSymbol.ARRAY, (), None, (initialization_map[context.ast.symbol[1]],))
+
             context = ast.create_context(
                 ast=ast.Node((ast.NodeSymbol.BLOCK,), context.ast.shape, (), (
-                    ast.Node((ast.NodeSymbol.INITIALIZE,), (), (array_name,), ()),
+                    ast.Node((ast.NodeSymbol.ASSIGN,), (), (), (
+                        ast.Node((ast.NodeSymbol.ARRAY,), (), (array_name,), ()),
+                        ast.Node((ast.NodeSymbol.ARRAY,), (), (initial_value_name,), ()),)),
                     ast.Node((ast.NodeSymbol.LOOP,), context.ast.shape, (context.ast.attrib[0],), (
                         ast.Node((ast.NodeSymbol.ASSIGN,), (), (), (
                             ast.Node((ast.NodeSymbol.ARRAY,), (), (array_name,), ()),
@@ -114,11 +134,10 @@ def rewrite_expression(context):
                 symbol_table=context.symbol_table)
         elif ast.is_operation(context):
             context = _apply_operation_on_block(context)
-
         return context
 
     context = ast.node_traversal(context, _reduce_traversal, traversal='postorder')
-    return context
+    return context, initializations
 
 
 def determine_dimension_conditions(context, function_arguments):
