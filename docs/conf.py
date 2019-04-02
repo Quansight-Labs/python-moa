@@ -21,7 +21,7 @@ tikz_proc_suite = 'GhostScript'
 tikz_transparent = True
 
 doctest_global_setup = '''
-from moa.ast import MOANodeTypes, ArrayNode, UnaryNode, BinaryNode, SymbolNode
+from moa import ast
 '''
 
 mathjax_config = {

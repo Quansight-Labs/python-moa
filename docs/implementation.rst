@@ -26,14 +26,14 @@ compatible with the internal representation.
 .. code-block:: python
 
    symbol_table = {
-      'A': SymbolNode(MOANodeTypes.ARRAY, (2, ArrayNode(MOANodeTypes.ARRAY, (), 'n'))), None)),
-      'n': SymbolNode(MOANodeTypes.ARRAY, (), None)
+      'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (2, ast.Node((ast.NodeSymbol.ARRAY,), (), ('n',), ())), None, None)),
+      'n': ast.SymbolNode(ast.NodeSymbol.ARRAY, (), None, None)
    }
 
 
 Everything in MOA has a shape. Everything. Scalars, vectors,
 n-dimensional arrays, operations on arrays, and even functions. Thus
-shape is included with each node in the abstract syntax tree.
+shape are included with each node in the abstract syntax tree.
 
 Symbol Table
 ------------
@@ -44,9 +44,9 @@ syntax tree.
 .. code-block:: python
 
    symbol_table = {
-      'A': SymbolNode(MOANodeTypes.ARRAY, (2, 3), (1, 2, 3, 4, 5, 6)),
-      '_i1': SymbolNode(MOANodeTypes.INDEX, (), (0, 5),
-      '_a2': SymbolNode(MOANodeTypes.ARRAY, (2,), (1, ArrayNode(MOANodeTypes.ARRAY, (), '_i1')))
+      'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (2, 3), (1, 2, 3, 4, 5, 6)),
+      '_i1': ast.SymbolNode(ast.NodeSymbol.INDEX, (), (0, 5, 1),
+      '_a2': ast.SymbolNode(ast.NodeSymbol.ARRAY, (2,), (1, ast.Node((NodeSymbol.ARRAY,), (), ('_i1',), ())))
    }
 
 At this present moment not much work is done to garbage collect the
@@ -69,22 +69,24 @@ abstract syntax tree is heavily tied to the symbol table.
 For example the following moa expression :math:`\vc0 \psi \transpose
 (A + B)` can be represented with the following symbol table and ast.
 
-.. doctest::
+..
+   .. doctest::
 
-   >>> {'A': SymbolNode(MOANodeTypes.ARRAY, None, None),
-   ...  'B': SymbolNode(MOANodeTypes.ARRAY, None, None),
-   ...  '_a0': SymbolNode(MOANodeTypes.ARRAY, (1,), (0,))}
-   {'A': SymbolNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=None, value=None), 'B': SymbolNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=None, value=None), '_a0': SymbolNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(1,), value=(0,))}
+      >>> {'A': SymbolNode(MOANodeTypes.ARRAY, None, None),
+      ...  'B': SymbolNode(MOANodeTypes.ARRAY, None, None),
+      ...  '_a0': SymbolNode(MOANodeTypes.ARRAY, (1,), (0,))}
+      {'A': SymbolNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=None, value=None), 'B': SymbolNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=None, value=None), '_a0': SymbolNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(1,), value=(0,))}
 
-.. doctest::
+..
+   .. doctest::
 
-   >>> BinaryNode(MOANodeTypes.PSI, None,
-   ...            ArrayNode(MOANodeTypes.ARRAY, None, '_a0'),
-   ...                      UnaryNode(MOANodeTypes.TRANSPOSE, None,
-   ...                                BinaryNode(MOANodeTypes.PLUS, None,
-   ...                                           ArrayNode(MOANodeTypes.ARRAY, None, 'A'),
-   ...                                           ArrayNode(MOANodeTypes.ARRAY, None, 'B'))))
-   BinaryNode(node_type=<MOANodeTypes.PSI: 205>, shape=None, left_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=None, symbol_node='_a0'), right_node=UnaryNode(node_type=<MOANodeTypes.TRANSPOSE: 110>, shape=None, right_node=BinaryNode(node_type=<MOANodeTypes.PLUS: 201>, shape=None, left_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=None, symbol_node='A'), right_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=None, symbol_node='B'))))
+      >>> BinaryNode(MOANodeTypes.PSI, None,
+      ...            ArrayNode(MOANodeTypes.ARRAY, None, '_a0'),
+      ...                      UnaryNode(MOANodeTypes.TRANSPOSE, None,
+      ...                                BinaryNode(MOANodeTypes.PLUS, None,
+      ...                                           ArrayNode(MOANodeTypes.ARRAY, None, 'A'),
+      ...                                           ArrayNode(MOANodeTypes.ARRAY, None, 'B'))))
+      BinaryNode(node_type=<MOANodeTypes.PSI: 205>, shape=None, left_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=None, symbol_node='_a0'), right_node=UnaryNode(node_type=<MOANodeTypes.TRANSPOSE: 110>, shape=None, right_node=BinaryNode(node_type=<MOANodeTypes.PLUS: 201>, shape=None, left_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=None, symbol_node='A'), right_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=None, symbol_node='B'))))
 
 
 Array
@@ -94,17 +96,20 @@ Tuple representation ``ArrayNode(type, shape, name, value)``
 
 Create array named A with shape (1, 3) values (1, 2, 3)
 
-.. doctest::
+..
+   .. doctest::
 
-   >>> ArrayNode(MOANodeTypes.ARRAY, (1, 3), "A")
-   ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(1, 3), symbol_node='A')
+      >>> ast.Node((ast.NodeSymbol.ARRAY,), (1, 3), ("A",), ())
+      Node(symbol=(<MOANodeTypes.ARRAY: 1>,), shape=(1, 3), attrib=('A',), ())
 
 Create array without name and unknown values
 
-.. doctest::
+..
+   .. doctest::
 
-   >>> ArrayNode(MOANodeTypes.ARRAY, (1, 3), '_a0')
-   ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(1, 3), symbol_node='_a0')
+      >>> ast.Node((ast.NodeSymbol.ARRAY,), (1, 3), ("_a0",), ())
+      Node(symbol=(<MOANodeTypes.ARRAY: 1>,), shape=(1, 3), attrib=('_a0',), ())
+
 
 Unary Operation
 +++++++++++++++
@@ -115,11 +120,12 @@ Available unary operations: ``PLUSRED``, ``MINUSRED``, ``TIMESRED``,
 ``DIVIDERED``, ``IOTA``, ``DIM``, ``TAU``, ``SHAPE``, ``RAV``,
 ``TRANSPOSE``.
 
-.. doctest::
+..
+   .. doctest::
 
-   >>> UnaryNode(MOANodeTypes.TRANSPOSE, (3, 1),
-   ...          ArrayNode(MOANodeTypes.ARRAY, (1, 3), "A"))
-   UnaryNode(node_type=<MOANodeTypes.TRANSPOSE: 110>, shape=(3, 1), right_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(1, 3), symbol_node='A'))
+      >>> UnaryNode(MOANodeTypes.TRANSPOSE, (3, 1),
+      ...          ArrayNode(MOANodeTypes.ARRAY, (1, 3), "A"))
+      UnaryNode(node_type=<MOANodeTypes.TRANSPOSE: 110>, shape=(3, 1), right_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(1, 3), symbol_node='A'))
 
 Binary Operation
 ++++++++++++++++
@@ -129,12 +135,13 @@ Binary representation ``BinaryNode(type, shape, left_node, right_node)``
 Available binary operations: ``PLUS``, ``MINUS``, ``TIMES``,
 ``DIVIDE``, ``PSI``, ``TAKE``, ``DROP``, ``CAT``, ``TRANSPOSEV``.
 
-.. doctest::
+..
+   .. doctest::
 
-   >>> BinaryNode(MOANodeTypes.PLUS, (2, 3),
-   ...           ArrayNode(MOANodeTypes.ARRAY, (), "A"),
-   ...           ArrayNode(MOANodeTypes.ARRAY, (2, 3), "B"))
-   BinaryNode(node_type=<MOANodeTypes.PLUS: 201>, shape=(2, 3), left_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(), symbol_node='A'), right_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(2, 3), symbol_node='B'))
+      >>> BinaryNode(MOANodeTypes.PLUS, (2, 3),
+      ...           ArrayNode(MOANodeTypes.ARRAY, (), "A"),
+      ...           ArrayNode(MOANodeTypes.ARRAY, (2, 3), "B"))
+      BinaryNode(node_type=<MOANodeTypes.PLUS: 201>, shape=(2, 3), left_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(), symbol_node='A'), right_node=ArrayNode(node_type=<MOANodeTypes.ARRAY: 1>, shape=(2, 3), symbol_node='B'))
 
 Symbol Table
 ------------
