@@ -5,12 +5,13 @@ Python-moa (mathematics of arrays) is an approach to a high level
 tensor compiler that is based on the work of `Lenore Mullins
 <https://www.albany.edu/ceas/lenore-mullin.php>`_ and her
 `dissertation
-<https://www.researchgate.net/publication/308893116_A_Mathematics_of_Arrays>`_. It
-is trying to solve many of the same problems as other technologies
-such as the `taco compiler <http://tensor-compiler.org/>`_ and the
-`xla compiler <https://www.tensorflow.org/xla>`_. However, it takes a
-much different approach than others guided by the following
-principles.
+<https://www.researchgate.net/publication/308893116_A_Mathematics_of_Arrays>`_. A
+high level compiler is necessary because there are many optimizations
+that a low level compiler such as ``gcc`` will miss. It is trying to
+solve many of the same problems as other technologies such as the
+`taco compiler <http://tensor-compiler.org/>`_ and the `xla compiler
+<https://www.tensorflow.org/xla>`_. However, it takes a much different
+approach than others guided by the following principles.
 
 1. What is the shape? Everything has a shape. scalars, vectors, arrays, operations, and functions.
 
@@ -30,7 +31,9 @@ get unique properties that other compilers cannot guarantee.
    (see `church-rosser
    <https://en.wikipedia.org/wiki/Church%E2%80%93Rosser_theorem>`_
    property)
- - All moa operations are composable (including black box functions)
+ - All MOA operations are composable (including black box functions
+   and `gufuncs
+   <https://docs.scipy.org/doc/numpy-1.13.0/reference/c-api.generalized-ufuncs.html>`_)
  - Arbitrary high level operations will compile down to a minimal
    backend instruction set. If the shape and indexing of a given
    operation is known it can be added to python-moa.
@@ -39,7 +42,7 @@ Frontend
 --------
 
 Lenore Mullins originally developed a `moa compiler
-<https://github.com/saulshanabrook/psi-compiler/>`_ in the 90's with
+<https://github.com/saulshanabrook/psi-compiler/>`_ in the 90s with
 programs that used a symbolic syntax heavily inspired by `APL
 <https://en.wikipedia.org/wiki/APL_(programming_language)>`_ (`example
 program
@@ -56,7 +59,10 @@ with an example program below.
 Upon pursuing this approach it became apparent that MOA should not
 require that a new syntax be developed since it is only a theory! So a
 pythonic interface to MOA was developed that expressed the same ideas
-which look much like the current numeric python libraries.
+which look much like the current numeric python libraries. Ideally MOA
+is hidden from the user. The python-moa compiler is broken into
+several pieces each which their own responsibilities: shape, DNF, and
+ONF.
 
 .. code-block:: python
 
@@ -79,9 +85,11 @@ shape. Note that the compiler handles symbolic shapes thus the exact
 shape does not need to be known, only the dimension. After the shape
 calculation step we can guarantee that an algorithm is a valid program
 and there will be no out of bound memory accesses. Making MOA
-extremely compelling for FPGAs and compute units with a minimal OS. If
-an algorithm makes it past this stage and fails then it is an issue
-with the compiler not the algorithm.
+extremely compelling for `FPGAs
+<https://en.wikipedia.org/wiki/Field-programmable_gate_array>`_ and
+compute units with a minimal OS. If an algorithm makes it past this
+stage and fails then it is an issue with the compiler not the
+algorithm.
 
 .. code-block:: python
 
@@ -92,7 +100,7 @@ with the compiler not the algorithm.
 Denotational Normal Form (DNF)
 ------------------------------
 
-The DNF's responsibility is to reduce the high level MOA expression
+The DNF's responsibility is to reduce the high level MOA expression to
 the minimal and optimal machine independent computation. This graph
 has all of the indexing patterns of the computation and resulting
 shapes. Notice that several operations disappear in this stage such a
@@ -115,10 +123,11 @@ which reduces the number of loops in the calculation, loop ordering,
 and minimize the number of accumulators. MOA has ideas of dimension
 lifting which make parallization and optimizing for cache sizes much
 easier. Additionally algorithms must be implemented differently for
-sparse, column major, row major. The ONF stage is responsible for an
-"optimal" implementation. "optimal" will vary from user to user and
-thus will have to allow for multiple programs: optimal single core,
-optimal parallel, optimal gpu, optimal low memory, etc.
+sparse, column major, row major. The ONF stage is responsible for any
+"optimal" machine dependent implementation. "optimal" will vary from
+user to user and thus will have to allow for multiple programs:
+optimal single core, optimal parallel, optimal gpu, optimal low
+memory, etc.
 
 .. code-block:: python
 
@@ -147,7 +156,7 @@ MOA excels at performing reductions and reducing the amount of actual
 work done. You will see that the following algorithm only requires the
 first index of the computation. Making the naive implementation
 ``1000x`` more expensive for ``1000x1000`` shaped array. The following
-benchmarks have been performed in my laptop with an intel
+benchmarks have been performed on my laptop with an intel
 i5-4200U. However, more benchmarks are always available on the `Travis
 CI <https://travis-ci.org/Quansight-Labs/python-moa>`_ (these
 benchmarks test python-moa's weaknesses). You will see with the
@@ -204,9 +213,9 @@ no way around.
 Conclusion
 ----------
 
-I hope that this walk through has shown the promising results that MOA
-theory can bring to tensor computations and the python ecosystem as a
-whole. Please feel free to try out the project at `Quansight
+I hope that this walk through has shown the promising results that the
+MOA theory can bring to tensor computations and the python ecosystem
+as a whole. Please feel free to try out the project at `Quansight
 Labs/python-moa <https://github.com/Quansight-Labs/python-moa>`_. I
 hope that this work can allow for the analysis and optimization of
 algorithms in a mathematically rigorous way which allows users to
