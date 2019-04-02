@@ -33,7 +33,7 @@ guide.
 Important questions that will guide development:
 
  - [X] Is a simple implementation of moa possible with only knowing the dimension?
- - [ ] Can we represent complex operations and einsum math: requires `+red, transpose`?
+ - [X] Can we represent complex operations and einsum math: requires `+red, transpose`?
  - [ ] What is the interface for arrays? (shape, indexing function)
  - [ ] How does one wrap pre-existing numerical routines?
  
