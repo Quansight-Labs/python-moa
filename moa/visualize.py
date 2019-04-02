@@ -104,9 +104,8 @@ def _node_label(context):
         if arguments is not None and result is not None:
             node_label['value'] = symbolic_tuple_string(context, arguments, start='(', end=')') + ' -> ' + result
     elif context.ast.symbol[0] == ast.NodeSymbol.REDUCE:
-        symbol_node = context.ast.attrib[0]
-        if symbol_node is not None:
-            node_label['value'] = symbol_node
+        if context.ast.attrib:
+            node_label['value'] = context.ast.attrib[0]
 
     return node_label
 
