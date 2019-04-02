@@ -119,17 +119,27 @@ def rewrite_expression(context):
             initial_value_name = ast.generate_unique_array_name(context)
             context = ast.add_symbol(context, initial_value_name, ast.NodeSymbol.ARRAY, (), None, (initialization_map[context.ast.symbol[1]],))
 
+            # a hackish way to handle nested block with operation
+            block_children = ()
+            if context.ast.child[0].symbol == (ast.NodeSymbol.BLOCK,):
+                block_children = block_children + ast.select_node(context, (0,)).ast.child[:-1]
+                block_end = ast.select_node(context, (0, -1)).ast
+            else:
+                block_end = ast.select_node(context, (0,)).ast
+            loop_block = ast.Node((ast.NodeSymbol.BLOCK,), context.ast.shape, (),
+                block_children + (
+                    ast.Node((ast.NodeSymbol.ASSIGN,), (), (), (
+                        ast.Node((ast.NodeSymbol.ARRAY,), (), (array_name,), ()),
+                        ast.Node((context.ast.symbol[1],), (), (), (
+                            ast.Node((ast.NodeSymbol.ARRAY,), (), (array_name,), ()),
+                            block_end)))),))
+
             context = ast.create_context(
                 ast=ast.Node((ast.NodeSymbol.BLOCK,), context.ast.shape, (), (
                     ast.Node((ast.NodeSymbol.ASSIGN,), (), (), (
                         ast.Node((ast.NodeSymbol.ARRAY,), (), (array_name,), ()),
                         ast.Node((ast.NodeSymbol.ARRAY,), (), (initial_value_name,), ()),)),
-                    ast.Node((ast.NodeSymbol.LOOP,), context.ast.shape, (context.ast.attrib[0],), (
-                        ast.Node((ast.NodeSymbol.ASSIGN,), (), (), (
-                            ast.Node((ast.NodeSymbol.ARRAY,), (), (array_name,), ()),
-                            ast.Node((context.ast.symbol[1],), (), (), (
-                                ast.Node((ast.NodeSymbol.ARRAY,), (), (array_name,), ()),
-                                ast.select_node(context, (0,)).ast)),)),)),
+                    ast.Node((ast.NodeSymbol.LOOP,), context.ast.shape, (context.ast.attrib[0],), (loop_block,)),
                     ast.Node((ast.NodeSymbol.ARRAY,), (), (array_name,), ()))),
                 symbol_table=context.symbol_table)
         elif ast.is_operation(context):
