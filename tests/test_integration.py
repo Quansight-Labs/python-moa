@@ -4,20 +4,20 @@ from moa.frontend import LazyArray
 from moa.array import Array
 
 
-@pytest.mark.xfail
 def test_array_reduction():
     _A = LazyArray(name='A', shape=(3, 2))
 
     expression = _A.reduce('+')
 
     local_dict = {}
+    print(expression.compile())
     exec(expression.compile(), globals(), local_dict)
 
-    A = Array(shape=(3, 2), value=tuple(range(1, 6)))
+    A = Array(shape=(3, 2), value=tuple(range(1, 7)))
     B = local_dict['f'](A=A)
 
-    assert B.shape == (3,)
-    assert B.value == [3, 7, 11]
+    assert B.shape == (2,)
+    assert B.value == [9, 12]
 
 
 @pytest.mark.xfail

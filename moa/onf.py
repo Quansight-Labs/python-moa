@@ -43,7 +43,7 @@ def naive_reduction(context, include_conditions=True):
                 ast.Node((ast.NodeSymbol.BLOCK,), (), (), (ast.Node((ast.NodeSymbol.ERROR,), (), ('arguments have incompatible shape',), ()),)))),)
         context = ast.select_node(context, (1,))
 
-    indicies = tuple(determine_indicies(context.symbol_table))
+    indicies = tuple(determine_indicies(context))
 
     # eventually get shapes and match with conditions
     result_array_name = ast.generate_unique_array_name(context)
@@ -53,22 +53,72 @@ def naive_reduction(context, include_conditions=True):
 
     function_body = function_body + (ast.Node((ast.NodeSymbol.INITIALIZE,), context.ast.shape, (result_array_name,), ()),)
 
-    loop_node =  ast.Node((ast.NodeSymbol.ASSIGN,), context.ast.shape, (), (
-        ast.Node((ast.NodeSymbol.PSI,), context.ast.shape, (), (
-            ast.Node((ast.NodeSymbol.ARRAY,), context.ast.shape, (result_index_name,), ()),
-            ast.Node((ast.NodeSymbol.ARRAY,), context.ast.shape, (result_array_name,), ()))),
-        context.ast))
+    # reduce node
+    context = rewrite_expression(ast.create_context(
+        ast=ast.Node((ast.NodeSymbol.ASSIGN,), context.ast.shape, (), (
+            ast.Node((ast.NodeSymbol.PSI,), context.ast.shape, (), (
+                ast.Node((ast.NodeSymbol.ARRAY,), context.ast.shape, (result_index_name,), ()),
+                ast.Node((ast.NodeSymbol.ARRAY,), context.ast.shape, (result_array_name,), ()))),
+            context.ast)),
+        symbol_table=context.symbol_table))
+
+    if context.ast.symbol == (ast.NodeSymbol.BLOCK,):
+        loop_block = context.ast.child
+    else:
+        loop_block = (context.ast,)
 
     for index in indicies:
-        loop_node = ast.Node((ast.NodeSymbol.LOOP,), context.ast.shape, (index.attrib[0],), (
-            ast.Node((ast.NodeSymbol.BLOCK,), context.ast.shape, (), (loop_node,)),))
+        loop_block = (ast.Node((ast.NodeSymbol.LOOP,), context.ast.shape, (index.attrib[0],), (
+            ast.Node((ast.NodeSymbol.BLOCK,), context.ast.shape, (), loop_block),)),)
 
-    function_body = function_body + (loop_node,)
+    function_body = function_body + loop_block
 
     return ast.create_context(
         ast=ast.Node((ast.NodeSymbol.FUNCTION,), context.ast.shape, (tuple(arg.attrib[0] for arg in array_arguments), result_array_name), (
             ast.Node((ast.NodeSymbol.BLOCK,), context.ast.shape, (), function_body),)),
         symbol_table=context.symbol_table)
+
+
+def rewrite_expression(context):
+    def _apply_operation_on_block(context):
+        operations = []
+        block = []
+        for i in range(ast.num_node_children(context)):
+            child_node = ast.select_node(context, (i,))
+            if child_node.ast.symbol == (ast.NodeSymbol.BLOCK,):
+                block.extend(child_node.ast.child[:-1])
+                operations.append(child_node.ast.child[-1])
+            else:
+                operations.append(child_node.ast)
+        return ast.create_context(
+            ast=ast.Node((ast.NodeSymbol.BLOCK,), (), (), (
+                *block,
+                ast.Node(context.ast.symbol, (), (), tuple(operations)))),
+            symbol_table=context.symbol_table)
+
+    def _reduce_traversal(context):
+        if context.ast.symbol[0] == ast.NodeSymbol.REDUCE:
+            array_name = ast.generate_unique_array_name(context)
+            context = ast.add_symbol(context, array_name, ast.NodeSymbol.ARRAY, (), None, None)
+
+            context = ast.create_context(
+                ast=ast.Node((ast.NodeSymbol.BLOCK,), context.ast.shape, (), (
+                    ast.Node((ast.NodeSymbol.INITIALIZE,), (), (array_name,), ()),
+                    ast.Node((ast.NodeSymbol.LOOP,), context.ast.shape, (context.ast.attrib[0],), (
+                        ast.Node((ast.NodeSymbol.ASSIGN,), (), (), (
+                            ast.Node((ast.NodeSymbol.ARRAY,), (), (array_name,), ()),
+                            ast.Node((context.ast.symbol[1],), (), (), (
+                                ast.Node((ast.NodeSymbol.ARRAY,), (), (array_name,), ()),
+                                ast.select_node(context, (0,)).ast)),)),)),
+                    ast.Node((ast.NodeSymbol.ARRAY,), (), (array_name,), ()))),
+                symbol_table=context.symbol_table)
+        elif ast.is_operation(context):
+            context = _apply_operation_on_block(context)
+
+        return context
+
+    context = ast.node_traversal(context, _reduce_traversal, traversal='postorder')
+    return context
 
 
 def determine_dimension_conditions(context, function_arguments):
@@ -162,9 +212,18 @@ def determine_function_arguments(symbol_table):
     return tuple(ast.Node((ast.NodeSymbol.ARRAY,), symbol_table[array_name].shape, (array_name,), ()) for array_name in sorted(array_arguments - dependent_arguments))
 
 
-def determine_indicies(symbol_table):
+def determine_indicies(context):
     indicies = set()
-    for symbol_name, symbol_node in symbol_table.items():
+    for symbol_name, symbol_node in context.symbol_table.items():
         if symbol_node.symbol == ast.NodeSymbol.INDEX:
             indicies.add(symbol_name)
-    return tuple(ast.Node((ast.NodeSymbol.ARRAY,), (), (i,), ()) for i in sorted(indicies))
+
+    # find indicies in reductions (they should not be included)
+    reduction_indicies = set()
+    def _reduce_indicies(context):
+        if context.ast.symbol[0] == ast.NodeSymbol.REDUCE:
+            reduction_indicies.add(context.ast.attrib[0])
+        return context
+
+    ast.node_traversal(context, _reduce_indicies, traversal='postorder')
+    return tuple(ast.Node((ast.NodeSymbol.ARRAY,), (), (i,), ()) for i in sorted(indicies - reduction_indicies))
