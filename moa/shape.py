@@ -41,7 +41,7 @@ def compare_tuples(comparison, context, left_tuple, right_tuple, message):
     conditions = ()
     shape = ()
     for i, (left_element, right_element) in enumerate(zip(left_tuple, right_tuple)):
-        element_message = message + f'requires shapes to match elements #{i} left {left_element} != right {right_element}'
+        element_message = message + f' requires shapes to match elements #{i} left {left_element} != right {right_element}'
 
         if ast.is_symbolic_element(left_element) and ast.is_symbolic_element(right_element): # both are symbolic
             conditions = conditions + (ast.Node((comparison,), (), (), (left_element, right_element)),)
@@ -103,6 +103,22 @@ def _shape_replacement(context):
         (ast.NodeSymbol.REDUCE, ast.NodeSymbol.MINUS): _shape_reduce_plus_minus_divide_times,
         (ast.NodeSymbol.REDUCE, ast.NodeSymbol.TIMES): _shape_reduce_plus_minus_divide_times,
         (ast.NodeSymbol.REDUCE, ast.NodeSymbol.DIVIDE): _shape_reduce_plus_minus_divide_times,
+        (ast.NodeSymbol.DOT, ast.NodeSymbol.PLUS  , ast.NodeSymbol.PLUS):   _shape_inner_plus_minus_divide_times,
+        (ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS , ast.NodeSymbol.PLUS):   _shape_inner_plus_minus_divide_times,
+        (ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES , ast.NodeSymbol.PLUS):   _shape_inner_plus_minus_divide_times,
+        (ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE, ast.NodeSymbol.PLUS):   _shape_inner_plus_minus_divide_times,
+        (ast.NodeSymbol.DOT, ast.NodeSymbol.PLUS  , ast.NodeSymbol.MINUS):  _shape_inner_plus_minus_divide_times,
+        (ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS , ast.NodeSymbol.MINUS):  _shape_inner_plus_minus_divide_times,
+        (ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES , ast.NodeSymbol.MINUS):  _shape_inner_plus_minus_divide_times,
+        (ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE, ast.NodeSymbol.MINUS):  _shape_inner_plus_minus_divide_times,
+        (ast.NodeSymbol.DOT, ast.NodeSymbol.PLUS  , ast.NodeSymbol.TIMES):  _shape_inner_plus_minus_divide_times,
+        (ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS , ast.NodeSymbol.TIMES):  _shape_inner_plus_minus_divide_times,
+        (ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES , ast.NodeSymbol.TIMES):  _shape_inner_plus_minus_divide_times,
+        (ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE, ast.NodeSymbol.TIMES):  _shape_inner_plus_minus_divide_times,
+        (ast.NodeSymbol.DOT, ast.NodeSymbol.PLUS  , ast.NodeSymbol.DIVIDE): _shape_inner_plus_minus_divide_times,
+        (ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS , ast.NodeSymbol.DIVIDE): _shape_inner_plus_minus_divide_times,
+        (ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES , ast.NodeSymbol.DIVIDE): _shape_inner_plus_minus_divide_times,
+        (ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE, ast.NodeSymbol.DIVIDE): _shape_inner_plus_minus_divide_times,
     }
 
     conditions = ()
@@ -202,6 +218,17 @@ def _shape_reduce_plus_minus_divide_times(context):
 def _shape_outer_plus_minus_divide_times(context):
     shape = ast.select_node_shape(context, (0,)) + ast.select_node_shape(context, (1,))
     return ast.replace_node_shape(context, shape)
+
+
+def _shape_inner_plus_minus_divide_times(context):
+    left_shape = ast.select_node_shape(context, (0,))
+    right_shape = ast.select_node_shape(context, (1,))
+
+    context, conditions, shape = compare_tuples(ast.NodeSymbol.EQUAL, context,
+                                                left_shape[-1:], right_shape[:1], 'INNER PRODUCT')
+    shape = left_shape[:-1] + right_shape[1:]
+    context = ast.replace_node_shape(context, shape)
+    return apply_node_conditions(context, conditions)
 
 
 def _shape_plus_minus_divide_times(context):
