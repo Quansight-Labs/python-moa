@@ -45,6 +45,23 @@ _NODE_LABEL_MAP = {
     (ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS): 'outer (-)',
     (ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES): 'outer (*)',
     (ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE): 'outer (/)',
+    # messy representation
+    (ast.NodeSymbol.DOT, ast.NodeSymbol.PLUS  , ast.NodeSymbol.PLUS): 'inner (+,+)',
+    (ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS , ast.NodeSymbol.PLUS): 'inner (-,+)',
+    (ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES , ast.NodeSymbol.PLUS): 'inner (*,+)',
+    (ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE, ast.NodeSymbol.PLUS): 'inner (/,+)',
+    (ast.NodeSymbol.DOT, ast.NodeSymbol.PLUS  , ast.NodeSymbol.MINUS): 'inner (+,-)',
+    (ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS , ast.NodeSymbol.MINUS): 'inner (-,-)',
+    (ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES , ast.NodeSymbol.MINUS): 'inner (*,-)',
+    (ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE, ast.NodeSymbol.MINUS): 'inner (/,-)',
+    (ast.NodeSymbol.DOT, ast.NodeSymbol.PLUS  , ast.NodeSymbol.TIMES): 'inner (+,*)',
+    (ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS , ast.NodeSymbol.TIMES): 'inner (-,*)',
+    (ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES , ast.NodeSymbol.TIMES): 'inner (*,*)',
+    (ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE, ast.NodeSymbol.TIMES): 'inner (/,*)',
+    (ast.NodeSymbol.DOT, ast.NodeSymbol.PLUS  , ast.NodeSymbol.DIVIDE): 'inner (+,/)',
+    (ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS , ast.NodeSymbol.DIVIDE): 'inner (-,/)',
+    (ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES , ast.NodeSymbol.DIVIDE): 'inner (*,/)',
+    (ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE, ast.NodeSymbol.DIVIDE): 'inner (/,/)',
 }
 
 

@@ -102,16 +102,13 @@ def test_array_transpose_with_vector():
     testing.assert_context_equal(context, expression.context)
 
 
-@pytest.mark.parametrize("symbol, operation", [
-    ('+', ast.NodeSymbol.PLUS),
-    ('-', ast.NodeSymbol.MINUS),
-    ('*', ast.NodeSymbol.TIMES),
-    ('/', ast.NodeSymbol.DIVIDE),
+@pytest.mark.parametrize("symbol", [
+    '+', '-', '*', '/'
 ])
-def test_array_outer_product(symbol, operation):
+def test_array_outer_product(symbol):
     expression = LazyArray(name='A', shape=(2, 3)).outer(symbol, LazyArray(name='B', shape=(1, 2)))
 
-    expected_tree = ast.Node((ast.NodeSymbol.DOT, operation), None, (), (
+    expected_tree = ast.Node((ast.NodeSymbol.DOT, LazyArray.OPPERATION_MAP[symbol]), None, (), (
         ast.Node((ast.NodeSymbol.ARRAY,), None, ('A',), ()),
         ast.Node((ast.NodeSymbol.ARRAY,), None, ('B',), ())))
     expected_symbol_table = {
@@ -121,6 +118,56 @@ def test_array_outer_product(symbol, operation):
     expected_context = ast.create_context(ast=expected_tree, symbol_table=expected_symbol_table)
 
     testing.assert_context_equal(expected_context, expression.context)
+
+
+@pytest.mark.parametrize("left_symbol, right_symbol", [
+    ('+', '+'),
+    ('-', '+'),
+    ('*', '+'),
+    ('/', '+'),
+    ('+', '-'),
+    ('-', '-'),
+    ('*', '-'),
+    ('/', '-'),
+    ('+', '*'),
+    ('-', '*'),
+    ('*', '*'),
+    ('/', '*'),
+    ('+', '/'),
+    ('-', '/'),
+    ('*', '/'),
+    ('/', '/'),
+])
+def test_array_inner_product(left_symbol, right_symbol):
+    expression = LazyArray(name='A', shape=(2, 3)).inner(left_symbol, right_symbol, LazyArray(name='B', shape=(3, 4)))
+
+    expected_tree = ast.Node((ast.NodeSymbol.DOT, LazyArray.OPPERATION_MAP[left_symbol], LazyArray.OPPERATION_MAP[right_symbol]), None, (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), None, ('A',), ()),
+        ast.Node((ast.NodeSymbol.ARRAY,), None, ('B',), ())))
+    expected_symbol_table = {
+        'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (2, 3), None, None),
+        'B': ast.SymbolNode(ast.NodeSymbol.ARRAY, (3, 4), None, None),
+    }
+    expected_context = ast.create_context(ast=expected_tree, symbol_table=expected_symbol_table)
+
+    testing.assert_context_equal(expected_context, expression.context)
+
+
+@pytest.mark.parametrize("symbol", [
+    '+', '-', '*', '/'
+])
+def test_array_reduce(symbol):
+    expression = LazyArray(name='A', shape=(2, 3)).reduce(symbol)
+
+    expected_tree = ast.Node((ast.NodeSymbol.REDUCE, LazyArray.OPPERATION_MAP[symbol]), None, (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), None, ('A',), ()),))
+    expected_symbol_table = {
+        'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (2, 3), None, None),
+    }
+    expected_context = ast.create_context(ast=expected_tree, symbol_table=expected_symbol_table)
+
+    testing.assert_context_equal(expected_context, expression.context)
+
 
 
 def test_array_index_int():

@@ -7,6 +7,13 @@ from ..visualize import visualize_ast, print_ast
 
 
 class LazyArray:
+    OPPERATION_MAP = {
+        '+': ast.NodeSymbol.PLUS,
+        '-': ast.NodeSymbol.MINUS,
+        '*': ast.NodeSymbol.TIMES,
+        '/': ast.NodeSymbol.DIVIDE,
+    }
+
     def __init__(self, shape, value=None, name=None):
         if name is None and value is None:
             raise ValueError('either name or value must be supplied for LazyArray')
@@ -97,41 +104,51 @@ class LazyArray:
         return self
 
     def outer(self, operation, array):
-        operation_map = {
-            '+': (ast.NodeSymbol.DOT, ast.NodeSymbol.PLUS),
-            '-': (ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS),
-            '*': (ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES),
-            '/': (ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE),
-        }
-        if operation not in operation:
-            raise ValueError(f'operation {operation} not in allowed operations (+-*/)')
+        if operation not in self.OPPERATION_MAP:
+            raise ValueError(f'operation {operation} not one of allowed operations {self.OPPERATION_MAP.keys()}')
+
+        moa_operation = (ast.NodeSymbol.DOT, self.OPPERATION_MAP[operation])
 
         if isinstance(array, self.__class__):
             new_symbol_table, left_context, right_context = ast.join_symbol_tables(self.context, array.context)
             self.context = ast.create_context(
-                ast=ast.Node(operation_map[operation], None, (), (left_context.ast, right_context.ast)),
+                ast=ast.Node(moa_operation, None, (), (left_context.ast, right_context.ast)),
                 symbol_table=new_symbol_table)
 
         elif isinstance(left, (int, float, str)):
-            self.context = ast.Node(operation_map[operation], None, (), (
+            self.context = ast.Node(moa_operation, None, (), (
                 self.context.ast,
                 self._create_array_from_int_float_string(array)))
         else:
             raise TypeError(f'not known how to handle outer product with type {type(array)}')
         return self
 
+    def inner(self, left_operation, right_operation, array):
+        if left_operation not in self.OPPERATION_MAP:
+            raise ValueError(f'left operation {operation} not one of allowed operations {self.OPPERATION_MAP.keys()}')
+
+        if right_operation not in self.OPPERATION_MAP:
+            raise ValueError(f'right operation {operation} not one of allowed operations {self.OPPERATION_MAP.keys()}')
+
+        moa_operation = (ast.NodeSymbol.DOT, self.OPPERATION_MAP[left_operation], self.OPPERATION_MAP[right_operation])
+
+        if isinstance(array, self.__class__):
+            new_symbol_table, left_context, right_context = ast.join_symbol_tables(self.context, array.context)
+            self.context = ast.create_context(
+                ast=ast.Node(moa_operation, None, (), (left_context.ast, right_context.ast)),
+                symbol_table=new_symbol_table)
+        else:
+            raise TypeError(f'not known how to handle outer product with type {type(array)}')
+        return self
+
     def reduce(self, operation):
-        operation_map = {
-            '+': (ast.NodeSymbol.REDUCE, ast.NodeSymbol.PLUS),
-            '-': (ast.NodeSymbol.REDUCE, ast.NodeSymbol.MINUS),
-            '*': (ast.NodeSymbol.REDUCE, ast.NodeSymbol.TIMES),
-            '/': (ast.NodeSymbol.REDUCE, ast.NodeSymbol.DIVIDE),
-        }
-        if operation not in operation:
-            raise ValueError(f'operation {operation} not in allowed operations (+-*/)')
+        if operation not in self.OPPERATION_MAP:
+            raise ValueError(f'operation {operation} not one of allowed operations {self.OPPERATION_MAP.keys()}')
+
+        moa_operation = (ast.NodeSymbol.REDUCE, self.OPPERATION_MAP[operation])
 
         self.context = ast.create_context(
-            ast=ast.Node(operation_map[operation], None, (), (self.context.ast,)),
+            ast=ast.Node(moa_operation, None, (), (self.context.ast,)),
             symbol_table=self.context.symbol_table)
         return self
 
