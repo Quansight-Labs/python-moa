@@ -14,6 +14,7 @@ provide predictions on the runtime and performance of a computation.
    theory
    implementation
    roadmap
+   comparison
    publications
 
 
