@@ -72,14 +72,33 @@ def _reduce_replacement(context):
         ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.MINUS,),),)): _reduce_psi_plus_minus_times_divide,
         ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.TIMES,),),)): _reduce_psi_plus_minus_times_divide,
         ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DIVIDE,),),)): _reduce_psi_plus_minus_times_divide,
+        # outer product
         ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.PLUS),),)): _reduce_psi_outer_plus_minus_times_divide,
         ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS),),)): _reduce_psi_outer_plus_minus_times_divide,
         ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES),),)): _reduce_psi_outer_plus_minus_times_divide,
         ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE),),)): _reduce_psi_outer_plus_minus_times_divide,
+        # reduction
         ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.REDUCE, ast.NodeSymbol.PLUS),),)): _reduce_psi_reduce_plus_minus_times_divide,
         ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.REDUCE, ast.NodeSymbol.MINUS),),)): _reduce_psi_reduce_plus_minus_times_divide,
         ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.REDUCE, ast.NodeSymbol.TIMES),),)): _reduce_psi_reduce_plus_minus_times_divide,
         ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.REDUCE, ast.NodeSymbol.DIVIDE),),)): _reduce_psi_reduce_plus_minus_times_divide,
+        # inner product
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.PLUS  , ast.NodeSymbol.PLUS),),)): _reduce_psi_inner_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS , ast.NodeSymbol.PLUS),),)): _reduce_psi_inner_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES , ast.NodeSymbol.PLUS),),)): _reduce_psi_inner_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE, ast.NodeSymbol.PLUS),),)): _reduce_psi_inner_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.PLUS  , ast.NodeSymbol.MINUS),),)): _reduce_psi_inner_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS , ast.NodeSymbol.MINUS),),)): _reduce_psi_inner_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES , ast.NodeSymbol.MINUS),),)): _reduce_psi_inner_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE, ast.NodeSymbol.MINUS),),)): _reduce_psi_inner_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.PLUS  , ast.NodeSymbol.TIMES),),)): _reduce_psi_inner_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS , ast.NodeSymbol.TIMES),),)): _reduce_psi_inner_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES , ast.NodeSymbol.TIMES),),)): _reduce_psi_inner_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE, ast.NodeSymbol.TIMES),),)): _reduce_psi_inner_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.PLUS  , ast.NodeSymbol.DIVIDE),),)): _reduce_psi_inner_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.MINUS , ast.NodeSymbol.DIVIDE),),)): _reduce_psi_inner_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.TIMES , ast.NodeSymbol.DIVIDE),),)): _reduce_psi_inner_plus_minus_times_divide,
+        ((ast.NodeSymbol.PSI,), (None, ((ast.NodeSymbol.DOT, ast.NodeSymbol.DIVIDE, ast.NodeSymbol.DIVIDE),),)): _reduce_psi_inner_plus_minus_times_divide,
     }
 
     for rule, replacement_function in reduction_rules.items():
@@ -188,6 +207,10 @@ def _reduce_psi_outer_plus_minus_times_divide(context):
                 ast.Node((ast.NodeSymbol.ARRAY,), (right_dimension,), (right_array_name,), ()),
                 ast.select_node(context, (1, 1)).ast)))),
         symbol_table=context.symbol_table)
+
+
+def _reduce_psi_inner_plus_minus_times_divide(context):
+    raise NotImplementedError('inner product')
 
 
 def _reduce_psi_plus_minus_times_divide(context):
