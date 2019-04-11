@@ -36,6 +36,12 @@ Important questions that will guide development:
  - [X] Can we represent complex operations and einsum math: requires `+red, transpose`?
  - [ ] What is the interface for arrays? (shape, indexing function)
  - [ ] How does one wrap pre-existing numerical routines?
+
+# Installation
+
+```shell
+pip install python-moa
+```
  
 # Documentation
 
