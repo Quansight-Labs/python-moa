@@ -162,6 +162,46 @@ def test_shape_unit_outer_plus_minus_multiply_divide_no_symbol(operation):
 
 
 @pytest.mark.parametrize("operation", [
+    (ast.NodeSymbol.PLUS,  ast.NodeSymbol.PLUS),
+    (ast.NodeSymbol.MINUS, ast.NodeSymbol.PLUS),
+    (ast.NodeSymbol.DIVIDE,ast.NodeSymbol.PLUS),
+    (ast.NodeSymbol.TIMES, ast.NodeSymbol.PLUS),
+    (ast.NodeSymbol.PLUS,  ast.NodeSymbol.MINUS),
+    (ast.NodeSymbol.MINUS, ast.NodeSymbol.MINUS),
+    (ast.NodeSymbol.DIVIDE,ast.NodeSymbol.MINUS),
+    (ast.NodeSymbol.TIMES, ast.NodeSymbol.MINUS),
+    (ast.NodeSymbol.PLUS,  ast.NodeSymbol.TIMES),
+    (ast.NodeSymbol.MINUS, ast.NodeSymbol.TIMES),
+    (ast.NodeSymbol.DIVIDE,ast.NodeSymbol.TIMES),
+    (ast.NodeSymbol.TIMES, ast.NodeSymbol.TIMES),
+    (ast.NodeSymbol.PLUS,  ast.NodeSymbol.DIVIDE),
+    (ast.NodeSymbol.MINUS, ast.NodeSymbol.DIVIDE),
+    (ast.NodeSymbol.DIVIDE,ast.NodeSymbol.DIVIDE),
+    (ast.NodeSymbol.TIMES, ast.NodeSymbol.DIVIDE),
+])
+def test_shape_unit_inner_plus_minus_multiply_divide_no_symbol(operation):
+    symbol_table = {
+        'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (1, 2, 3), None, None),
+        'B': ast.SymbolNode(ast.NodeSymbol.ARRAY, (3, 4, 5), None, None)
+    }
+    tree = ast.Node((ast.NodeSymbol.DOT, *operation), None, (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), None, ('A',), ()),
+        ast.Node((ast.NodeSymbol.ARRAY,), None, ('B',), ()),))
+
+    expected_tree = ast.Node((ast.NodeSymbol.DOT, *operation), (1, 2, 4, 5), (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), (1, 2, 3), ('A',), ()),
+        ast.Node((ast.NodeSymbol.ARRAY,), (3, 4, 5), ('B',), ()),))
+
+    context = ast.create_context(ast=tree, symbol_table=symbol_table)
+    expected_context = ast.create_context(ast=expected_tree, symbol_table=symbol_table)
+    context_copy = copy.deepcopy(context)
+
+    new_context = shape.calculate_shapes(context)
+    testing.assert_context_equal(context, context_copy)
+    testing.assert_context_equal(expected_context, new_context)
+
+
+@pytest.mark.parametrize("operation", [
     ast.NodeSymbol.PLUS, ast.NodeSymbol.MINUS,
     ast.NodeSymbol.DIVIDE, ast.NodeSymbol.TIMES,
 ])

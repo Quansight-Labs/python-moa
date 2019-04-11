@@ -210,7 +210,34 @@ def _reduce_psi_outer_plus_minus_times_divide(context):
 
 
 def _reduce_psi_inner_plus_minus_times_divide(context):
-    raise NotImplementedError('inner product')
+    """<i j k> psi (... <inner (+,*)> ...) -> +red (l) (<i, j, l> psi ... * <l k> psi ...)
+    """
+    index_vector = ast.select_array_node_symbol(context, (0,))
+    left_node = ast.select_node(context, (1, 0))
+    right_node = ast.select_node(context, (1, 1))
+    operation_node = ast.select_node(context, (1,))
+
+    reduction_symbol_name = ast.generate_unique_index_name(context)
+    context = ast.add_symbol(context, reduction_symbol_name, ast.NodeSymbol.INDEX, (), None, (0, left_node.ast.shape[-1], 1))
+
+    left_vector_name = ast.generate_unique_array_name(context)
+    left_vector_value = index_vector.value[:len(left_node.ast.shape)-1] + (ast.Node((ast.NodeSymbol.INDEX,), (), (reduction_symbol_name,), ()),)
+    context = ast.add_symbol(context, left_vector_name, ast.NodeSymbol.ARRAY, (len(left_vector_value),), None, left_vector_value)
+
+    right_vector_name = ast.generate_unique_array_name(context)
+    right_vector_value = (ast.Node((ast.NodeSymbol.INDEX,), (), (reduction_symbol_name,), ()),) + index_vector.value[-(len(right_node.ast.shape)-1):]
+    context = ast.add_symbol(context, right_vector_name, ast.NodeSymbol.ARRAY, (len(right_vector_value),), None, right_vector_value)
+
+    return ast.create_context(
+        ast=ast.Node((ast.NodeSymbol.REDUCE, operation_node.ast.symbol[1]), context.ast.shape, (reduction_symbol_name,), (
+            ast.Node((operation_node.ast.symbol[2],), context.ast.shape, (), (
+                ast.Node((ast.NodeSymbol.PSI,), context.ast.shape, (), (
+                    ast.Node((ast.NodeSymbol.ARRAY,), (len(left_vector_value),), (left_vector_name,), ()),
+                    left_node.ast)),
+                ast.Node((ast.NodeSymbol.PSI,), context.ast.shape, (), (
+                    ast.Node((ast.NodeSymbol.ARRAY,), (len(right_vector_value),), (right_vector_name,), ()),
+                    right_node.ast)))),)),
+        symbol_table=context.symbol_table)
 
 
 def _reduce_psi_plus_minus_times_divide(context):

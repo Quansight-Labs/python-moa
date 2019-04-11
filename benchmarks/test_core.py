@@ -17,8 +17,8 @@ def test_moa_numba_addition(benchmark):
     local_dict = {}
     exec(expression.compile(backend='python', use_numba=True), globals(), local_dict)
 
-    A = numpy.arange(n*m).reshape(n, m)
-    B = numpy.arange(n*m).reshape(n, m)
+    A = numpy.random.random((n, m))
+    B = numpy.random.random((n, m))
 
     benchmark(local_dict['f'], A, B)
 
@@ -28,8 +28,8 @@ def test_numpy_addition(benchmark):
     n = 1000
     m = 1000
 
-    A = numpy.arange(n*m).reshape(n, m)
-    B = numpy.arange(n*m).reshape(n, m)
+    A = numpy.random.random((n, m))
+    B = numpy.random.random((n, m))
 
     def _test():
         A + B
@@ -42,8 +42,8 @@ def test_pytorch_addition(benchmark):
     n = 1000
     m = 1000
 
-    A = torch.arange(n*m).reshape(n, m)
-    B = torch.arange(n*m).reshape(n, m)
+    A = torch.rand(n, m)
+    B = torch.rand(n, m)
 
     def _test():
         torch.add(A, B)
@@ -56,8 +56,8 @@ def test_tensorflow_addition(benchmark):
     n = 1000
     m = 1000
 
-    A = tensorflow.reshape(tensorflow.range(n*m), (n, m))
-    B = tensorflow.reshape(tensorflow.range(n*m), (n, m))
+    A = tensorflow.random.uniform((n, m))
+    B = tensorflow.random.uniform((n, m))
 
     session = tensorflow.Session()
     session.run(tensorflow.initialize_all_variables())
@@ -80,8 +80,8 @@ def test_moa_numba_addition_index(benchmark):
     local_dict = {}
     exec(expression.compile(backend='python', use_numba=True), globals(), local_dict)
 
-    A = numpy.arange(n*m).reshape(n, m)
-    B = numpy.arange(n*m).reshape(n, m)
+    A = numpy.random.random((n, m))
+    B = numpy.random.random((n, m))
 
     benchmark(local_dict['f'], A, B)
 
@@ -91,8 +91,8 @@ def test_numpy_addition_index(benchmark):
     n = 1000
     m = 1000
 
-    A = numpy.arange(n*m).reshape(n, m)
-    B = numpy.arange(n*m).reshape(n, m)
+    A = numpy.random.random((n, m))
+    B = numpy.random.random((n, m))
 
     def _test():
         A[0] + B[0]
@@ -105,8 +105,8 @@ def test_pytorch_addition_index(benchmark):
     n = 1000
     m = 1000
 
-    A = torch.arange(n*m).reshape(n, m)
-    B = torch.arange(n*m).reshape(n, m)
+    A = torch.rand(n, m)
+    B = torch.rand(n, m)
 
     def _test():
         torch.add(A[0], B[0])
@@ -119,8 +119,8 @@ def test_tensorflow_addition_index(benchmark):
     n = 1000
     m = 1000
 
-    A = tensorflow.reshape(tensorflow.range(n*m), (n, m))
-    B = tensorflow.reshape(tensorflow.range(n*m), (n, m))
+    A = tensorflow.random.uniform((n, m))
+    B = tensorflow.random.uniform((n, m))
     index = tensorflow.constant(0)
 
     session = tensorflow.Session()
@@ -144,9 +144,9 @@ def test_moa_numba_double_addition(benchmark):
     local_dict = {}
     exec(expression.compile(backend='python', use_numba=True), globals(), local_dict)
 
-    A = numpy.arange(n*m).reshape(n, m)
-    B = numpy.arange(n*m).reshape(n, m)
-    C = numpy.arange(n*m).reshape(n, m)
+    A = numpy.random.random((n, m))
+    B = numpy.random.random((n, m))
+    C = numpy.random.random((n, m))
 
     benchmark(local_dict['f'], A=A, B=B, C=C)
 
@@ -156,9 +156,9 @@ def test_numpy_double_addition(benchmark):
     n = 1000
     m = 1000
 
-    A = numpy.arange(n*m).reshape(n, m)
-    B = numpy.arange(n*m).reshape(n, m)
-    C = numpy.arange(n*m).reshape(n, m)
+    A = numpy.random.random((n, m))
+    B = numpy.random.random((n, m))
+    C = numpy.random.random((n, m))
 
     def _test():
         A + B + C
@@ -171,9 +171,9 @@ def test_pytorch_double_addition(benchmark):
     n = 1000
     m = 1000
 
-    A = torch.arange(n*m).reshape(n, m)
-    B = torch.arange(n*m).reshape(n, m)
-    C = torch.arange(n*m).reshape(n, m)
+    A = torch.rand(n, m)
+    B = torch.rand(n, m)
+    C = torch.rand(n, m)
 
     def _test():
         torch.add(torch.add(A, B), C)
@@ -186,9 +186,9 @@ def test_tensorflow_double_addition(benchmark):
     n = 1000
     m = 1000
 
-    A = tensorflow.reshape(tensorflow.range(n*m), (n, m))
-    B = tensorflow.reshape(tensorflow.range(n*m), (n, m))
-    C = tensorflow.reshape(tensorflow.range(n*m), (n, m))
+    A = tensorflow.random.uniform((n, m))
+    B = tensorflow.random.uniform((n, m))
+    C = tensorflow.random.uniform((n, m))
 
     session = tensorflow.Session()
     session.run(tensorflow.initialize_all_variables())
@@ -201,8 +201,8 @@ def test_tensorflow_double_addition(benchmark):
     benchmark(_test)
 
 
-@pytest.mark.benchmark(group="outer", warmup=True)
-def test_moa_numba_outer(benchmark):
+@pytest.mark.benchmark(group="outer_product", warmup=True)
+def test_moa_numba_outer_product(benchmark):
     n = 100
     m = 100
 
@@ -211,19 +211,19 @@ def test_moa_numba_outer(benchmark):
     local_dict = {}
     exec(expression.compile(backend='python', use_numba=True), globals(), local_dict)
 
-    A = numpy.arange(n*m).reshape(n, m)
-    B = numpy.arange(n*m).reshape(n, m)
+    A = numpy.random.random((n, m))
+    B = numpy.random.random((n, m))
 
     benchmark(local_dict['f'], A, B)
 
 
-@pytest.mark.benchmark(group="outer")
-def test_numpy_outer(benchmark):
+@pytest.mark.benchmark(group="outer_product")
+def test_numpy_outer_product(benchmark):
     n = 100
     m = 100
 
-    A = numpy.arange(n*m).reshape(n, m)
-    B = numpy.arange(n*m).reshape(n, m)
+    A = numpy.random.random((n, m))
+    B = numpy.random.random((n, m))
 
     def _test():
         numpy.outer(A, B)
@@ -241,7 +241,7 @@ def test_moa_numba_reduce(benchmark):
     local_dict = {}
     exec(expression.compile(backend='python', use_numba=True), globals(), local_dict)
 
-    A = numpy.arange(n*m).reshape(n, m)
+    A = numpy.random.random((n, m))
 
     benchmark(local_dict['f'], A)
 
@@ -251,7 +251,7 @@ def test_numpy_reduce(benchmark):
     n = 1000
     m = 1000
 
-    A = numpy.arange(n*m).reshape(n, m)
+    A = numpy.random.random((n, m))
 
     def _test():
         A.sum()
@@ -264,7 +264,7 @@ def test_pytorch_reduce(benchmark):
     n = 1000
     m = 1000
 
-    A = torch.arange(n*m).reshape(n, m)
+    A = torch.rand(n, m)
 
     def _test():
         torch.sum(A)
@@ -277,12 +277,77 @@ def test_tensorflow_reduce(benchmark):
     n = 1000
     m = 1000
 
-    A = tensorflow.reshape(tensorflow.range(n*m), (n, m))
+    A = tensorflow.random.uniform((n, m))
 
     session = tensorflow.Session()
     session.run(tensorflow.initialize_all_variables())
 
     result = tensorflow.math.reduce_sum(A)
+
+    def _test():
+        session.run(result)
+
+    benchmark(_test)
+
+
+@pytest.mark.benchmark(group="inner_product", warmup=True)
+def test_moa_numba_inner_product(benchmark):
+    n = 1000
+    m = 1000
+
+    _A = LazyArray(name='A', shape=('n', 'm'))
+    _B = LazyArray(name='B', shape=('m', 'k'))
+    expression = _A.inner('+', '*', _B)
+
+    local_dict = {}
+    exec(expression.compile(backend='python', use_numba=True), globals(), local_dict)
+
+    A = numpy.random.random((n, m))
+    B = numpy.random.random((n, m))
+
+    benchmark(local_dict['f'], A, B)
+
+
+@pytest.mark.benchmark(group="inner_product")
+def test_numpy_inner_product(benchmark):
+    n = 1000
+    m = 1000
+
+    A = numpy.random.random((n, m))
+    B = numpy.random.random((n, m))
+
+    def _test():
+        A.dot(B)
+
+    benchmark(_test)
+
+
+@pytest.mark.benchmark(group="inner_product")
+def test_pytorch_inner_product(benchmark):
+    n = 1000
+    m = 1000
+
+    A = torch.rand(n, m)
+    B = torch.rand(n, m)
+
+    def _test():
+        torch.mm(A, B)
+
+    benchmark(_test)
+
+
+@pytest.mark.benchmark(group="inner_product")
+def test_tensorflow_inner_product(benchmark):
+    n = 1000
+    m = 1000
+
+    A = tensorflow.random.uniform((n, m))
+    B = tensorflow.random.uniform((n, m))
+
+    session = tensorflow.Session()
+    session.run(tensorflow.initialize_all_variables())
+
+    result = tensorflow.linalg.matmul(A, B)
 
     def _test():
         session.run(result)

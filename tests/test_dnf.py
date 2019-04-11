@@ -30,6 +30,7 @@ def test_matches_rule_simple():
     rule = ((ast.NodeSymbol.ARRAY,),)
     assert dnf.matches_rule(rule, context)
 
+
 def test_not_matches_rule_simple():
     tree = ast.Node((ast.NodeSymbol.ARRAY,), (2, 3), ('A',), ())
     symbol_table = {'A': ast.SymbolNode(ast.NodeSymbol.ARRAY, (2, 3), None, (1, 2, 3, 4, 5, 6))}
@@ -193,6 +194,58 @@ def test_reduce_psi_outer_plus_minus_times_divide_equal_shape(operation):
             ast.Node((ast.NodeSymbol.ARRAY,), (4, 5), ('_a4',), ())))))
 
     testing.assert_transformation(tree, symbol_table, expected_tree, expected_symbol_table, dnf._reduce_psi_outer_plus_minus_times_divide)
+
+
+@pytest.mark.parametrize("operation", [
+    (ast.NodeSymbol.PLUS,  ast.NodeSymbol.PLUS),
+    (ast.NodeSymbol.MINUS, ast.NodeSymbol.PLUS),
+    (ast.NodeSymbol.DIVIDE,ast.NodeSymbol.PLUS),
+    (ast.NodeSymbol.TIMES, ast.NodeSymbol.PLUS),
+    (ast.NodeSymbol.PLUS,  ast.NodeSymbol.MINUS),
+    (ast.NodeSymbol.MINUS, ast.NodeSymbol.MINUS),
+    (ast.NodeSymbol.DIVIDE,ast.NodeSymbol.MINUS),
+    (ast.NodeSymbol.TIMES, ast.NodeSymbol.MINUS),
+    (ast.NodeSymbol.PLUS,  ast.NodeSymbol.TIMES),
+    (ast.NodeSymbol.MINUS, ast.NodeSymbol.TIMES),
+    (ast.NodeSymbol.DIVIDE,ast.NodeSymbol.TIMES),
+    (ast.NodeSymbol.TIMES, ast.NodeSymbol.TIMES),
+    (ast.NodeSymbol.PLUS,  ast.NodeSymbol.DIVIDE),
+    (ast.NodeSymbol.MINUS, ast.NodeSymbol.DIVIDE),
+    (ast.NodeSymbol.DIVIDE,ast.NodeSymbol.DIVIDE),
+    (ast.NodeSymbol.TIMES, ast.NodeSymbol.DIVIDE),
+])
+def test_reduce_psi_inner_plus_minus_times_divide_equal_shape(operation):
+    symbol_table = {
+        '_i0': ast.SymbolNode(ast.NodeSymbol.INDEX, (), None, (0, 3, 1)),
+        '_i1': ast.SymbolNode(ast.NodeSymbol.INDEX, (), None, (0, 5, 1)),
+        '_a2': ast.SymbolNode(ast.NodeSymbol.ARRAY, (4,), None, (
+            ast.Node((ast.NodeSymbol.INDEX,), (), ('_i0',), ()),
+            ast.Node((ast.NodeSymbol.INDEX,), (), ('_i1',), ()))),
+        '_a3': ast.SymbolNode(ast.NodeSymbol.ARRAY, (3, 4), None, None),
+        '_a4': ast.SymbolNode(ast.NodeSymbol.ARRAY, (4, 5), None, None),
+    }
+    tree = ast.Node((ast.NodeSymbol.PSI,), (0,), (), (
+        ast.Node((ast.NodeSymbol.ARRAY,), (2,), ('_a2',), ()),
+        ast.Node((ast.NodeSymbol.DOT, *operation), (3, 5), (), (
+            ast.Node((ast.NodeSymbol.ARRAY,), (3, 4), ('_a3',), ()),
+            ast.Node((ast.NodeSymbol.ARRAY,), (4, 5), ('_a4',), ())))))
+
+    expected_symbol_table = {
+        **symbol_table,
+        '_i5': ast.SymbolNode(ast.NodeSymbol.INDEX, (), None, (0, 4, 1)),
+        '_a6': ast.SymbolNode(ast.NodeSymbol.ARRAY, (2,), None, (ast.Node((ast.NodeSymbol.INDEX,), (), ('_i0',), ()), ast.Node((ast.NodeSymbol.INDEX,), (), ('_i5',), ()))),
+        '_a7': ast.SymbolNode(ast.NodeSymbol.ARRAY, (2,), None, (ast.Node((ast.NodeSymbol.INDEX,), (), ('_i5',), ()), ast.Node((ast.NodeSymbol.INDEX,), (), ('_i1',), ()))),
+    }
+    expected_tree = ast.Node((ast.NodeSymbol.REDUCE, operation[0]), (0,), ('_i5',), (
+        ast.Node((operation[1],), (0,), (), (
+            ast.Node((ast.NodeSymbol.PSI,), (0,), (), (
+                ast.Node((ast.NodeSymbol.ARRAY,), (2,), ('_a6',), ()),
+                ast.Node((ast.NodeSymbol.ARRAY,), (3, 4), ('_a3',), ()))),
+            ast.Node((ast.NodeSymbol.PSI,), (0,), (), (
+                ast.Node((ast.NodeSymbol.ARRAY,), (2,), ('_a7',), ()),
+                ast.Node((ast.NodeSymbol.ARRAY,), (4, 5), ('_a4',), ()))))),))
+
+    testing.assert_transformation(tree, symbol_table, expected_tree, expected_symbol_table, dnf._reduce_psi_inner_plus_minus_times_divide)
 
 
 @pytest.mark.parametrize("operation", [
