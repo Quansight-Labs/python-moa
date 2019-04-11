@@ -1,8 +1,9 @@
 from setuptools import setup, find_packages
 from os import path
+import io
 
 here = path.abspath(path.dirname(__file__))
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+with io.open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
@@ -12,8 +13,10 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/Quansight-Labs/python-moa',
-    author='Christopher Ostrouchov',
+    author='Quansight',
     author_email='costrouchov@quansight.com',
+    maintainer='Christopher Ostrouchov',
+    maintainer_email='costrouchov@quansight.com',
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
@@ -23,7 +26,7 @@ setup(
         'Programming Language :: Python :: 3.7',
     ],
     keywords='mathematics compiler moa',
-    packages=find_packages(exclude=['docs', 'tests', 'notebooks']),
+    packages=find_packages(exclude=['docs', 'tests', 'notebooks', 'benchmarks']),
     python_requires='>=3.6',
     install_requires=['sly', 'astunparse'],
     extras_require={

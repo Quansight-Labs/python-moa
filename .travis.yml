@@ -1,13 +1,9 @@
 language: nix
-# docs in turn build package which runs the tests so this tests
-# everything
 script: nix-build dev.nix -A python-moa --arg benchmark true
 
 deploy:
-  provider: pypi
-  user: costrouc
-  password:
-    secure: "25eeCq4dYzaf8x1xoukWWxO+xy7XF/vpZ76x7w2LfpYXuoYya0/HZa6S3pJZEtfb8EBK32H5rlbh1pDZm8XmX7qmfX+HI5OPMdosTkbjMEmPbbWI7ziD/QXArV1zLlSOpctbCvcgpIIKlaUrRT4QuE7uASbQL45lOol1gPVWlu2pTT1L8yeuJ3sSa2egwwPqNlJrbkFVV1u3BJacmitTdcIeitG0NnGqeTDI9oSxrSboBekQ0uHjRrTyR9r46KfcOII78NPwierVBD0qMcpbx6o0BlSoAxPDdvHQm+jXQSotkpRKnbtHUgE027TLZ062v/SJnm1d+LcWEg6OOJ80YtJ2rHlwQAr6nM6oli0iVXdn20pdYOqqoPTPP2oNA9tsPmrPCME6y89XbONsSZCgbggDZzdhQuVLCqBvPPxGYOqOJCFHvr9m9P/D228lnK4kIUiMshhfB/7iSAzaLrMJ9exOwKnVcqynDzTsblCuVhT0tRuEOhQQGq5rTBd2oI23G/cxm46kddEK+YuqB4MrSVqZ+HPKOlRuAzrCSUwEuelUe/ca+TqNSQMAVO90z7F4jH5tPbFwlwy8vsg5VN8hiICehK3XWxh4x8SJ0qcIB55BadOavL0cbrwQ7qTyrMRp4nGadbpqSWaRJZCE8O+NOAT7nXVICYdoq/VWSAUJTE0="
-  distributions: "sdist"
-  on:
-    tags: true
+  provider: script
+  skip_cleanup: true
+  script: >-
+    nix-build dev.nix -A release &&
+    nix-shell -p python3Packages.twine --run "twine upload result/*"

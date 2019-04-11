@@ -30,6 +30,25 @@ rec {
     '';
   };
 
+  release = pkgs.stdenv.mkDerivation {
+     name = "python-moa-sdist";
+
+     buildInputs = [ python-moa ];
+
+     src = builtins.filterSource
+         (path: _: !builtins.elem  (builtins.baseNameOf path) [".git" "result"])
+         ./.;
+
+     buildPhase = ''
+       python setup.py sdist
+     '';
+
+     installPhase = ''
+       mkdir -p $out
+       cp dist/* $out
+     '';
+  };
+
   docs = pkgs.stdenv.mkDerivation {
      name = "python-moa-docs";
 
@@ -88,4 +107,5 @@ rec {
   binder = pkgs.mkShell {
     buildInputs = with pythonPackages; [ python-moa jupyterlab graphviz numpy numba];
   };
+
 }
