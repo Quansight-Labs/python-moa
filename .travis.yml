@@ -7,3 +7,5 @@ deploy:
   script: >-
     nix-build dev.nix -A release &&
     nix-shell -p python3Packages.twine --run "twine upload result/*"
+  on:
+    tags: true
