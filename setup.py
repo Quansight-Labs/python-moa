@@ -7,14 +7,14 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='python-moa',
-    version='0.0.1',
+    version='0.5.0',
     description='Python Mathematics of Arrays (MOA)',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/Quansight-Labs/python-moa',
     author='Christopher Ostrouchov',
     author_email='costrouchov@quansight.com',
-    classifiers=[  # Optional
+    classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         "License :: OSI Approved :: BSD License",
