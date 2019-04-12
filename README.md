@@ -1,6 +1,7 @@
 [![Build Status](https://travis-ci.org/Quansight-Labs/python-moa.svg?branch=master)](https://travis-ci.org/Quansight-Labs/python-moa)
 [![Documentation Status](https://readthedocs.org/projects/python-moa/badge/?version=latest)](https://python-moa.readthedocs.io/en/latest/?badge=latest)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Quansight-Labs/python-moa/master)
+[![PyPI](https://img.shields.io/pypi/v/python-moa.svg?style=flat-square)](https://pypi.org/project/python-moa/)
 
 
 # Mathematics of Arrays (MOA)
