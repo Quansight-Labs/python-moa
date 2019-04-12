@@ -3,12 +3,15 @@
 """
 import pytest
 
+from moa.frontend import LazyArray
 from moa.compiler import compiler
 from moa.array import Array
 
 
 def test_lenore_example_1():
-    python_source = compiler('<0> psi (tran(A ^ <2 3> + B ^ <2 3>))')
+    _A = LazyArray(name='A', shape=(2, 3))
+    _B = LazyArray(name='B', shape=(2, 3))
+    python_source = compiler((_A + _B).T[0].context)
     print(python_source)
 
     local_dict = {}
@@ -22,7 +25,9 @@ def test_lenore_example_1():
 
 
 def test_lenore_example_1_symbols():
-    python_source = compiler('<i> psi (tran(A ^ <n m> + B ^ <l 3>))')
+    _A = LazyArray(name='A', shape=('n', 'm'))
+    _B = LazyArray(name='B', shape=('l', 3))
+    python_source = compiler((_A + _B).T['i'].context)
 
     local_dict = {}
     exec(python_source, globals(), local_dict)

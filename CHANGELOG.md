@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.5.1] - 2019-04-12
+
+### Changed
+
+ - sly is now optional dependency (moving away from lex/yacc moa syntax)
+
 ## [0.5.0] - 2019-04-11
 
 ### Added
@@ -30,7 +36,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - shape, dnf, onf compilation stages
  - onf stage is naive compiler (no loop reduction, loop ordering, etc.)
  - lex/yacc moa frontend and `LazyArray` frontend
-
-### Changed
-
-### Removed

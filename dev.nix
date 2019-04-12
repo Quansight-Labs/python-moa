@@ -9,9 +9,9 @@ let
 
   pythonPackages = pkgs.python3Packages;
 
-  buildInputs = with pythonPackages; [ sly astunparse ];
+  buildInputs = with pythonPackages; [ astunparse ];
   docsInputs = with pythonPackages; [ sphinx sphinxcontrib-tikz ];
-  testInputs = with pythonPackages; [ pytest pytestcov graphviz ];
+  testInputs = with pythonPackages; [ pytest pytestcov graphviz sly ];
   benchmarkInputs = with pythonPackages; [ pytest-benchmark numpy numba pytorch tensorflow ];
 in
 rec {

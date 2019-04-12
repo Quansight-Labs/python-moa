@@ -7,7 +7,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='python-moa',
-    version='0.5.0',
+    version='0.5.1',
     python_requires='>=3.6',
     description='Python Mathematics of Arrays (MOA)',
     long_description=long_description,
@@ -28,10 +28,11 @@ setup(
         'Intended Audience :: Science/Research',
     ],
     packages=find_packages(exclude=['docs', 'tests', 'notebooks', 'benchmarks']),
-    install_requires=['sly', 'astunparse'],
+    install_requires=['astunparse'],
     extras_require={
+        'moa': ['sly'],
         'viz': ['graphviz'],
-        'test': ['pytest', 'pytest-cov'],
+        'test': ['sly', 'pytest', 'pytest-cov'],
         'docs': ['sphinx', 'sphinxcontrib-tikz'],
         'benchmark': ['numpy', 'numba']
     },

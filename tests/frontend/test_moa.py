@@ -1,6 +1,8 @@
 import pytest
 
-from moa.frontend import MOALexer, MOAParser
+sly = pytest.importorskip('sly')
+
+from moa.frontend.moa import MOALexer, MOAParser
 from moa.exception import MOAException
 from moa import testing
 from moa import ast

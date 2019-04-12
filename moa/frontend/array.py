@@ -205,7 +205,7 @@ class LazyArray:
         return self._rbinary_opperation(ast.NodeSymbol.DIVIDE, other)
 
     def compile(self, backend='python', **kwargs):
-        return compiler.compiler(self, frontend='array', backend=backend, **kwargs)
+        return compiler.compiler(self.context, backend=backend, **kwargs)
 
     def _shape(self):
         return calculate_shapes(self.context)
