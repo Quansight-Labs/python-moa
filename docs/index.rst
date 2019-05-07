@@ -15,6 +15,7 @@ provide predictions on the runtime and performance of a computation.
    implementation
    roadmap
    comparison
+   optimization
    publications
 
 
