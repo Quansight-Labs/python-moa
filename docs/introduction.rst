@@ -2,7 +2,7 @@ Introduction
 ============
 
 Python-moa (mathematics of arrays) is an approach to a high level
-tensor compiler that is based on the work of `Lenore Mullins
+tensor compiler that is based on the work of `Lenore Mullin
 <https://www.albany.edu/ceas/lenore-mullin.php>`_ and her
 `dissertation
 <https://www.researchgate.net/publication/308893116_A_Mathematics_of_Arrays>`_. A
@@ -41,7 +41,7 @@ get unique properties that other compilers cannot guarantee.
 Frontend
 --------
 
-Lenore Mullins originally developed a `moa compiler
+Lenore Mullin originally developed a `moa compiler
 <https://github.com/saulshanabrook/psi-compiler/>`_ in the 90s with
 programs that used a symbolic syntax heavily inspired by `APL
 <https://en.wikipedia.org/wiki/APL_(programming_language)>`_ (`example
