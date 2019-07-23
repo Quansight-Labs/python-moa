@@ -65,7 +65,7 @@ rec {
     buildInputs = with pythonPackages; [
       package
       sphinx
-      sphinxcontrib-tikz
+      # sphinxcontrib-tikz
     ];
 
     buildPhase = ''
